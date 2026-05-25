@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting/perf_metrics_setting"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
+	"github.com/Chaoteen/quinta-ai-gateway/setting/perf_metrics_setting"
 )
 
 func flushLoop() {

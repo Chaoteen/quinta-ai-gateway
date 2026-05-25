@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/QuantumNous/new-api/common"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/go-redis/redis/v8"
 )
 

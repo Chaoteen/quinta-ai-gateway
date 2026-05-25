@@ -3,7 +3,7 @@ package dto
 import (
 	"encoding/json"
 
-	"github.com/QuantumNous/new-api/types"
+	"github.com/Chaoteen/quinta-ai-gateway/types"
 )
 
 type OpenAIResponsesCompactionResponse struct {

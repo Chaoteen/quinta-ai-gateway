@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/pkg/billingexpr"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	"github.com/Chaoteen/quinta-ai-gateway/pkg/billingexpr"
+	relaycommon "github.com/Chaoteen/quinta-ai-gateway/relay/common"
 )
 
 // TieredResultWrapper wraps billingexpr.TieredResult for use at the service layer.

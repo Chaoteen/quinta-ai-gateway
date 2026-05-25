@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 
-	"github.com/QuantumNous/new-api/logger"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/Chaoteen/quinta-ai-gateway/logger"
+	relaycommon "github.com/Chaoteen/quinta-ai-gateway/relay/common"
+	"github.com/Chaoteen/quinta-ai-gateway/types"
 	"github.com/gin-gonic/gin"
 )
 

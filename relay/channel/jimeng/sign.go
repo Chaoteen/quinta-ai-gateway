@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/logger"
+	"github.com/Chaoteen/quinta-ai-gateway/logger"
 	"github.com/gin-gonic/gin"
 )
 

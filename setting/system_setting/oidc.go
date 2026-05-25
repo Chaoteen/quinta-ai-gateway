@@ -1,6 +1,6 @@
 package system_setting
 
-import "github.com/QuantumNous/new-api/setting/config"
+import "github.com/Chaoteen/quinta-ai-gateway/setting/config"
 
 type OIDCSettings struct {
 	Enabled               bool   `json:"enabled"`

@@ -3,13 +3,13 @@ package controller
 import (
 	"strconv"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/relay"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/constant"
+	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
+	"github.com/Chaoteen/quinta-ai-gateway/relay"
+	"github.com/Chaoteen/quinta-ai-gateway/service"
+	"github.com/Chaoteen/quinta-ai-gateway/types"
 
 	"github.com/gin-gonic/gin"
 )

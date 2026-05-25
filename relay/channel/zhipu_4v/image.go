@@ -4,12 +4,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/logger"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	"github.com/Chaoteen/quinta-ai-gateway/logger"
+	relaycommon "github.com/Chaoteen/quinta-ai-gateway/relay/common"
+	"github.com/Chaoteen/quinta-ai-gateway/service"
+	"github.com/Chaoteen/quinta-ai-gateway/types"
 
 	"github.com/gin-gonic/gin"
 )

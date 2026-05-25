@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/Chaoteen/quinta-ai-gateway/setting/config"
 )
 
 type MonitorSetting struct {

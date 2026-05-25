@@ -3,10 +3,10 @@ package controller
 import (
 	"net/http"
 
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
+	"github.com/Chaoteen/quinta-ai-gateway/service"
+	"github.com/Chaoteen/quinta-ai-gateway/setting"
+	"github.com/Chaoteen/quinta-ai-gateway/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 )

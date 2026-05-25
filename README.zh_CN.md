@@ -111,7 +111,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # 编辑 docker-compose.yml 配置
@@ -340,7 +340,7 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # 克隆项目
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # 编辑配置

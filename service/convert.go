@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/relay/channel/openrouter"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/relay/reasonmap"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/constant"
+	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	"github.com/Chaoteen/quinta-ai-gateway/relay/channel/openrouter"
+	relaycommon "github.com/Chaoteen/quinta-ai-gateway/relay/common"
+	"github.com/Chaoteen/quinta-ai-gateway/relay/reasonmap"
 	"github.com/samber/lo"
 )
 

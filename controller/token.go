@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/i18n"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/i18n"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
+	"github.com/Chaoteen/quinta-ai-gateway/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )

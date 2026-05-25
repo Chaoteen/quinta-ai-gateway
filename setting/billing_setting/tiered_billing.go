@@ -3,8 +3,8 @@ package billing_setting
 import (
 	"fmt"
 
-	"github.com/QuantumNous/new-api/pkg/billingexpr"
-	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/Chaoteen/quinta-ai-gateway/pkg/billingexpr"
+	"github.com/Chaoteen/quinta-ai-gateway/setting/config"
 	"github.com/samber/lo"
 )
 

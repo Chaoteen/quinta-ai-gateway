@@ -82,7 +82,7 @@ function ProjectAttribution(props: { currentYear: number }) {
       <span className='text-muted-foreground/45'>
         &copy; {props.currentYear}{' '}
         <a
-          href='https://github.com/QuantumNous/new-api'
+          href='https://github.com/Chaoteen/quinta-ai-gateway'
           target='_blank'
           rel='noopener noreferrer'
           className='text-foreground/70 hover:text-foreground font-medium transition-colors'
