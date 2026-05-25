@@ -290,7 +290,11 @@ func RelayMidjourneyTaskImageSeed(c *gin.Context) *dto.MidjourneyResponse {
 	if originTask == nil {
 		return service.MidjourneyErrorWrapper(constant.MjRequestError, "task_no_found")
 	}
-	channel, err := model.GetChannelById(originTask.ChannelId, true)
+	scope, err := model.RelayTenantScopeFromContext(c)
+	if err != nil {
+		return service.MidjourneyErrorWrapper(constant.MjRequestError, "tenant_scope_missing")
+	}
+	channel, err := model.GetChannelByIdScoped(originTask.ChannelId, true, scope)
 	if err != nil {
 		return service.MidjourneyErrorWrapper(constant.MjRequestError, "get_channel_info_failed")
 	}
@@ -464,7 +468,11 @@ func RelayMidjourneySubmit(c *gin.Context, relayInfo *relaycommon.RelayInfo) *dt
 					return service.MidjourneyErrorWrapper(constant.MjRequestError, "task_status_not_success")
 				}
 			}
-			channel, err := model.GetChannelById(originTask.ChannelId, true)
+			scope, scopeErr := model.RelayTenantScopeFromContext(c)
+			if scopeErr != nil {
+				return service.MidjourneyErrorWrapper(constant.MjRequestError, "tenant_scope_missing")
+			}
+			channel, err := model.GetChannelByIdScoped(originTask.ChannelId, true, scope)
 			if err != nil {
 				return service.MidjourneyErrorWrapper(constant.MjRequestError, "get_channel_info_failed")
 			}
@@ -583,9 +591,15 @@ func RelayMidjourneySubmit(c *gin.Context, relayInfo *relaycommon.RelayInfo) *dt
 	model.ApplyOwnershipFromContext(c, midjourneyTask)
 	if midjResponse.Code == 3 {
 		//无实例账号自动禁用渠道（No available account instance）
-		channel, err := model.GetChannelById(midjourneyTask.ChannelId, true)
+		scope, scopeErr := model.RelayTenantScopeFromContext(c)
+		if scopeErr != nil {
+			common.SysLog("tenant_scope_missing: " + scopeErr.Error())
+			return service.MidjourneyErrorWrapper(constant.MjRequestError, "tenant_scope_missing")
+		}
+		channel, err := model.GetChannelByIdScoped(midjourneyTask.ChannelId, true, scope)
 		if err != nil {
 			common.SysLog("get_channel_null: " + err.Error())
+			return service.MidjourneyErrorWrapper(constant.MjRequestError, "get_channel_info_failed")
 		}
 		if channel.GetAutoBan() && common.AutomaticDisableChannelEnabled {
 			model.UpdateChannelStatus(midjourneyTask.ChannelId, "", 2, "No available account instance")

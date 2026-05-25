@@ -42,17 +42,25 @@ func GetAllEnableAbilityWithChannels() ([]AbilityWithChannel, error) {
 	return abilities, err
 }
 
-func GetGroupEnabledModels(group string) []string {
+func GetGroupEnabledModels(group string, scopes ...TenantScope) []string {
 	var models []string
 	// Find distinct models
-	DB.Table("abilities").Where(commonGroupCol+" = ? and enabled = ?", group, true).Distinct("model").Pluck("model", &models)
+	query := DB.Table("abilities")
+	if len(scopes) > 0 {
+		query = scopes[0].Apply(query, "abilities")
+	}
+	query.Where(commonGroupCol+" = ? and enabled = ?", group, true).Distinct("model").Pluck("model", &models)
 	return models
 }
 
-func GetEnabledModels() []string {
+func GetEnabledModels(scopes ...TenantScope) []string {
 	var models []string
 	// Find distinct models
-	DB.Table("abilities").Where("enabled = ?", true).Distinct("model").Pluck("model", &models)
+	query := DB.Table("abilities")
+	if len(scopes) > 0 {
+		query = scopes[0].Apply(query, "abilities")
+	}
+	query.Where("enabled = ?", true).Distinct("model").Pluck("model", &models)
 	return models
 }
 
@@ -62,10 +70,14 @@ func GetAllEnableAbilities() []Ability {
 	return abilities
 }
 
-func getPriority(group string, model string, retry int) (int, error) {
+func getPriority(group string, model string, retry int, scopes ...TenantScope) (int, error) {
 
 	var priorities []int
-	err := DB.Model(&Ability{}).
+	query := DB.Model(&Ability{})
+	if len(scopes) > 0 {
+		query = scopes[0].Apply(query, "abilities")
+	}
+	err := query.
 		Select("DISTINCT(priority)").
 		Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true).
 		Order("priority DESC").              // 按优先级降序排序
@@ -92,26 +104,36 @@ func getPriority(group string, model string, retry int) (int, error) {
 	return priorityToUse, nil
 }
 
-func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
-	maxPrioritySubQuery := DB.Model(&Ability{}).Select("MAX(priority)").Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
-	channelQuery := DB.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = (?)", group, model, true, maxPrioritySubQuery)
+func getChannelQuery(group string, model string, retry int, scopes ...TenantScope) (*gorm.DB, error) {
+	maxPrioritySubQuery := DB.Model(&Ability{})
+	channelQuery := DB.Model(&Ability{})
+	if len(scopes) > 0 {
+		maxPrioritySubQuery = scopes[0].Apply(maxPrioritySubQuery, "abilities")
+		channelQuery = scopes[0].Apply(channelQuery, "abilities")
+	}
+	maxPrioritySubQuery = maxPrioritySubQuery.Select("MAX(priority)").Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
+	channelQuery = channelQuery.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = (?)", group, model, true, maxPrioritySubQuery)
 	if retry != 0 {
-		priority, err := getPriority(group, model, retry)
+		priority, err := getPriority(group, model, retry, scopes...)
 		if err != nil {
 			return nil, err
 		} else {
-			channelQuery = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = ?", group, model, true, priority)
+			channelQuery = DB.Model(&Ability{})
+			if len(scopes) > 0 {
+				channelQuery = scopes[0].Apply(channelQuery, "abilities")
+			}
+			channelQuery = channelQuery.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = ?", group, model, true, priority)
 		}
 	}
 
 	return channelQuery, nil
 }
 
-func GetChannel(group string, model string, retry int) (*Channel, error) {
+func GetChannel(group string, model string, retry int, scopes ...TenantScope) (*Channel, error) {
 	var abilities []Ability
 
 	var err error = nil
-	channelQuery, err := getChannelQuery(group, model, retry)
+	channelQuery, err := getChannelQuery(group, model, retry, scopes...)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +165,11 @@ func GetChannel(group string, model string, retry int) (*Channel, error) {
 	} else {
 		return nil, nil
 	}
-	err = DB.First(&channel, "id = ?", channel.Id).Error
+	if len(scopes) > 0 {
+		err = scopes[0].Apply(DB.Model(&Channel{}), "channels").First(&channel, "id = ?", channel.Id).Error
+	} else {
+		err = DB.First(&channel, "id = ?", channel.Id).Error
+	}
 	return &channel, err
 }
 

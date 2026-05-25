@@ -14,8 +14,8 @@ import (
 	"github.com/Chaoteen/quinta-ai-gateway/setting/ratio_setting"
 )
 
-var group2model2channels map[string]map[string][]int // enabled channel
-var channelsIDM map[int]*Channel                     // all channels include disabled
+var tenantGroup2model2channels map[int]map[string]map[string][]int // enabled channel, keyed by tenant
+var channelsIDM map[int]*Channel                                   // all channels include disabled
 var channelSyncLock sync.RWMutex
 
 func InitChannelCache() {
@@ -28,44 +28,42 @@ func InitChannelCache() {
 	for _, channel := range channels {
 		newChannelId2channel[channel.Id] = channel
 	}
-	var abilities []*Ability
-	DB.Find(&abilities)
-	groups := make(map[string]bool)
-	for _, ability := range abilities {
-		groups[ability.Group] = true
-	}
-	newGroup2model2channels := make(map[string]map[string][]int)
-	for group := range groups {
-		newGroup2model2channels[group] = make(map[string][]int)
-	}
+	newTenantGroup2model2channels := make(map[int]map[string]map[string][]int)
 	for _, channel := range channels {
 		if channel.Status != common.ChannelStatusEnabled {
 			continue // skip disabled channels
 		}
+		tenantID := normalizeTenantId(channel.TenantId)
+		if _, ok := newTenantGroup2model2channels[tenantID]; !ok {
+			newTenantGroup2model2channels[tenantID] = make(map[string]map[string][]int)
+		}
 		groups := strings.Split(channel.Group, ",")
 		for _, group := range groups {
+			if _, ok := newTenantGroup2model2channels[tenantID][group]; !ok {
+				newTenantGroup2model2channels[tenantID][group] = make(map[string][]int)
+			}
 			models := strings.Split(channel.Models, ",")
 			for _, model := range models {
-				if _, ok := newGroup2model2channels[group][model]; !ok {
-					newGroup2model2channels[group][model] = make([]int, 0)
-				}
-				newGroup2model2channels[group][model] = append(newGroup2model2channels[group][model], channel.Id)
+				newTenantGroup2model2channels[tenantID][group][model] =
+					append(newTenantGroup2model2channels[tenantID][group][model], channel.Id)
 			}
 		}
 	}
 
 	// sort by priority
-	for group, model2channels := range newGroup2model2channels {
-		for model, channels := range model2channels {
-			sort.Slice(channels, func(i, j int) bool {
-				return newChannelId2channel[channels[i]].GetPriority() > newChannelId2channel[channels[j]].GetPriority()
-			})
-			newGroup2model2channels[group][model] = channels
+	for _, group2model2channels := range newTenantGroup2model2channels {
+		for group, model2channels := range group2model2channels {
+			for model, channels := range model2channels {
+				sort.Slice(channels, func(i, j int) bool {
+					return newChannelId2channel[channels[i]].GetPriority() > newChannelId2channel[channels[j]].GetPriority()
+				})
+				group2model2channels[group][model] = channels
+			}
 		}
 	}
 
 	channelSyncLock.Lock()
-	group2model2channels = newGroup2model2channels
+	tenantGroup2model2channels = newTenantGroup2model2channels
 	//channelsIDM = newChannelId2channel
 	for i, channel := range newChannelId2channel {
 		if channel.ChannelInfo.IsMultiKey {
@@ -93,22 +91,41 @@ func SyncChannelCache(frequency int) {
 	}
 }
 
-func GetRandomSatisfiedChannel(group string, model string, retry int) (*Channel, error) {
+func cachedSelectionScope(scopes []TenantScope) TenantScope {
+	if len(scopes) == 0 {
+		return TenantScope{IsRoot: true}
+	}
+	return scopes[0]
+}
+
+func getCachedChannelIDs(scope TenantScope, group string, model string) []int {
+	if scope.IsRoot {
+		var channels []int
+		for _, group2model2channels := range tenantGroup2model2channels {
+			channels = append(channels, group2model2channels[group][model]...)
+		}
+		return channels
+	}
+	return tenantGroup2model2channels[normalizeTenantId(scope.TenantId)][group][model]
+}
+
+func GetRandomSatisfiedChannel(group string, model string, retry int, scopes ...TenantScope) (*Channel, error) {
 	// if memory cache is disabled, get channel directly from database
 	if !common.MemoryCacheEnabled {
-		return GetChannel(group, model, retry)
+		return GetChannel(group, model, retry, scopes...)
 	}
 
 	channelSyncLock.RLock()
 	defer channelSyncLock.RUnlock()
 
 	// First, try to find channels with the exact model name.
-	channels := group2model2channels[group][model]
+	scope := cachedSelectionScope(scopes)
+	channels := getCachedChannelIDs(scope, group, model)
 
 	// If no channels found, try to find channels with the normalized model name.
 	if len(channels) == 0 {
 		normalizedModel := ratio_setting.FormatMatchingModelName(model)
-		channels = group2model2channels[group][normalizedModel]
+		channels = getCachedChannelIDs(scope, group, normalizedModel)
 	}
 
 	if len(channels) == 0 {
@@ -204,6 +221,23 @@ func CacheGetChannel(id int) (*Channel, error) {
 	return c, nil
 }
 
+func CacheGetChannelScoped(id int, scope TenantScope) (*Channel, error) {
+	if !common.MemoryCacheEnabled {
+		return GetChannelByIdScoped(id, true, scope)
+	}
+	channelSyncLock.RLock()
+	defer channelSyncLock.RUnlock()
+
+	c, ok := channelsIDM[id]
+	if !ok {
+		return nil, fmt.Errorf("渠道# %d，已不存在", id)
+	}
+	if !scope.AllowsTenant(c.TenantId) {
+		return nil, fmt.Errorf("channel %d is outside relay tenant scope", id)
+	}
+	return c, nil
+}
+
 func CacheGetChannelInfo(id int) (*ChannelInfo, error) {
 	if !common.MemoryCacheEnabled {
 		channel, err := GetChannelById(id, true)
@@ -233,13 +267,15 @@ func CacheUpdateChannelStatus(id int, status int) {
 	}
 	if status != common.ChannelStatusEnabled {
 		// delete the channel from group2model2channels
-		for group, model2channels := range group2model2channels {
-			for model, channels := range model2channels {
-				for i, channelId := range channels {
-					if channelId == id {
-						// remove the channel from the slice
-						group2model2channels[group][model] = append(channels[:i], channels[i+1:]...)
-						break
+		for _, group2model2channels := range tenantGroup2model2channels {
+			for group, model2channels := range group2model2channels {
+				for model, channels := range model2channels {
+					for i, channelId := range channels {
+						if channelId == id {
+							// remove the channel from the slice
+							group2model2channels[group][model] = append(channels[:i], channels[i+1:]...)
+							break
+						}
 					}
 				}
 			}

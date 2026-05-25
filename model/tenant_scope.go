@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -28,6 +29,26 @@ func TenantScopeFromContext(c *gin.Context) TenantScope {
 	}
 	scope.TenantId = normalizeTenantId(scope.TenantId)
 	return scope
+}
+
+// RelayTenantScopeFromContext rejects relay selection without an authenticated
+// tenant context. Legacy user ownership is normalized before it reaches here.
+func RelayTenantScopeFromContext(c *gin.Context) (TenantScope, error) {
+	if c == nil {
+		return TenantScope{}, errors.New("relay tenant context is missing")
+	}
+	scope := TenantScope{
+		TenantId: common.GetContextKeyInt(c, constant.ContextKeyTenantId),
+		IsRoot:   c.GetInt("role") == common.RoleRootUser,
+	}
+	if scope.IsRoot {
+		scope.TenantId = normalizeTenantId(scope.TenantId)
+		return scope, nil
+	}
+	if scope.TenantId == 0 {
+		return TenantScope{}, errors.New("relay tenant context is missing")
+	}
+	return scope, nil
 }
 
 func (scope TenantScope) AllowsTenant(tenantId int) bool {

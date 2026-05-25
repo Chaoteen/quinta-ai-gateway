@@ -156,10 +156,12 @@ func authHelper(c *gin.Context, minRole int) {
 		userCache.WriteContext(c)
 	} else {
 		common.SysLog(fmt.Sprintf("authHelper GetUserCache error for user %d: %v", id.(int), err))
-		common.SetContextKey(c, constant.ContextKeyTenantId, 1)
-		common.SetContextKey(c, constant.ContextKeyOrganizationId, 0)
-		common.SetContextKey(c, constant.ContextKeyDepartmentId, 0)
-		common.SetContextKey(c, constant.ContextKeyDistributionChannelId, 0)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
+		})
+		c.Abort()
+		return
 	}
 
 	c.Next()
@@ -207,6 +209,19 @@ func TokenOrUserAuth() func(c *gin.Context) {
 		if id := session.Get("id"); id != nil {
 			if status, ok := session.Get("status").(int); ok && status == common.UserStatusEnabled {
 				c.Set("id", id)
+				if role, ok := session.Get("role").(int); ok {
+					c.Set("role", role)
+				}
+				userCache, err := model.GetUserCache(id.(int))
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"success": false,
+						"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
+					})
+					c.Abort()
+					return
+				}
+				userCache.WriteContext(c)
 				c.Next()
 				return
 			}
@@ -436,6 +451,9 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	}
 	common.SetContextKey(c, constant.ContextKeyTokenGroup, token.Group)
 	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, token.CrossGroupRetry)
+	if model.IsRoot(token.UserId) {
+		c.Set("role", common.RoleRootUser)
+	}
 	if len(parts) > 1 {
 		if model.IsAdmin(token.UserId) {
 			c.Set("specific_channel_id", parts[1])
