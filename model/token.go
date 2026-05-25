@@ -281,9 +281,12 @@ func GetTokenByKey(key string, fromDB bool) (token *Token, err error) {
 }
 
 func (token *Token) Insert() error {
-	var err error
-	err = DB.Create(token).Error
-	return err
+	ownership, err := RequiredOwnershipByUserId(token.UserId)
+	if err != nil {
+		return err
+	}
+	ownership.ApplyTo(token)
+	return DB.Create(token).Error
 }
 
 // Update Make sure your token's fields is completed, because this will update non-zero values

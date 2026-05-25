@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -173,10 +174,17 @@ type SyncTaskQueryParams struct {
 	UserIDs        []int
 }
 
-func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) *Task {
+func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) (*Task, error) {
+	if relayInfo == nil {
+		return nil, errors.New("task ownership cannot be resolved without relay info")
+	}
+	if !relayInfo.OwnershipResolved || relayInfo.TenantId == 0 {
+		return nil, errors.New("task ownership is missing from relay info")
+	}
+
 	properties := Properties{}
 	privateData := TaskPrivateData{}
-	if relayInfo != nil && relayInfo.ChannelMeta != nil {
+	if relayInfo.ChannelMeta != nil {
 		if relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeGemini ||
 			relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeVertexAi {
 			privateData.Key = relayInfo.ChannelMeta.ApiKey
@@ -209,7 +217,13 @@ func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) 
 		Properties:  properties,
 		PrivateData: privateData,
 	}
-	return t
+	OwnershipSnapshot{
+		TenantId:              relayInfo.TenantId,
+		OrganizationId:        relayInfo.OrganizationId,
+		DepartmentId:          relayInfo.DepartmentId,
+		DistributionChannelId: relayInfo.DistributionChannelId,
+	}.ApplyTo(t)
+	return t, nil
 }
 
 func TaskGetAllUserTask(userId int, startIdx int, num int, queryParams SyncTaskQueryParams) []*Task {
@@ -365,9 +379,10 @@ func GetByTaskIds(userId int, taskIds []any) ([]*Task, error) {
 }
 
 func (Task *Task) Insert() error {
-	var err error
-	err = DB.Create(Task).Error
-	return err
+	if Task.TenantId == 0 {
+		return errors.New("task ownership tenant_id is missing")
+	}
+	return DB.Create(Task).Error
 }
 
 type taskSnapshot struct {

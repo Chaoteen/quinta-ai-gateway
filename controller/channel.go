@@ -598,6 +598,9 @@ func AddChannel(c *gin.Context) {
 		})
 		return
 	}
+	if c.GetInt("role") != common.RoleRootUser {
+		model.ApplyOwnershipFromContext(c, addChannelRequest.Channel)
+	}
 
 	addChannelRequest.Channel.CreatedTime = common.GetTimestamp()
 	keys := make([]string, 0)
