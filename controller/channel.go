@@ -598,7 +598,12 @@ func AddChannel(c *gin.Context) {
 		})
 		return
 	}
-	if c.GetInt("role") != common.RoleRootUser {
+	if c.GetInt("role") == common.RoleRootUser {
+		if addChannelRequest.Channel.TenantId == 0 {
+			common.ApiErrorMsg(c, "root must explicitly specify tenant_id when creating a channel")
+			return
+		}
+	} else {
 		model.ApplyOwnershipFromContext(c, addChannelRequest.Channel)
 	}
 

@@ -842,12 +842,17 @@ func CreateUser(c *gin.Context) {
 		Role:        user.Role, // 保持管理员设置的角色
 	}
 	if myRole == common.RoleRootUser {
-		model.OwnershipSnapshot{
+		ownership := model.OwnershipSnapshot{
 			TenantId:              user.TenantId,
 			OrganizationId:        user.OrganizationId,
 			DepartmentId:          user.DepartmentId,
 			DistributionChannelId: user.DistributionChannelId,
-		}.ApplyTo(&cleanUser)
+		}
+		if err := model.ValidateOwnershipHierarchy(ownership); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		ownership.ApplyTo(&cleanUser)
 	} else {
 		model.ApplyOwnershipFromContext(c, &cleanUser)
 	}

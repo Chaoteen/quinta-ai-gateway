@@ -15,6 +15,47 @@ type OwnershipSnapshot struct {
 	DistributionChannelId int
 }
 
+// ValidateOwnershipHierarchy validates explicitly requested ownership before
+// root creates a resource on behalf of a tenant.
+func ValidateOwnershipHierarchy(snapshot OwnershipSnapshot) error {
+	if snapshot.OrganizationId != 0 {
+		if snapshot.TenantId == 0 {
+			return fmt.Errorf("organization_id requires an explicit tenant_id")
+		}
+		var organization Organization
+		if err := DB.Select("id").Where("id = ? AND tenant_id = ?", snapshot.OrganizationId, snapshot.TenantId).First(&organization).Error; err != nil {
+			return fmt.Errorf("organization_id does not belong to tenant_id")
+		}
+	}
+
+	if snapshot.DepartmentId != 0 {
+		if snapshot.TenantId == 0 || snapshot.OrganizationId == 0 {
+			return fmt.Errorf("department_id requires explicit tenant_id and organization_id")
+		}
+		var department Department
+		if err := DB.Select("id").Where(
+			"id = ? AND tenant_id = ? AND organization_id = ?",
+			snapshot.DepartmentId,
+			snapshot.TenantId,
+			snapshot.OrganizationId,
+		).First(&department).Error; err != nil {
+			return fmt.Errorf("department_id does not belong to organization_id and tenant_id")
+		}
+	}
+
+	if snapshot.DistributionChannelId != 0 {
+		if snapshot.TenantId == 0 {
+			return fmt.Errorf("distribution_channel_id requires an explicit tenant_id")
+		}
+		var channel DistributionChannel
+		if err := DB.Select("id").Where("id = ? AND tenant_id = ?", snapshot.DistributionChannelId, snapshot.TenantId).First(&channel).Error; err != nil {
+			return fmt.Errorf("distribution_channel_id does not belong to tenant_id")
+		}
+	}
+
+	return nil
+}
+
 func NormalizeOwnership(snapshot OwnershipSnapshot) OwnershipSnapshot {
 	if snapshot.TenantId == 0 {
 		snapshot.TenantId = 1
