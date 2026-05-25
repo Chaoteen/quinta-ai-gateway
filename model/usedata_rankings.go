@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 
-	"github.com/QuantumNous/new-api/common"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"gorm.io/gorm"
 )
 

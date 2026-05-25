@@ -111,7 +111,7 @@
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # docker-compose.yml 設定を編集
@@ -342,7 +342,7 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # プロジェクトをクローン
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # 設定を編集

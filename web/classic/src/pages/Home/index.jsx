@@ -231,7 +231,7 @@ const Home = () => {
                       icon={<IconGithubLogo />}
                       onClick={() =>
                         window.open(
-                          'https://github.com/QuantumNous/new-api',
+                          'https://github.com/Chaoteen/quinta-ai-gateway',
                           '_blank',
                         )
                       }

@@ -111,7 +111,7 @@
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # Modifier la configuration docker-compose.yml
@@ -340,7 +340,7 @@ docker run --name new-api -d --restart always \
 
 ```bash
 # Cloner le projet
-git clone https://github.com/QuantumNous/new-api.git
+git clone https://github.com/Chaoteen/quinta-ai-gateway.git
 cd new-api
 
 # Modifier la configuration

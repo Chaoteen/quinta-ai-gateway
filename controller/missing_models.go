@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"github.com/QuantumNous/new-api/model"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
 
 	"github.com/gin-gonic/gin"
 )

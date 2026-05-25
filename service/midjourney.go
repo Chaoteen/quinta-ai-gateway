@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
-	relayconstant "github.com/QuantumNous/new-api/relay/constant"
-	"github.com/QuantumNous/new-api/setting"
+	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/constant"
+	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	relayconstant "github.com/Chaoteen/quinta-ai-gateway/relay/constant"
+	"github.com/Chaoteen/quinta-ai-gateway/setting"
 
 	"github.com/gin-gonic/gin"
 )
