@@ -86,3 +86,22 @@ func TestCachedChannelSelectionTenantIsolation(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 902, channel.Id)
 }
+
+func TestSpecificChannelLookupRejectsChannelFromAnotherTenant(t *testing.T) {
+	seedRelayIsolationChannels(t)
+
+	_, err := GetChannelByIdScoped(902, true, TenantScope{TenantId: 1})
+	require.Error(t, err)
+
+	previousMemoryCacheEnabled := common.MemoryCacheEnabled
+	common.MemoryCacheEnabled = true
+	t.Cleanup(func() {
+		common.MemoryCacheEnabled = previousMemoryCacheEnabled
+		tenantGroup2model2channels = nil
+		channelsIDM = nil
+	})
+	InitChannelCache()
+
+	_, err = CacheGetChannelScoped(902, TenantScope{TenantId: 1})
+	require.Error(t, err)
+}

@@ -107,6 +107,12 @@
 - 审计公开资源代理与 callback 的授权边界，特别是无认证 Midjourney 图片转发入口。
 - 在不改变 billing 语义的独立迭代中，评估异步退款/补扣及统计聚合是否需要携带并校验 tenant ownership。
 
+## Strict Relay Scope Review Fix
+
+- Review 发现 `controller/relay.go` 的同步 `Relay()` 与异步 `RelayTask()` 在构造 `service.RetryParam` 时仍调用 `model.TenantScopeFromContext(c)`。该 helper 会把缺失的普通 tenant context 规范化为 tenant 1，因此在未来出现绕过 `middleware/distributor.go` 的 retry / fallback 调用路径时，可能静默选取 tenant 1 的渠道。
+- 本补丁在 `controller/relay.go` 增加统一的 `newRelayRetryParam`，同步 relay 与 Task relay 在进入 retry / fallback / channel selection 前均通过 `model.RelayTenantScopeFromContext(c)` 获取一次严格 scope 并复用到全部重试轮次。普通请求缺少 `tenant_id` 时立即失败，不再产生 tenant 1 fallback；root 仍由 `RelayTenantScopeFromContext` 保持平台级 bypass。
+- 回归覆盖包括：`controller/relay_tenant_scope_test.go` 验证 retry 参数构造拒绝缺失 tenant context 且保留 root；`model/relay_tenant_isolation_test.go` 验证 specific channel 的 scoped 读取拒绝 tenant A 指向 tenant B 渠道；`service/channel_affinity_template_test.go` 验证 tenant A/B 使用相同 affinity value 时不会互相命中缓存渠道。
+
 ## 验证
 
 - 新增 `model/relay_tenant_isolation_test.go`，覆盖缺失 tenant context 会被拒绝、普通 tenant 无法从 DB Ability 查询或内存 Channel cache 选择另一 tenant Channel，以及 root 可跨 tenant 选择。
