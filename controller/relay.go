@@ -122,6 +122,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
 		return
 	}
+	retryParam, err := newRelayRetryParam(c, relayInfo)
+	if err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
+		return
+	}
 
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()
 	needCountToken := constant.CountToken
@@ -178,12 +183,6 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}()
 
-	retryParam := &service.RetryParam{
-		Ctx:        c,
-		TokenGroup: relayInfo.TokenGroup,
-		ModelName:  relayInfo.OriginModelName,
-		Retry:      common.GetPointer(0),
-	}
 	relayInfo.RetryIndex = 0
 	relayInfo.LastError = nil
 
@@ -319,6 +318,20 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 		return nil, newAPIError
 	}
 	return channel, nil
+}
+
+func newRelayRetryParam(c *gin.Context, info *relaycommon.RelayInfo) (*service.RetryParam, error) {
+	scope, err := model.RelayTenantScopeFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+	return &service.RetryParam{
+		Ctx:         c,
+		TenantScope: scope,
+		TokenGroup:  info.TokenGroup,
+		ModelName:   info.OriginModelName,
+		Retry:       common.GetPointer(0),
+	}, nil
 }
 
 func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) bool {
@@ -492,6 +505,11 @@ func RelayTask(c *gin.Context) {
 		})
 		return
 	}
+	retryParam, err := newRelayRetryParam(c, relayInfo)
+	if err != nil {
+		respondTaskError(c, service.TaskErrorWrapperLocal(err, "relay_tenant_scope_missing", http.StatusForbidden))
+		return
+	}
 
 	if taskErr := relay.ResolveOriginTask(c, relayInfo); taskErr != nil {
 		respondTaskError(c, taskErr)
@@ -505,13 +523,6 @@ func RelayTask(c *gin.Context) {
 			relayInfo.Billing.Refund(c)
 		}
 	}()
-
-	retryParam := &service.RetryParam{
-		Ctx:        c,
-		TokenGroup: relayInfo.TokenGroup,
-		ModelName:  relayInfo.OriginModelName,
-		Retry:      common.GetPointer(0),
-	}
 
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 		var channel *model.Channel

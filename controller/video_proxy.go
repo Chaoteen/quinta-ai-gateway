@@ -55,7 +55,12 @@ func VideoProxy(c *gin.Context) {
 		return
 	}
 
-	channel, err := model.CacheGetChannel(task.ChannelId)
+	scope, err := model.RelayTenantScopeFromContext(c)
+	if err != nil {
+		videoProxyError(c, http.StatusForbidden, "access_denied", "Tenant context is missing")
+		return
+	}
+	channel, err := model.CacheGetChannelScoped(task.ChannelId, scope)
 	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Failed to get channel for task %s: %s", taskID, err.Error()))
 		videoProxyError(c, http.StatusInternalServerError, "server_error", "Failed to retrieve channel information")

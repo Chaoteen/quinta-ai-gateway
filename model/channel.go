@@ -431,6 +431,18 @@ func GetChannelById(id int, selectAll bool) (*Channel, error) {
 	return channel, nil
 }
 
+func GetChannelByIdScoped(id int, selectAll bool, scope TenantScope) (*Channel, error) {
+	channel := &Channel{Id: id}
+	query := scope.Apply(DB.Model(&Channel{}), "channels")
+	if !selectAll {
+		query = query.Omit("key")
+	}
+	if err := query.First(channel, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return channel, nil
+}
+
 func BatchInsertChannels(channels []Channel) error {
 	if len(channels) == 0 {
 		return nil

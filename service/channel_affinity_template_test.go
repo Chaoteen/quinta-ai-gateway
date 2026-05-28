@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Chaoteen/quinta-ai-gateway/model"
 	relaycommon "github.com/Chaoteen/quinta-ai-gateway/relay/common"
 	"github.com/Chaoteen/quinta-ai-gateway/setting/operation_setting"
 	"github.com/gin-gonic/gin"
@@ -244,4 +245,52 @@ func TestChannelAffinityHitCodexTemplatePassHeadersEffective(t *testing.T) {
 	require.False(t, exists)
 	_, exists = info.RuntimeHeadersOverride["x-codex-turn-metadata"]
 	require.False(t, exists)
+}
+
+func TestChannelAffinityCacheIsolatedByTenantScope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	setting := operation_setting.GetChannelAffinitySetting()
+	require.NotNil(t, setting)
+
+	var codexRule *operation_setting.ChannelAffinityRule
+	for i := range setting.Rules {
+		rule := &setting.Rules[i]
+		if strings.EqualFold(strings.TrimSpace(rule.Name), "codex cli trace") {
+			codexRule = rule
+			break
+		}
+	}
+	require.NotNil(t, codexRule)
+
+	affinityValue := fmt.Sprintf("tenant-affinity-%d", time.Now().UnixNano())
+	tenantOneKey := buildChannelAffinityCacheKeySuffix(*codexRule, "gpt-5", "default", affinityValue, "tenant=1")
+	tenantTwoKey := buildChannelAffinityCacheKeySuffix(*codexRule, "gpt-5", "default", affinityValue, "tenant=2")
+
+	cache := getChannelAffinityCache()
+	require.NoError(t, cache.SetWithTTL(tenantOneKey, 1001, time.Minute))
+	t.Cleanup(func() {
+		_, _ = cache.DeleteMany([]string{tenantOneKey, tenantTwoKey})
+	})
+
+	newContext := func() *gin.Context {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(fmt.Sprintf(`{"prompt_cache_key":"%s"}`, affinityValue)))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		return ctx
+	}
+
+	channelID, found := GetPreferredChannelByAffinity(newContext(), "gpt-5", "default", model.TenantScope{TenantId: 1})
+	require.True(t, found)
+	require.Equal(t, 1001, channelID)
+
+	channelID, found = GetPreferredChannelByAffinity(newContext(), "gpt-5", "default", model.TenantScope{TenantId: 2})
+	require.False(t, found)
+	require.Zero(t, channelID)
+
+	require.NoError(t, cache.SetWithTTL(tenantTwoKey, 2002, time.Minute))
+	channelID, found = GetPreferredChannelByAffinity(newContext(), "gpt-5", "default", model.TenantScope{TenantId: 2})
+	require.True(t, found)
+	require.Equal(t, 2002, channelID)
 }

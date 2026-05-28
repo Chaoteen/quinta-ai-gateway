@@ -11,6 +11,7 @@ import (
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/dto"
+	"github.com/Chaoteen/quinta-ai-gateway/model"
 	"github.com/Chaoteen/quinta-ai-gateway/pkg/cachex"
 	"github.com/Chaoteen/quinta-ai-gateway/setting/operation_setting"
 	"github.com/Chaoteen/quinta-ai-gateway/types"
@@ -329,8 +330,8 @@ func extractChannelAffinityValue(c *gin.Context, src operation_setting.ChannelAf
 	}
 }
 
-func buildChannelAffinityCacheKeySuffix(rule operation_setting.ChannelAffinityRule, modelName string, usingGroup string, affinityValue string) string {
-	parts := make([]string, 0, 4)
+func buildChannelAffinityCacheKeySuffix(rule operation_setting.ChannelAffinityRule, modelName string, usingGroup string, affinityValue string, tenantSuffixes ...string) string {
+	parts := make([]string, 0, 5)
 	if rule.IncludeRuleName && rule.Name != "" {
 		parts = append(parts, rule.Name)
 	}
@@ -341,6 +342,9 @@ func buildChannelAffinityCacheKeySuffix(rule operation_setting.ChannelAffinityRu
 		parts = append(parts, usingGroup)
 	}
 	parts = append(parts, affinityValue)
+	if len(tenantSuffixes) > 0 && tenantSuffixes[0] != "" {
+		parts = append(parts, tenantSuffixes[0])
+	}
 	return strings.Join(parts, ":")
 }
 
@@ -542,7 +546,7 @@ func ApplyChannelAffinityOverrideTemplate(c *gin.Context, paramOverride map[stri
 	return mergedParam, true
 }
 
-func GetPreferredChannelByAffinity(c *gin.Context, modelName string, usingGroup string) (int, bool) {
+func GetPreferredChannelByAffinity(c *gin.Context, modelName string, usingGroup string, scopes ...model.TenantScope) (int, bool) {
 	setting := operation_setting.GetChannelAffinitySetting()
 	if setting == nil || !setting.Enabled {
 		return 0, false
@@ -586,7 +590,15 @@ func GetPreferredChannelByAffinity(c *gin.Context, modelName string, usingGroup 
 		if ttlSeconds <= 0 {
 			ttlSeconds = setting.DefaultTTLSeconds
 		}
-		cacheKeySuffix := buildChannelAffinityCacheKeySuffix(rule, modelName, usingGroup, affinityValue)
+		tenantSuffix := ""
+		if len(scopes) > 0 {
+			if scopes[0].IsRoot {
+				tenantSuffix = "tenant=root"
+			} else {
+				tenantSuffix = fmt.Sprintf("tenant=%d", scopes[0].TenantId)
+			}
+		}
+		cacheKeySuffix := buildChannelAffinityCacheKeySuffix(rule, modelName, usingGroup, affinityValue, tenantSuffix)
 		cacheKeyFull := channelAffinityCacheNamespace + ":" + cacheKeySuffix
 		setChannelAffinityContext(c, channelAffinityMeta{
 			CacheKey:       cacheKeyFull,
