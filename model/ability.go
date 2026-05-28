@@ -168,6 +168,7 @@ func (channel *Channel) AddAbilities(tx *gorm.DB) error {
 				Weight:    uint(channel.GetWeight()),
 				Tag:       channel.Tag,
 			}
+			OwnershipFromChannel(channel).ApplyTo(&ability)
 			abilities = append(abilities, ability)
 		}
 	}
@@ -240,6 +241,7 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 				Weight:    uint(channel.GetWeight()),
 				Tag:       channel.Tag,
 			}
+			OwnershipFromChannel(channel).ApplyTo(&ability)
 			abilities = append(abilities, ability)
 		}
 	}

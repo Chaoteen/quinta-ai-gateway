@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/constant"
 	"github.com/gin-gonic/gin"
@@ -11,6 +13,47 @@ type OwnershipSnapshot struct {
 	OrganizationId        int
 	DepartmentId          int
 	DistributionChannelId int
+}
+
+// ValidateOwnershipHierarchy validates explicitly requested ownership before
+// root creates a resource on behalf of a tenant.
+func ValidateOwnershipHierarchy(snapshot OwnershipSnapshot) error {
+	if snapshot.OrganizationId != 0 {
+		if snapshot.TenantId == 0 {
+			return fmt.Errorf("organization_id requires an explicit tenant_id")
+		}
+		var organization Organization
+		if err := DB.Select("id").Where("id = ? AND tenant_id = ?", snapshot.OrganizationId, snapshot.TenantId).First(&organization).Error; err != nil {
+			return fmt.Errorf("organization_id does not belong to tenant_id")
+		}
+	}
+
+	if snapshot.DepartmentId != 0 {
+		if snapshot.TenantId == 0 || snapshot.OrganizationId == 0 {
+			return fmt.Errorf("department_id requires explicit tenant_id and organization_id")
+		}
+		var department Department
+		if err := DB.Select("id").Where(
+			"id = ? AND tenant_id = ? AND organization_id = ?",
+			snapshot.DepartmentId,
+			snapshot.TenantId,
+			snapshot.OrganizationId,
+		).First(&department).Error; err != nil {
+			return fmt.Errorf("department_id does not belong to organization_id and tenant_id")
+		}
+	}
+
+	if snapshot.DistributionChannelId != 0 {
+		if snapshot.TenantId == 0 {
+			return fmt.Errorf("distribution_channel_id requires an explicit tenant_id")
+		}
+		var channel DistributionChannel
+		if err := DB.Select("id").Where("id = ? AND tenant_id = ?", snapshot.DistributionChannelId, snapshot.TenantId).First(&channel).Error; err != nil {
+			return fmt.Errorf("distribution_channel_id does not belong to tenant_id")
+		}
+	}
+
+	return nil
 }
 
 func NormalizeOwnership(snapshot OwnershipSnapshot) OwnershipSnapshot {
@@ -45,6 +88,37 @@ func OwnershipByUserId(userId int) OwnershipSnapshot {
 		OrganizationId:        userCache.OrganizationId,
 		DepartmentId:          userCache.DepartmentId,
 		DistributionChannelId: userCache.DistributionChannelId,
+	})
+}
+
+func RequiredOwnershipByUserId(userId int) (OwnershipSnapshot, error) {
+	if userId <= 0 {
+		return OwnershipSnapshot{}, fmt.Errorf("invalid user id %d for ownership", userId)
+	}
+	userCache, err := GetUserCache(userId)
+	if err != nil {
+		return OwnershipSnapshot{}, fmt.Errorf("get ownership for user %d: %w", userId, err)
+	}
+	if userCache == nil {
+		return OwnershipSnapshot{}, fmt.Errorf("ownership user %d not found", userId)
+	}
+	return NormalizeOwnership(OwnershipSnapshot{
+		TenantId:              userCache.TenantId,
+		OrganizationId:        userCache.OrganizationId,
+		DepartmentId:          userCache.DepartmentId,
+		DistributionChannelId: userCache.DistributionChannelId,
+	}), nil
+}
+
+func OwnershipFromChannel(channel *Channel) OwnershipSnapshot {
+	if channel == nil {
+		return NormalizeOwnership(OwnershipSnapshot{})
+	}
+	return NormalizeOwnership(OwnershipSnapshot{
+		TenantId:              channel.TenantId,
+		OrganizationId:        channel.OrganizationId,
+		DepartmentId:          channel.DepartmentId,
+		DistributionChannelId: channel.DistributionChannelId,
 	})
 }
 
@@ -83,6 +157,31 @@ func ApplyOwnershipFromUser(userId int, target any) {
 func (snapshot OwnershipSnapshot) ApplyTo(target any) {
 	snapshot = NormalizeOwnership(snapshot)
 	switch v := target.(type) {
+	case *User:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *Token:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *Channel:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *Ability:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *Task:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
 	case *Log:
 		v.TenantId = snapshot.TenantId
 		v.OrganizationId = snapshot.OrganizationId
