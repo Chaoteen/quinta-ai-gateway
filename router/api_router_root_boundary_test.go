@@ -165,6 +165,7 @@ func TestRootBoundaryRoutesRequireRoot(t *testing.T) {
 		path   string
 		body   string
 	}{
+		{name: "platform status", method: http.MethodGet, path: "/api/status/test"},
 		{name: "2fa stats", method: http.MethodGet, path: "/api/user/2fa/stats"},
 		{name: "channel fix", method: http.MethodPost, path: "/api/channel/fix"},
 		{name: "delete logs", method: http.MethodDelete, path: "/api/log/?target_timestamp=1"},
