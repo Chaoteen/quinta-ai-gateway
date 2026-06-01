@@ -21,7 +21,11 @@ func GetAllLogs(c *gin.Context) {
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
 	requestId := c.Query("request_id")
-	logs, total, err := model.GetAllLogs(model.TenantScopeFromContext(c), logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId)
+	scope, ok := operationalReadAccessScope(c)
+	if !ok {
+		return
+	}
+	logs, total, err := model.GetAllLogsByAccessScope(scope, logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId)
 	if err != nil {
 		common.ApiError(c, err)
 		return

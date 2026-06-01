@@ -21,7 +21,10 @@ func UpdateTaskBulk() {
 
 func GetAllTask(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	scope := model.TenantScopeFromContext(c)
+	scope, ok := operationalReadAccessScope(c)
+	if !ok {
+		return
+	}
 
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
@@ -36,8 +39,8 @@ func GetAllTask(c *gin.Context) {
 		ChannelID:      c.Query("channel_id"),
 	}
 
-	items := model.TaskGetAllTasks(pageInfo.GetStartIdx(), pageInfo.GetPageSize(), queryParams, scope)
-	total := model.TaskCountAllTasks(queryParams, scope)
+	items := model.TaskGetAllTasksByAccessScope(pageInfo.GetStartIdx(), pageInfo.GetPageSize(), queryParams, scope)
+	total := model.TaskCountAllTasksByAccessScope(queryParams, scope)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(tasksToDto(items, true))
 	common.ApiSuccess(c, pageInfo)

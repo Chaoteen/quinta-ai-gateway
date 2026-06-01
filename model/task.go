@@ -263,14 +263,24 @@ func TaskGetAllUserTask(userId int, startIdx int, num int, queryParams SyncTaskQ
 }
 
 func TaskGetAllTasks(startIdx int, num int, queryParams SyncTaskQueryParams, scopes ...TenantScope) []*Task {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return TaskGetAllTasksByAccessScope(startIdx, num, queryParams, scope)
+}
+
+func TaskGetAllTasksByAccessScope(startIdx int, num int, queryParams SyncTaskQueryParams, scope AccessScope) []*Task {
 	var tasks []*Task
 	var err error
 
 	// 初始化查询构建器
 	query := DB.Model(&Task{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "tasks")
-	}
+	query = ApplyOwnershipScope(query, "tasks", scope)
 
 	// 添加过滤条件
 	if queryParams.ChannelID != "" {
@@ -470,11 +480,21 @@ type TaskQuotaUsage struct {
 
 // TaskCountAllTasks returns total tasks that match the given query params (admin usage)
 func TaskCountAllTasks(queryParams SyncTaskQueryParams, scopes ...TenantScope) int64 {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return TaskCountAllTasksByAccessScope(queryParams, scope)
+}
+
+func TaskCountAllTasksByAccessScope(queryParams SyncTaskQueryParams, scope AccessScope) int64 {
 	var total int64
 	query := DB.Model(&Task{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "tasks")
-	}
+	query = ApplyOwnershipScope(query, "tasks", scope)
 	if queryParams.ChannelID != "" {
 		query = query.Where("channel_id = ?", queryParams.ChannelID)
 	}

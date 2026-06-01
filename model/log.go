@@ -306,13 +306,21 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
 }
 
 func GetAllLogs(scope TenantScope, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string) (logs []*Log, total int64, err error) {
+	accessScope := AccessScope{TenantId: scope.TenantId, IsRoot: scope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+	if scope.IsRoot {
+		accessScope.RoleKey = common.RoleKeyRoot
+	}
+	return GetAllLogsByAccessScope(accessScope, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channel, group, requestId)
+}
+
+func GetAllLogsByAccessScope(scope AccessScope, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB
 	} else {
 		tx = LOG_DB.Where("logs.type = ?", logType)
 	}
-	tx = scope.Apply(tx, "logs")
+	tx = ApplyOwnershipScope(tx, "logs", scope)
 
 	if modelName != "" {
 		tx = tx.Where("logs.model_name like ?", modelName)

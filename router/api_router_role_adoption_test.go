@@ -77,6 +77,7 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	seedRoleAdoptionChannels(t, db)
 	seedRoleAdoptionSubscriptions(t, db)
 	seedRoleAdoptionCatalog(t, db)
+	seedRoleAdoptionOperationalReads(t, db)
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("role-adoption-test-secret"))
@@ -186,6 +187,51 @@ func seedRoleAdoptionCatalog(t *testing.T, db *gorm.DB) {
 	requireCreateRoleAdoptionRecord(t, db.Create(&modelMeta).Error)
 }
 
+func seedRoleAdoptionOperationalReads(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	now := common.GetTimestamp()
+	logs := []model.Log{
+		{Id: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, Username: "organization_user", Type: model.LogTypeConsume, CreatedAt: now, Content: "org log"},
+		{Id: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, Username: "other_organization", Type: model.LogTypeConsume, CreatedAt: now, Content: "other org log"},
+		{Id: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, Username: "tenant2_organization", Type: model.LogTypeConsume, CreatedAt: now, Content: "tenant 2 log"},
+	}
+	for _, log := range logs {
+		requireCreateRoleAdoptionRecord(t, db.Create(&log).Error)
+	}
+	topups := []model.TopUp{
+		{Id: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, TradeNo: "org-topup", Status: common.TopUpStatusSuccess, CreateTime: now},
+		{Id: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, TradeNo: "other-org-topup", Status: common.TopUpStatusSuccess, CreateTime: now},
+		{Id: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, TradeNo: "tenant-2-topup", Status: common.TopUpStatusSuccess, CreateTime: now},
+	}
+	for _, topup := range topups {
+		requireCreateRoleAdoptionRecord(t, db.Create(&topup).Error)
+	}
+	redemptions := []model.Redemption{
+		{Id: 101, TenantId: 1, OrganizationId: 10, Name: "org redemption", Key: "orgredemption0000000000000000001", Status: common.RedemptionCodeStatusEnabled},
+		{Id: 102, TenantId: 1, OrganizationId: 20, Name: "other org redemption", Key: "orgredemption0000000000000000002", Status: common.RedemptionCodeStatusEnabled},
+		{Id: 103, TenantId: 2, OrganizationId: 10, Name: "tenant 2 redemption", Key: "orgredemption0000000000000000003", Status: common.RedemptionCodeStatusEnabled},
+	}
+	for _, redemption := range redemptions {
+		requireCreateRoleAdoptionRecord(t, db.Create(&redemption).Error)
+	}
+	tasks := []model.Task{
+		{ID: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, TaskID: "org-task", Status: model.TaskStatusSuccess, SubmitTime: now},
+		{ID: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, TaskID: "other-org-task", Status: model.TaskStatusSuccess, SubmitTime: now},
+		{ID: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, TaskID: "tenant-2-task", Status: model.TaskStatusSuccess, SubmitTime: now},
+	}
+	for _, task := range tasks {
+		requireCreateRoleAdoptionRecord(t, db.Create(&task).Error)
+	}
+	midjourneys := []model.Midjourney{
+		{Id: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, MjId: "org-mj", Status: "SUCCESS", SubmitTime: now},
+		{Id: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, MjId: "other-org-mj", Status: "SUCCESS", SubmitTime: now},
+		{Id: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, MjId: "tenant-2-mj", Status: "SUCCESS", SubmitTime: now},
+	}
+	for _, midjourney := range midjourneys {
+		requireCreateRoleAdoptionRecord(t, db.Create(&midjourney).Error)
+	}
+}
+
 func requireCreateRoleAdoptionRecord(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
@@ -238,6 +284,46 @@ func decodeRoleAdoptionUserListIDs(t *testing.T, recorder *httptest.ResponseReco
 		ids = append(ids, item.Id)
 	}
 	return ids
+}
+
+func decodeRoleAdoptionListIDs(t *testing.T, recorder *httptest.ResponseRecorder) []int {
+	t.Helper()
+	var response struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Items []struct {
+				Id int `json:"id"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	if !response.Success {
+		t.Fatalf("expected list response success, status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	ids := make([]int, 0, len(response.Data.Items))
+	for _, item := range response.Data.Items {
+		ids = append(ids, item.Id)
+	}
+	return ids
+}
+
+func decodeRoleAdoptionListTotal(t *testing.T, recorder *httptest.ResponseRecorder) int {
+	t.Helper()
+	var response struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Total int `json:"total"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	if !response.Success {
+		t.Fatalf("expected list response success, status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	return response.Data.Total
 }
 
 func decodeRoleAdoptionUserDetailID(t *testing.T, recorder *httptest.ResponseRecorder) int {
@@ -585,6 +671,104 @@ func TestOrganizationAdminCannotAccessUserWriteRoutes(t *testing.T) {
 	}
 
 	for _, route := range writeRoutes {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			assertRoleAdoptionMethodRejected(t, r, route.method, route.path, route.body, orgAdmin)
+		})
+	}
+}
+
+func TestOrganizationAdminOperationalReadRoutes(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+	orgAdmin := roleAdoptionUsers["organization_admin"]
+	orgAdminNoOrg := roleAdoptionUsers["organization_admin_0"]
+	tenantAdmin := roleAdoptionUsers["tenant_admin"]
+	root := roleAdoptionUsers["root"]
+
+	operationalPaths := []string{
+		"/api/task/",
+		"/api/mj/",
+		"/api/user/topup",
+		"/api/redemption/",
+	}
+	for _, path := range operationalPaths {
+		t.Run("organization_admin scoped "+path, func(t *testing.T) {
+			recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", orgAdmin)
+			ids := decodeRoleAdoptionListIDs(t, recorder)
+			requireRoleAdoptionIDPresence(t, ids, 101, true)
+			requireRoleAdoptionIDPresence(t, ids, 102, false)
+			requireRoleAdoptionIDPresence(t, ids, 103, false)
+		})
+		t.Run("organization_admin no org rejected "+path, func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, path, orgAdminNoOrg)
+		})
+		t.Run("tenant_admin tenant scoped "+path, func(t *testing.T) {
+			recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", tenantAdmin)
+			ids := decodeRoleAdoptionListIDs(t, recorder)
+			requireRoleAdoptionIDPresence(t, ids, 101, true)
+			requireRoleAdoptionIDPresence(t, ids, 102, true)
+			requireRoleAdoptionIDPresence(t, ids, 103, false)
+		})
+		t.Run("root global "+path, func(t *testing.T) {
+			recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", root)
+			ids := decodeRoleAdoptionListIDs(t, recorder)
+			requireRoleAdoptionIDPresence(t, ids, 101, true)
+			requireRoleAdoptionIDPresence(t, ids, 102, true)
+			requireRoleAdoptionIDPresence(t, ids, 103, true)
+		})
+	}
+
+	logPath := "/api/log/?username="
+	t.Run("organization_admin scoped log", func(t *testing.T) {
+		recorder := performRoleAdoptionRequest(r, http.MethodGet, logPath+"organization_user", "", orgAdmin)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 1 {
+			t.Fatalf("organization_admin org log total = %d, want 1", got)
+		}
+		recorder = performRoleAdoptionRequest(r, http.MethodGet, logPath+"other_organization", "", orgAdmin)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 0 {
+			t.Fatalf("organization_admin other org log total = %d, want 0", got)
+		}
+		recorder = performRoleAdoptionRequest(r, http.MethodGet, logPath+"tenant2_organization", "", orgAdmin)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 0 {
+			t.Fatalf("organization_admin tenant 2 log total = %d, want 0", got)
+		}
+	})
+	t.Run("organization_admin no org rejected log", func(t *testing.T) {
+		assertRoleAdoptionRejected(t, r, "/api/log/", orgAdminNoOrg)
+	})
+	t.Run("tenant_admin tenant scoped log", func(t *testing.T) {
+		recorder := performRoleAdoptionRequest(r, http.MethodGet, logPath+"other_organization", "", tenantAdmin)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 1 {
+			t.Fatalf("tenant_admin other org log total = %d, want 1", got)
+		}
+		recorder = performRoleAdoptionRequest(r, http.MethodGet, logPath+"tenant2_organization", "", tenantAdmin)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 0 {
+			t.Fatalf("tenant_admin tenant 2 log total = %d, want 0", got)
+		}
+	})
+	t.Run("root global log", func(t *testing.T) {
+		recorder := performRoleAdoptionRequest(r, http.MethodGet, logPath+"tenant2_organization", "", root)
+		if got := decodeRoleAdoptionListTotal(t, recorder); got != 1 {
+			t.Fatalf("root tenant 2 log total = %d, want 1", got)
+		}
+	})
+}
+
+func TestOrganizationAdminCannotAccessOperationalMutationRoutes(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+	orgAdmin := roleAdoptionUsers["organization_admin"]
+
+	mutationRoutes := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{method: http.MethodPost, path: "/api/user/topup/complete", body: `{"trade_no":"org-topup"}`},
+		{method: http.MethodPost, path: "/api/redemption/", body: `{"name":"org mutation","quota":1}`},
+		{method: http.MethodPut, path: "/api/redemption/", body: `{"id":101,"name":"org mutation","quota":1}`},
+		{method: http.MethodDelete, path: "/api/redemption/101", body: ""},
+		{method: http.MethodDelete, path: "/api/redemption/invalid", body: ""},
+	}
+	for _, route := range mutationRoutes {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			assertRoleAdoptionMethodRejected(t, r, route.method, route.path, route.body, orgAdmin)
 		})
