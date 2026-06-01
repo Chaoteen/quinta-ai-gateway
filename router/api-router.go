@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/controller"
 	"github.com/Chaoteen/quinta-ai-gateway/middleware"
 
@@ -60,6 +61,9 @@ func SetApiRouter(router *gin.Engine) {
 
 		// Universal secure verification routes
 		apiRouter.POST("/verify", middleware.UserAuth(), middleware.CriticalRateLimit(), controller.UniversalVerify)
+
+		financeReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		opsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 
 		userRoute := apiRouter.Group("/user")
 		{
@@ -121,11 +125,12 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
 			}
 
+			userRoute.GET("/topup", financeReadAuth, controller.GetAllTopUps)
+
 			adminRoute := userRoute.Group("/")
 			adminRoute.Use(middleware.AdminAuth())
 			{
 				adminRoute.GET("/", controller.GetAllUsers)
-				adminRoute.GET("/topup", controller.GetAllTopUps)
 				adminRoute.POST("/topup/complete", controller.AdminCompleteTopUp)
 				adminRoute.GET("/search", controller.SearchUsers)
 				adminRoute.GET("/:id/oauth/bindings", controller.GetUserOAuthBindingsByAdmin)
@@ -282,20 +287,19 @@ func SetApiRouter(router *gin.Engine) {
 		}
 
 		redemptionRoute := apiRouter.Group("/redemption")
-		redemptionRoute.Use(middleware.AdminAuth())
 		{
-			redemptionRoute.GET("/", controller.GetAllRedemptions)
-			redemptionRoute.GET("/search", controller.SearchRedemptions)
-			redemptionRoute.GET("/:id", controller.GetRedemption)
-			redemptionRoute.POST("/", controller.AddRedemption)
-			redemptionRoute.PUT("/", controller.UpdateRedemption)
-			redemptionRoute.DELETE("/invalid", controller.DeleteInvalidRedemption)
-			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
+			redemptionRoute.GET("/", financeReadAuth, controller.GetAllRedemptions)
+			redemptionRoute.GET("/search", financeReadAuth, controller.SearchRedemptions)
+			redemptionRoute.GET("/:id", financeReadAuth, controller.GetRedemption)
+			redemptionRoute.POST("/", middleware.AdminAuth(), controller.AddRedemption)
+			redemptionRoute.PUT("/", middleware.AdminAuth(), controller.UpdateRedemption)
+			redemptionRoute.DELETE("/invalid", middleware.AdminAuth(), controller.DeleteInvalidRedemption)
+			redemptionRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteRedemption)
 		}
 		logRoute := apiRouter.Group("/log")
-		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
+		logRoute.GET("/", financeReadAuth, controller.GetAllLogs)
 		logRoute.DELETE("/", middleware.RootAuth(), controller.DeleteHistoryLogs)
-		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)
+		logRoute.GET("/stat", financeReadAuth, controller.GetLogsStat)
 		logRoute.GET("/self/stat", middleware.UserAuth(), controller.GetLogsSelfStat)
 		logRoute.GET("/channel_affinity_usage_cache", middleware.RootAuth(), controller.GetChannelAffinityUsageCacheStats)
 		logRoute.GET("/search", middleware.AdminAuth(), controller.SearchAllLogs)
@@ -328,12 +332,12 @@ func SetApiRouter(router *gin.Engine) {
 
 		mjRoute := apiRouter.Group("/mj")
 		mjRoute.GET("/self", middleware.UserAuth(), controller.GetUserMidjourney)
-		mjRoute.GET("/", middleware.AdminAuth(), controller.GetAllMidjourney)
+		mjRoute.GET("/", opsReadAuth, controller.GetAllMidjourney)
 
 		taskRoute := apiRouter.Group("/task")
 		{
 			taskRoute.GET("/self", middleware.UserAuth(), controller.GetUserTask)
-			taskRoute.GET("/", middleware.AdminAuth(), controller.GetAllTask)
+			taskRoute.GET("/", opsReadAuth, controller.GetAllTask)
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")
