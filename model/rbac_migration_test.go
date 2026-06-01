@@ -10,24 +10,34 @@ import (
 func TestMigrateUserRoleKeyBackfillsLegacyDefaults(t *testing.T) {
 	truncateTables(t)
 
-	require.NoError(t, DB.Exec(
-		"INSERT INTO users (id, username, password, role, role_key, status) VALUES (?, ?, ?, ?, ?, ?)",
-		301, "legacy-root-default-user", "password123", common.RoleRootUser, common.RoleKeyUser, common.UserStatusEnabled,
-	).Error)
-	require.NoError(t, DB.Exec(
-		"INSERT INTO users (id, username, password, role, role_key, status) VALUES (?, ?, ?, ?, ?, ?)",
-		302, "legacy-admin-default-user", "password123", common.RoleAdminUser, common.RoleKeyUser, common.UserStatusEnabled,
-	).Error)
+	testCases := []struct {
+		id       int
+		username string
+		role     int
+		roleKey  any
+		want     string
+	}{
+		{id: 301, username: "legacy-root-default-user", role: common.RoleRootUser, roleKey: common.RoleKeyUser, want: common.RoleKeyRoot},
+		{id: 302, username: "legacy-admin-default-user", role: common.RoleAdminUser, roleKey: common.RoleKeyUser, want: common.RoleKeyTenantAdmin},
+		{id: 303, username: "legacy-root-null", role: common.RoleRootUser, roleKey: nil, want: common.RoleKeyRoot},
+		{id: 304, username: "legacy-admin-null", role: common.RoleAdminUser, roleKey: nil, want: common.RoleKeyTenantAdmin},
+		{id: 305, username: "legacy-root-empty", role: common.RoleRootUser, roleKey: "", want: common.RoleKeyRoot},
+		{id: 306, username: "legacy-admin-empty", role: common.RoleAdminUser, roleKey: "", want: common.RoleKeyTenantAdmin},
+	}
+	for _, testCase := range testCases {
+		require.NoError(t, DB.Exec(
+			"INSERT INTO users (id, username, password, role, role_key, status) VALUES (?, ?, ?, ?, ?, ?)",
+			testCase.id, testCase.username, "password123", testCase.role, testCase.roleKey, common.UserStatusEnabled,
+		).Error)
+	}
 
 	require.NoError(t, migrateUserRoleKey())
 
-	var root User
-	require.NoError(t, DB.Select("role_key").Where("id = ?", 301).First(&root).Error)
-	require.Equal(t, common.RoleKeyRoot, root.RoleKey)
-
-	var admin User
-	require.NoError(t, DB.Select("role_key").Where("id = ?", 302).First(&admin).Error)
-	require.Equal(t, common.RoleKeyTenantAdmin, admin.RoleKey)
+	for _, testCase := range testCases {
+		var user User
+		require.NoError(t, DB.Select("role_key").Where("id = ?", testCase.id).First(&user).Error)
+		require.Equal(t, testCase.want, user.RoleKey)
+	}
 }
 
 func TestMigrateUserRoleKeyDoesNotOverwriteExplicitRoleKeys(t *testing.T) {
