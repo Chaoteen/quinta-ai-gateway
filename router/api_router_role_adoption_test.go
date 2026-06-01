@@ -18,20 +18,26 @@ import (
 )
 
 type roleAdoptionUser struct {
-	id      int
-	role    int
-	roleKey string
-	tenant  int
+	id           int
+	role         int
+	roleKey      string
+	tenant       int
+	organization int
 }
 
 var roleAdoptionUsers = map[string]roleAdoptionUser{
-	"root":         {id: 1, role: common.RoleRootUser, roleKey: common.RoleKeyRoot, tenant: 1},
-	"tenant_admin": {id: 2, role: common.RoleAdminUser, roleKey: common.RoleKeyTenantAdmin, tenant: 1},
-	"finance":      {id: 3, role: common.RoleCommonUser, roleKey: common.RoleKeyFinance, tenant: 1},
-	"ops":          {id: 4, role: common.RoleCommonUser, roleKey: common.RoleKeyOps, tenant: 1},
-	"auditor":      {id: 5, role: common.RoleCommonUser, roleKey: common.RoleKeyAuditor, tenant: 1},
-	"user":         {id: 6, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 1},
-	"tenant2_user": {id: 7, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 2},
+	"root":                 {id: 1, role: common.RoleRootUser, roleKey: common.RoleKeyRoot, tenant: 1},
+	"tenant_admin":         {id: 2, role: common.RoleAdminUser, roleKey: common.RoleKeyTenantAdmin, tenant: 1},
+	"finance":              {id: 3, role: common.RoleCommonUser, roleKey: common.RoleKeyFinance, tenant: 1},
+	"ops":                  {id: 4, role: common.RoleCommonUser, roleKey: common.RoleKeyOps, tenant: 1},
+	"auditor":              {id: 5, role: common.RoleCommonUser, roleKey: common.RoleKeyAuditor, tenant: 1},
+	"user":                 {id: 6, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 1},
+	"tenant2_user":         {id: 7, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 2},
+	"organization_admin":   {id: 8, role: common.RoleCommonUser, roleKey: common.RoleKeyOrganizationAdmin, tenant: 1, organization: 10},
+	"organization_admin_0": {id: 9, role: common.RoleCommonUser, roleKey: common.RoleKeyOrganizationAdmin, tenant: 1},
+	"organization_user":    {id: 10, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 1, organization: 10},
+	"other_organization":   {id: 11, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 1, organization: 20},
+	"tenant2_organization": {id: 12, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 2, organization: 10},
 }
 
 func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
@@ -65,7 +71,7 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	})
 
 	for name, user := range roleAdoptionUsers {
-		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey, user.tenant)
+		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey, user.tenant, user.organization)
 	}
 	seedRoleAdoptionRedemption(t, db)
 	seedRoleAdoptionChannels(t, db)
@@ -105,19 +111,20 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	return r
 }
 
-func seedRoleAdoptionUser(t *testing.T, db *gorm.DB, id int, username string, role int, roleKey string, tenantId int) {
+func seedRoleAdoptionUser(t *testing.T, db *gorm.DB, id int, username string, role int, roleKey string, tenantId int, organizationId int) {
 	t.Helper()
 	user := model.User{
-		Id:          id,
-		TenantId:    tenantId,
-		Username:    username,
-		Password:    "password123",
-		DisplayName: username,
-		Role:        role,
-		RoleKey:     roleKey,
-		Status:      common.UserStatusEnabled,
-		Group:       "default",
-		AffCode:     fmt.Sprintf("role-adoption-%d", id),
+		Id:             id,
+		TenantId:       tenantId,
+		OrganizationId: organizationId,
+		Username:       username,
+		Password:       "password123",
+		DisplayName:    username,
+		Role:           role,
+		RoleKey:        roleKey,
+		Status:         common.UserStatusEnabled,
+		Group:          "default",
+		AffCode:        fmt.Sprintf("role-adoption-%d", id),
 	}
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatalf("failed to seed user %d: %v", id, err)
@@ -208,6 +215,61 @@ func decodeRoleAdoptionSuccess(t *testing.T, recorder *httptest.ResponseRecorder
 		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
 	}
 	return response.Success
+}
+
+func decodeRoleAdoptionUserListIDs(t *testing.T, recorder *httptest.ResponseRecorder) []int {
+	t.Helper()
+	var response struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Items []struct {
+				Id int `json:"id"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	if !response.Success {
+		t.Fatalf("expected user list response success, status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	ids := make([]int, 0, len(response.Data.Items))
+	for _, item := range response.Data.Items {
+		ids = append(ids, item.Id)
+	}
+	return ids
+}
+
+func decodeRoleAdoptionUserDetailID(t *testing.T, recorder *httptest.ResponseRecorder) int {
+	t.Helper()
+	var response struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Id int `json:"id"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	if !response.Success {
+		t.Fatalf("expected user detail response success, status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	return response.Data.Id
+}
+
+func requireRoleAdoptionIDPresence(t *testing.T, ids []int, id int, want bool) {
+	t.Helper()
+	for _, current := range ids {
+		if current == id {
+			if !want {
+				t.Fatalf("expected id %d to be absent from %v", id, ids)
+			}
+			return
+		}
+	}
+	if want {
+		t.Fatalf("expected id %d to be present in %v", id, ids)
+	}
 }
 
 func assertRoleAdoptionAllowed(t *testing.T, r *gin.Engine, path string, user roleAdoptionUser) {
@@ -457,6 +519,75 @@ func TestRoleAuthPhase3WriteRoutesRemainRootOnly(t *testing.T) {
 				assertRoleAdoptionMethodRejected(t, r, route.method, route.path, route.body, roleAdoptionUsers[roleName])
 			})
 		}
+	}
+}
+
+func TestOrganizationAdminUserReadRoutes(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	orgAdmin := roleAdoptionUsers["organization_admin"]
+	orgAdminNoOrg := roleAdoptionUsers["organization_admin_0"]
+	tenantAdmin := roleAdoptionUsers["tenant_admin"]
+	root := roleAdoptionUsers["root"]
+
+	recorder := performRoleAdoptionRequest(r, http.MethodGet, "/api/user/", "", orgAdmin)
+	ids := decodeRoleAdoptionUserListIDs(t, recorder)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["organization_admin"].id, true)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["organization_user"].id, true)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["other_organization"].id, false)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["tenant2_organization"].id, false)
+
+	recorder = performRoleAdoptionRequest(r, http.MethodGet, "/api/user/search?keyword=organization", "", orgAdmin)
+	ids = decodeRoleAdoptionUserListIDs(t, recorder)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["organization_user"].id, true)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["other_organization"].id, false)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["tenant2_organization"].id, false)
+
+	recorder = performRoleAdoptionRequest(r, http.MethodGet, "/api/user/10", "", orgAdmin)
+	if got := decodeRoleAdoptionUserDetailID(t, recorder); got != roleAdoptionUsers["organization_user"].id {
+		t.Fatalf("organization_admin detail id = %d, want %d", got, roleAdoptionUsers["organization_user"].id)
+	}
+	assertRoleAdoptionRejected(t, r, "/api/user/11", orgAdmin)
+	assertRoleAdoptionRejected(t, r, "/api/user/12", orgAdmin)
+	assertRoleAdoptionRejected(t, r, "/api/user/", orgAdminNoOrg)
+	assertRoleAdoptionRejected(t, r, "/api/user/search?keyword=organization", orgAdminNoOrg)
+	assertRoleAdoptionRejected(t, r, "/api/user/10", orgAdminNoOrg)
+
+	recorder = performRoleAdoptionRequest(r, http.MethodGet, "/api/user/", "", tenantAdmin)
+	ids = decodeRoleAdoptionUserListIDs(t, recorder)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["organization_user"].id, true)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["other_organization"].id, true)
+	requireRoleAdoptionIDPresence(t, ids, roleAdoptionUsers["tenant2_organization"].id, false)
+	assertRoleAdoptionAllowed(t, r, "/api/user/11", tenantAdmin)
+	assertRoleAdoptionRejected(t, r, "/api/user/12", tenantAdmin)
+
+	assertRoleAdoptionAllowed(t, r, "/api/user/12", root)
+	assertRoleAdoptionRejected(t, r, "/api/user/", roleAdoptionUsers["user"])
+}
+
+func TestOrganizationAdminCannotAccessUserWriteRoutes(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+	orgAdmin := roleAdoptionUsers["organization_admin"]
+
+	writeRoutes := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{method: http.MethodPost, path: "/api/user/", body: `{"username":"org-created","password":"password123","role":1}`},
+		{method: http.MethodPut, path: "/api/user/", body: `{"id":10,"username":"organization_user","password":"password123","role":1}`},
+		{method: http.MethodPost, path: "/api/user/manage", body: `{"id":10,"action":"disable"}`},
+		{method: http.MethodDelete, path: "/api/user/10", body: ""},
+		{method: http.MethodDelete, path: "/api/user/10/reset_passkey", body: ""},
+		{method: http.MethodDelete, path: "/api/user/10/2fa", body: ""},
+		{method: http.MethodDelete, path: "/api/user/10/bindings/email", body: ""},
+		{method: http.MethodDelete, path: "/api/user/10/oauth/bindings/1", body: ""},
+	}
+
+	for _, route := range writeRoutes {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			assertRoleAdoptionMethodRejected(t, r, route.method, route.path, route.body, orgAdmin)
+		})
 	}
 }
 

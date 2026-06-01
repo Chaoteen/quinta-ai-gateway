@@ -234,7 +234,11 @@ func Register(c *gin.Context) {
 
 func GetAllUsers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.GetAllUsers(pageInfo, model.TenantScopeFromContext(c))
+	scope, ok := userReadAccessScope(c)
+	if !ok {
+		return
+	}
+	users, total, err := model.GetAllUsersByAccessScope(pageInfo, scope)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -251,7 +255,11 @@ func SearchUsers(c *gin.Context) {
 	keyword := c.Query("keyword")
 	group := c.Query("group")
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.SearchUsers(keyword, group, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), model.TenantScopeFromContext(c))
+	scope, ok := userReadAccessScope(c)
+	if !ok {
+		return
+	}
+	users, total, err := model.SearchUsersByAccessScope(keyword, group, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), scope)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -274,13 +282,20 @@ func GetUser(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	if !requireUserTenantAccess(c, user) {
+	scope, ok := userReadAccessScope(c)
+	if !ok {
 		return
 	}
-	myRole := c.GetInt("role")
-	if myRole <= user.Role && myRole != common.RoleRootUser {
-		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+	if !model.AllowsOwnership(scope, user.TenantId, user.OrganizationId, user.DepartmentId) {
+		common.ApiErrorMsg(c, "无权访问该资源")
 		return
+	}
+	if !common.IsOrganizationAdminRole(scope.RoleKey) {
+		myRole := c.GetInt("role")
+		if myRole <= user.Role && myRole != common.RoleRootUser {
+			common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -288,6 +303,15 @@ func GetUser(c *gin.Context) {
 		"data":    user,
 	})
 	return
+}
+
+func userReadAccessScope(c *gin.Context) (model.AccessScope, bool) {
+	scope := model.AccessScopeFromContext(c)
+	if common.IsOrganizationAdminRole(scope.RoleKey) && scope.OrganizationId <= 0 {
+		common.ApiErrorMsg(c, "无权访问该资源")
+		return scope, false
+	}
+	return scope, true
 }
 
 func GenerateAccessToken(c *gin.Context) {

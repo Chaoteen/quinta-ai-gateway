@@ -224,6 +224,22 @@ func GetMaxUserId() int {
 }
 
 func GetAllUsers(pageInfo *common.PageInfo, scopes ...TenantScope) (users []*User, total int64, err error) {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{
+			TenantId: tenantScope.TenantId,
+			IsRoot:   tenantScope.IsRoot,
+			RoleKey:  common.RoleKeyTenantAdmin,
+		}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return GetAllUsersByAccessScope(pageInfo, scope)
+}
+
+func GetAllUsersByAccessScope(pageInfo *common.PageInfo, scope AccessScope) (users []*User, total int64, err error) {
 	// Start transaction
 	tx := DB.Begin()
 	if tx.Error != nil {
@@ -236,9 +252,7 @@ func GetAllUsers(pageInfo *common.PageInfo, scopes ...TenantScope) (users []*Use
 	}()
 
 	query := tx.Unscoped().Model(&User{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "users")
-	}
+	query = ApplyOwnershipScope(query, "users", scope)
 
 	// Get total count within transaction
 	err = query.Count(&total).Error
@@ -263,6 +277,22 @@ func GetAllUsers(pageInfo *common.PageInfo, scopes ...TenantScope) (users []*Use
 }
 
 func SearchUsers(keyword string, group string, startIdx int, num int, scopes ...TenantScope) ([]*User, int64, error) {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{
+			TenantId: tenantScope.TenantId,
+			IsRoot:   tenantScope.IsRoot,
+			RoleKey:  common.RoleKeyTenantAdmin,
+		}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return SearchUsersByAccessScope(keyword, group, startIdx, num, scope)
+}
+
+func SearchUsersByAccessScope(keyword string, group string, startIdx int, num int, scope AccessScope) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
@@ -280,9 +310,7 @@ func SearchUsers(keyword string, group string, startIdx int, num int, scopes ...
 
 	// 构建基础查询
 	query := tx.Unscoped().Model(&User{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "users")
-	}
+	query = ApplyOwnershipScope(query, "users", scope)
 
 	// 构建搜索条件
 	likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ?"
