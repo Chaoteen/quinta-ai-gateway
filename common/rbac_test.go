@@ -36,3 +36,27 @@ func TestHasRole(t *testing.T) {
 		t.Fatal("user should not have tenant_admin role")
 	}
 }
+
+func TestRoleKeyHelpers(t *testing.T) {
+	if !IsOrganizationAdminRole(RoleKeyOrganizationAdmin) {
+		t.Fatal("organization_admin should be recognized")
+	}
+	if IsOrganizationAdminRole(RoleKeyTenantAdmin) {
+		t.Fatal("tenant_admin should not be recognized as organization_admin")
+	}
+	if !IsScopedAdminRole(RoleKeyRoot) {
+		t.Fatal("root should be a scoped admin role")
+	}
+	if !IsScopedAdminRole(RoleKeyTenantAdmin) {
+		t.Fatal("tenant_admin should be a scoped admin role")
+	}
+	if !IsScopedAdminRole(RoleKeyOrganizationAdmin) {
+		t.Fatal("organization_admin should be a scoped admin role")
+	}
+	if IsScopedAdminRole(RoleKeyFinance) {
+		t.Fatal("finance should not be a scoped admin role")
+	}
+	if IsScopedAdminRole(RoleKeyUser) {
+		t.Fatal("user should not be a scoped admin role")
+	}
+}
