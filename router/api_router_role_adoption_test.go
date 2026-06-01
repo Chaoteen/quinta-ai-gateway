@@ -70,6 +70,7 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	seedRoleAdoptionRedemption(t, db)
 	seedRoleAdoptionChannels(t, db)
 	seedRoleAdoptionSubscriptions(t, db)
+	seedRoleAdoptionCatalog(t, db)
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("role-adoption-test-secret"))
@@ -170,6 +171,14 @@ func seedRoleAdoptionSubscriptions(t *testing.T, db *gorm.DB) {
 	}
 }
 
+func seedRoleAdoptionCatalog(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	vendor := model.Vendor{Id: 1, Name: "role-adoption-vendor", Status: 1}
+	requireCreateRoleAdoptionRecord(t, db.Create(&vendor).Error)
+	modelMeta := model.Model{Id: 1, ModelName: "gpt-4o", VendorID: 1, Status: 1, SyncOfficial: 1}
+	requireCreateRoleAdoptionRecord(t, db.Create(&modelMeta).Error)
+}
+
 func requireCreateRoleAdoptionRecord(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
@@ -214,6 +223,14 @@ func assertRoleAdoptionRejected(t *testing.T, r *gin.Engine, path string, user r
 	recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", user)
 	if decodeRoleAdoptionSuccess(t, recorder) {
 		t.Fatalf("expected role %s to be rejected from %s, status=%d body=%s", user.roleKey, path, recorder.Code, recorder.Body.String())
+	}
+}
+
+func assertRoleAdoptionMethodRejected(t *testing.T, r *gin.Engine, method string, path string, body string, user roleAdoptionUser) {
+	t.Helper()
+	recorder := performRoleAdoptionRequest(r, method, path, body, user)
+	if decodeRoleAdoptionSuccess(t, recorder) {
+		t.Fatalf("expected role %s to be rejected from %s %s, status=%d body=%s", user.roleKey, method, path, recorder.Code, recorder.Body.String())
 	}
 }
 
@@ -345,7 +362,6 @@ func TestRoleAuthPhase2DeferredRoutesRemainAdminOnly(t *testing.T) {
 	deferredPaths := []string{
 		"/api/channel/models",
 		"/api/models/",
-		"/api/vendors/",
 		"/api/group/",
 		"/api/prefill_group/",
 	}
@@ -353,6 +369,92 @@ func TestRoleAuthPhase2DeferredRoutesRemainAdminOnly(t *testing.T) {
 		for _, roleName := range []string{"finance", "ops", "auditor", "user"} {
 			t.Run(roleName+" rejected deferred "+path, func(t *testing.T) {
 				assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
+	}
+}
+
+func TestRoleAuthPhase3ReadRoutesAllowExpectedRoles(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	catalogReadPaths := []string{
+		"/api/vendors/",
+		"/api/vendors/search",
+		"/api/vendors/1",
+		"/api/models/missing",
+	}
+	billingReadPath := "/api/subscription/admin/plans"
+
+	for _, path := range catalogReadPaths {
+		t.Run("tenant_admin catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["tenant_admin"])
+		})
+		t.Run("ops catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["ops"])
+		})
+		t.Run("auditor catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["auditor"])
+		})
+		t.Run("root catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["root"])
+		})
+		t.Run("finance rejected catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers["finance"])
+		})
+		t.Run("user rejected catalog read "+path, func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers["user"])
+		})
+	}
+
+	for _, roleName := range []string{"tenant_admin", "finance", "auditor", "root"} {
+		t.Run(roleName+" billing read", func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, billingReadPath, roleAdoptionUsers[roleName])
+		})
+	}
+	for _, roleName := range []string{"ops", "user"} {
+		t.Run(roleName+" rejected billing read", func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, billingReadPath, roleAdoptionUsers[roleName])
+		})
+	}
+}
+
+func TestRoleAuthPhase3DeferredRoutesRemainAdminOnly(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	deferredPaths := []string{
+		"/api/models/",
+		"/api/models/search",
+		"/api/models/1",
+		"/api/models/sync_upstream/preview",
+		"/api/group/",
+		"/api/prefill_group/",
+	}
+	for _, path := range deferredPaths {
+		for _, roleName := range []string{"finance", "ops", "auditor", "user"} {
+			t.Run(roleName+" rejected deferred "+path, func(t *testing.T) {
+				assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
+	}
+}
+
+func TestRoleAuthPhase3WriteRoutesRemainRootOnly(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	writeRoutes := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{method: http.MethodPost, path: "/api/models/", body: `{"model_name":"phase3-model"}`},
+		{method: http.MethodPost, path: "/api/vendors/", body: `{"name":"phase3-vendor"}`},
+		{method: http.MethodPost, path: "/api/subscription/admin/plans", body: `{"plan":{"title":"phase3 plan"}}`},
+	}
+
+	for _, route := range writeRoutes {
+		for _, roleName := range []string{"tenant_admin", "finance", "ops", "auditor", "user"} {
+			t.Run(roleName+" rejected write "+route.path, func(t *testing.T) {
+				assertRoleAdoptionMethodRejected(t, r, route.method, route.path, route.body, roleAdoptionUsers[roleName])
 			})
 		}
 	}
