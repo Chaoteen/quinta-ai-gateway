@@ -30,7 +30,8 @@ type User struct {
 	Password              string         `json:"password" gorm:"not null;" validate:"min=8,max=20"`
 	OriginalPassword      string         `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
 	DisplayName           string         `json:"display_name" gorm:"index" validate:"max=20"`
-	Role                  int            `json:"role" gorm:"type:int;default:1"`   // admin, common
+	Role                  int            `json:"role" gorm:"type:int;default:1"` // admin, common
+	RoleKey               string         `json:"role_key" gorm:"type:varchar(32);default:'user';index"`
 	Status                int            `json:"status" gorm:"type:int;default:1"` // enabled, disabled
 	Email                 string         `json:"email" gorm:"index" validate:"max=50"`
 	GitHubId              string         `json:"github_id" gorm:"column:github_id;index"`
@@ -69,10 +70,34 @@ func (user *User) ToBaseUser() *UserBase {
 		Quota:                 user.Quota,
 		Status:                user.Status,
 		Username:              user.Username,
+		RoleKey:               user.NormalizedRoleKey(),
 		Setting:               user.Setting,
 		Email:                 user.Email,
 	}
 	return cache
+}
+
+func (user *User) NormalizedRoleKey() string {
+	if user == nil {
+		return common.RoleKeyUser
+	}
+	if strings.TrimSpace(user.RoleKey) == "" {
+		return common.LegacyRoleToRoleKey(user.Role)
+	}
+	return common.NormalizeRoleKey(user.RoleKey)
+}
+
+func (user *User) EnsureRoleKey() {
+	if strings.TrimSpace(user.RoleKey) == "" {
+		user.RoleKey = common.LegacyRoleToRoleKey(user.Role)
+		return
+	}
+	user.RoleKey = common.NormalizeRoleKey(user.RoleKey)
+}
+
+func (user *User) BeforeCreate(tx *gorm.DB) error {
+	user.EnsureRoleKey()
+	return nil
 }
 
 func (user *User) GetAccessToken() string {
@@ -396,6 +421,7 @@ func (user *User) TransferAffQuotaToQuota(quota int) error {
 
 func (user *User) Insert(inviterId int) error {
 	var err error
+	user.EnsureRoleKey()
 	if user.Password != "" {
 		user.Password, err = common.Password2Hash(user.Password)
 		if err != nil {
@@ -455,6 +481,7 @@ func (user *User) Insert(inviterId int) error {
 // Post-creation tasks (sidebar config, logs, inviter rewards) are handled after the transaction commits.
 func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 	var err error
+	user.EnsureRoleKey()
 	if user.Password != "" {
 		user.Password, err = common.Password2Hash(user.Password)
 		if err != nil {

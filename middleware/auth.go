@@ -33,7 +33,7 @@ func validUserInfo(username string, role int) bool {
 	return true
 }
 
-func authHelper(c *gin.Context, minRole int) {
+func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 	session := sessions.Default(c)
 	username := session.Get("username")
 	role := session.Get("role")
@@ -82,6 +82,7 @@ func authHelper(c *gin.Context, minRole int) {
 			role = user.Role
 			id = user.Id
 			status = user.Status
+			c.Set(string(constant.ContextKeyUserRoleKey), user.NormalizedRoleKey())
 			useAccessToken = true
 		} else {
 			c.JSON(http.StatusOK, gin.H{
@@ -148,12 +149,18 @@ func authHelper(c *gin.Context, minRole int) {
 	c.Header("Auth-Version", "864b7076dbcd0a3c01b5520316720ebf")
 	c.Set("username", username)
 	c.Set("role", role)
+	if c.GetString(string(constant.ContextKeyUserRoleKey)) == "" {
+		c.Set(string(constant.ContextKeyUserRoleKey), common.LegacyRoleToRoleKey(role.(int)))
+	}
 	c.Set("id", id)
 	c.Set("group", session.Get("group"))
 	c.Set("user_group", session.Get("group"))
 	c.Set("use_access_token", useAccessToken)
 	if userCache, err := model.GetUserCache(id.(int)); err == nil {
 		userCache.WriteContext(c)
+		if strings.TrimSpace(userCache.RoleKey) == "" {
+			c.Set(string(constant.ContextKeyUserRoleKey), common.LegacyRoleToRoleKey(role.(int)))
+		}
 	} else {
 		common.SysLog(fmt.Sprintf("authHelper GetUserCache error for user %d: %v", id.(int), err))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -164,7 +171,9 @@ func authHelper(c *gin.Context, minRole int) {
 		return
 	}
 
-	c.Next()
+	if len(continueChain) == 0 || continueChain[0] {
+		c.Next()
+	}
 }
 
 func TryUserAuth() func(c *gin.Context) {
@@ -181,6 +190,28 @@ func TryUserAuth() func(c *gin.Context) {
 func UserAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleCommonUser)
+	}
+}
+
+func RoleAuth(requiredRoles ...string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		authHelper(c, common.RoleCommonUser, false)
+		if c.IsAborted() {
+			return
+		}
+		roleKey := common.GetContextKeyString(c, constant.ContextKeyUserRoleKey)
+		if roleKey == "" {
+			roleKey = common.LegacyRoleToRoleKey(c.GetInt("role"))
+		}
+		if !common.HasAnyRole(roleKey, requiredRoles...) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
 }
 
