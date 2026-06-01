@@ -1,5 +1,7 @@
 package model
 
+import "github.com/Chaoteen/quinta-ai-gateway/common"
+
 type Midjourney struct {
 	Id                    int    `json:"id"`
 	TenantId              int    `json:"tenant_id" gorm:"index;default:1"`
@@ -65,14 +67,24 @@ func GetAllUserTask(userId int, startIdx int, num int, queryParams TaskQueryPara
 }
 
 func GetAllTasks(startIdx int, num int, queryParams TaskQueryParams, scopes ...TenantScope) []*Midjourney {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return GetAllTasksByAccessScope(startIdx, num, queryParams, scope)
+}
+
+func GetAllTasksByAccessScope(startIdx int, num int, queryParams TaskQueryParams, scope AccessScope) []*Midjourney {
 	var tasks []*Midjourney
 	var err error
 
 	// 初始化查询构建器
 	query := DB.Model(&Midjourney{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "midjourneys")
-	}
+	query = ApplyOwnershipScope(query, "midjourneys", scope)
 
 	// 添加过滤条件
 	if queryParams.ChannelID != "" {
@@ -194,11 +206,21 @@ func MjBulkUpdateByTaskIds(taskIDs []int, params map[string]any) error {
 
 // CountAllTasks returns total midjourney tasks for admin query
 func CountAllTasks(queryParams TaskQueryParams, scopes ...TenantScope) int64 {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return CountAllTasksByAccessScope(queryParams, scope)
+}
+
+func CountAllTasksByAccessScope(queryParams TaskQueryParams, scope AccessScope) int64 {
 	var total int64
 	query := DB.Model(&Midjourney{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "midjourneys")
-	}
+	query = ApplyOwnershipScope(query, "midjourneys", scope)
 	if queryParams.ChannelID != "" {
 		query = query.Where("channel_id = ?", queryParams.ChannelID)
 	}

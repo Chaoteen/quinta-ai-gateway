@@ -63,12 +63,13 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/verify", middleware.UserAuth(), middleware.CriticalRateLimit(), controller.UniversalVerify)
 
 		financeReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
-		opsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		channelReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		subscriptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		catalogReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		billingReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
+		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 
 		userRoute := apiRouter.Group("/user")
 		{
@@ -130,7 +131,7 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
 			}
 
-			userRoute.GET("/topup", financeReadAuth, controller.GetAllTopUps)
+			userRoute.GET("/topup", operationalFinanceReadAuth, controller.GetAllTopUps)
 			userRoute.GET("/", userReadAuth, controller.GetAllUsers)
 			userRoute.GET("/search", userReadAuth, controller.SearchUsers)
 			userRoute.GET("/:id", userReadAuth, controller.GetUser)
@@ -291,7 +292,7 @@ func SetApiRouter(router *gin.Engine) {
 
 		redemptionRoute := apiRouter.Group("/redemption")
 		{
-			redemptionRoute.GET("/", financeReadAuth, controller.GetAllRedemptions)
+			redemptionRoute.GET("/", operationalFinanceReadAuth, controller.GetAllRedemptions)
 			redemptionRoute.GET("/search", financeReadAuth, controller.SearchRedemptions)
 			redemptionRoute.GET("/:id", financeReadAuth, controller.GetRedemption)
 			redemptionRoute.POST("/", middleware.AdminAuth(), controller.AddRedemption)
@@ -300,7 +301,7 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteRedemption)
 		}
 		logRoute := apiRouter.Group("/log")
-		logRoute.GET("/", financeReadAuth, controller.GetAllLogs)
+		logRoute.GET("/", operationalFinanceReadAuth, controller.GetAllLogs)
 		logRoute.DELETE("/", middleware.RootAuth(), controller.DeleteHistoryLogs)
 		logRoute.GET("/stat", financeReadAuth, controller.GetLogsStat)
 		logRoute.GET("/self/stat", middleware.UserAuth(), controller.GetLogsSelfStat)
@@ -335,12 +336,12 @@ func SetApiRouter(router *gin.Engine) {
 
 		mjRoute := apiRouter.Group("/mj")
 		mjRoute.GET("/self", middleware.UserAuth(), controller.GetUserMidjourney)
-		mjRoute.GET("/", opsReadAuth, controller.GetAllMidjourney)
+		mjRoute.GET("/", operationalOpsReadAuth, controller.GetAllMidjourney)
 
 		taskRoute := apiRouter.Group("/task")
 		{
 			taskRoute.GET("/self", middleware.UserAuth(), controller.GetUserTask)
-			taskRoute.GET("/", opsReadAuth, controller.GetAllTask)
+			taskRoute.GET("/", operationalOpsReadAuth, controller.GetAllTask)
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")

@@ -31,6 +31,18 @@ type Redemption struct {
 }
 
 func GetAllRedemptions(startIdx int, num int, scopes ...TenantScope) (redemptions []*Redemption, total int64, err error) {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return GetAllRedemptionsByAccessScope(startIdx, num, scope)
+}
+
+func GetAllRedemptionsByAccessScope(startIdx int, num int, scope AccessScope) (redemptions []*Redemption, total int64, err error) {
 	// 开始事务
 	tx := DB.Begin()
 	if tx.Error != nil {
@@ -43,9 +55,7 @@ func GetAllRedemptions(startIdx int, num int, scopes ...TenantScope) (redemption
 	}()
 
 	query := tx.Model(&Redemption{})
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "redemptions")
-	}
+	query = ApplyOwnershipScope(query, "redemptions", scope)
 
 	// 获取总数
 	err = query.Count(&total).Error

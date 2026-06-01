@@ -58,3 +58,12 @@ func requireTopUpTenantAccess(c *gin.Context, topUp *model.TopUp) bool {
 	}
 	return requireTenantAccess(c, topUp.TenantId)
 }
+
+func operationalReadAccessScope(c *gin.Context) (model.AccessScope, bool) {
+	scope := model.AccessScopeFromContext(c)
+	if common.IsOrganizationAdminRole(scope.RoleKey) && scope.OrganizationId <= 0 {
+		common.ApiErrorMsg(c, tenantAccessDeniedMessage)
+		return scope, false
+	}
+	return scope, true
+}

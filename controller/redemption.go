@@ -14,7 +14,11 @@ import (
 
 func GetAllRedemptions(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	redemptions, total, err := model.GetAllRedemptions(pageInfo.GetStartIdx(), pageInfo.GetPageSize(), model.TenantScopeFromContext(c))
+	scope, ok := operationalReadAccessScope(c)
+	if !ok {
+		return
+	}
+	redemptions, total, err := model.GetAllRedemptionsByAccessScope(pageInfo.GetStartIdx(), pageInfo.GetPageSize(), scope)
 	if err != nil {
 		common.ApiError(c, err)
 		return
