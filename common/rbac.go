@@ -52,6 +52,15 @@ func IsTenantAdminRole(roleKey string) bool {
 	return NormalizeRoleKey(roleKey) == RoleKeyTenantAdmin
 }
 
+func IsOrganizationAdminRole(roleKey string) bool {
+	return NormalizeRoleKey(roleKey) == RoleKeyOrganizationAdmin
+}
+
+func IsScopedAdminRole(roleKey string) bool {
+	roleKey = NormalizeRoleKey(roleKey)
+	return roleKey == RoleKeyRoot || roleKey == RoleKeyTenantAdmin || roleKey == RoleKeyOrganizationAdmin
+}
+
 func HasRole(roleKey string, requiredRole string) bool {
 	roleKey = NormalizeRoleKey(roleKey)
 	requiredRole = NormalizeRoleKey(requiredRole)
