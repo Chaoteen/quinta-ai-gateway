@@ -14,7 +14,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -22,15 +21,17 @@ type roleAdoptionUser struct {
 	id      int
 	role    int
 	roleKey string
+	tenant  int
 }
 
 var roleAdoptionUsers = map[string]roleAdoptionUser{
-	"root":         {id: 1, role: common.RoleRootUser, roleKey: common.RoleKeyRoot},
-	"tenant_admin": {id: 2, role: common.RoleAdminUser, roleKey: common.RoleKeyTenantAdmin},
-	"finance":      {id: 3, role: common.RoleCommonUser, roleKey: common.RoleKeyFinance},
-	"ops":          {id: 4, role: common.RoleCommonUser, roleKey: common.RoleKeyOps},
-	"auditor":      {id: 5, role: common.RoleCommonUser, roleKey: common.RoleKeyAuditor},
-	"user":         {id: 6, role: common.RoleCommonUser, roleKey: common.RoleKeyUser},
+	"root":         {id: 1, role: common.RoleRootUser, roleKey: common.RoleKeyRoot, tenant: 1},
+	"tenant_admin": {id: 2, role: common.RoleAdminUser, roleKey: common.RoleKeyTenantAdmin, tenant: 1},
+	"finance":      {id: 3, role: common.RoleCommonUser, roleKey: common.RoleKeyFinance, tenant: 1},
+	"ops":          {id: 4, role: common.RoleCommonUser, roleKey: common.RoleKeyOps, tenant: 1},
+	"auditor":      {id: 5, role: common.RoleCommonUser, roleKey: common.RoleKeyAuditor, tenant: 1},
+	"user":         {id: 6, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 1},
+	"tenant2_user": {id: 7, role: common.RoleCommonUser, roleKey: common.RoleKeyUser, tenant: 2},
 }
 
 func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
@@ -41,13 +42,20 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	common.UsingMySQL = false
 	common.UsingPostgreSQL = false
 	common.RedisEnabled = false
+	previousSQLitePath := common.SQLitePath
+	previousIsMasterNode := common.IsMasterNode
+	common.IsMasterNode = true
 
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to open sqlite db: %v", err)
+	common.SQLitePath = dsn
+	t.Cleanup(func() {
+		common.SQLitePath = previousSQLitePath
+		common.IsMasterNode = previousIsMasterNode
+	})
+	if err := model.InitDB(); err != nil {
+		t.Fatalf("failed to initialize sqlite db: %v", err)
 	}
-	model.DB = db
+	db := model.DB
 	model.LOG_DB = db
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()
@@ -56,22 +64,12 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 		}
 	})
 
-	if err := db.AutoMigrate(
-		&model.Tenant{},
-		&model.User{},
-		&model.Log{},
-		&model.TopUp{},
-		&model.Redemption{},
-		&model.Task{},
-		&model.Midjourney{},
-	); err != nil {
-		t.Fatalf("failed to migrate test db: %v", err)
-	}
-
 	for name, user := range roleAdoptionUsers {
-		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey)
+		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey, user.tenant)
 	}
 	seedRoleAdoptionRedemption(t, db)
+	seedRoleAdoptionChannels(t, db)
+	seedRoleAdoptionSubscriptions(t, db)
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("role-adoption-test-secret"))
@@ -106,11 +104,11 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	return r
 }
 
-func seedRoleAdoptionUser(t *testing.T, db *gorm.DB, id int, username string, role int, roleKey string) {
+func seedRoleAdoptionUser(t *testing.T, db *gorm.DB, id int, username string, role int, roleKey string, tenantId int) {
 	t.Helper()
 	user := model.User{
 		Id:          id,
-		TenantId:    1,
+		TenantId:    tenantId,
 		Username:    username,
 		Password:    "password123",
 		DisplayName: username,
@@ -137,6 +135,45 @@ func seedRoleAdoptionRedemption(t *testing.T, db *gorm.DB) {
 	}
 	if err := db.Create(&redemption).Error; err != nil {
 		t.Fatalf("failed to seed redemption: %v", err)
+	}
+}
+
+func seedRoleAdoptionChannels(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	tag := "phase2"
+	channels := []model.Channel{
+		{Id: 1, TenantId: 1, Name: "tenant-1-channel", Type: 1, Key: "tenant-1-key", Status: common.ChannelStatusEnabled, Models: "gpt-4o,gpt-4o-mini", Group: "default", Tag: &tag},
+		{Id: 2, TenantId: 2, Name: "tenant-2-channel", Type: 1, Key: "tenant-2-key", Status: common.ChannelStatusEnabled, Models: "gpt-4.1", Group: "default", Tag: &tag},
+	}
+	for _, channel := range channels {
+		requireCreateRoleAdoptionRecord(t, db.Create(&channel).Error)
+	}
+	abilities := []model.Ability{
+		{TenantId: 1, ChannelId: 1, Model: "gpt-4o", Group: "default", Enabled: true},
+		{TenantId: 2, ChannelId: 2, Model: "gpt-4.1", Group: "default", Enabled: true},
+	}
+	for _, ability := range abilities {
+		requireCreateRoleAdoptionRecord(t, db.Create(&ability).Error)
+	}
+}
+
+func seedRoleAdoptionSubscriptions(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	plan := model.SubscriptionPlan{Id: 1, Title: "role adoption plan", Enabled: true, TotalAmount: 1000}
+	requireCreateRoleAdoptionRecord(t, db.Create(&plan).Error)
+	subscriptions := []model.UserSubscription{
+		{Id: 1, TenantId: 1, UserId: roleAdoptionUsers["user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
+		{Id: 2, TenantId: 2, UserId: roleAdoptionUsers["tenant2_user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
+	}
+	for _, subscription := range subscriptions {
+		requireCreateRoleAdoptionRecord(t, db.Create(&subscription).Error)
+	}
+}
+
+func requireCreateRoleAdoptionRecord(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatalf("failed to seed role adoption record: %v", err)
 	}
 }
 
@@ -236,6 +273,88 @@ func TestRoleAuthReadRoutesAllowExpectedRoles(t *testing.T) {
 		t.Run("user rejected ops read "+path, func(t *testing.T) {
 			assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers["user"])
 		})
+	}
+}
+
+func TestRoleAuthPhase2ReadRoutesAllowExpectedRoles(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	channelReadPaths := []string{
+		"/api/channel/",
+		"/api/channel/search",
+		"/api/channel/1",
+		"/api/channel/models_enabled",
+		"/api/channel/tag/models?tag=phase2",
+	}
+	subscriptionReadPath := "/api/subscription/admin/users/6/subscriptions"
+
+	for _, path := range channelReadPaths {
+		t.Run("tenant_admin channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["tenant_admin"])
+		})
+		t.Run("ops channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["ops"])
+		})
+		t.Run("auditor channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["auditor"])
+		})
+		t.Run("root channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, path, roleAdoptionUsers["root"])
+		})
+		t.Run("finance rejected channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers["finance"])
+		})
+		t.Run("user rejected channel read "+path, func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers["user"])
+		})
+	}
+
+	for _, roleName := range []string{"tenant_admin", "finance", "auditor", "root"} {
+		t.Run(roleName+" subscription read", func(t *testing.T) {
+			assertRoleAdoptionAllowed(t, r, subscriptionReadPath, roleAdoptionUsers[roleName])
+		})
+	}
+	for _, roleName := range []string{"ops", "user"} {
+		t.Run(roleName+" rejected subscription read", func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, subscriptionReadPath, roleAdoptionUsers[roleName])
+		})
+	}
+}
+
+func TestRoleAuthPhase2TenantBoundaries(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	for _, roleName := range []string{"tenant_admin", "ops", "auditor"} {
+		t.Run(roleName+" rejects tenant 2 channel", func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, "/api/channel/2", roleAdoptionUsers[roleName])
+		})
+	}
+	assertRoleAdoptionAllowed(t, r, "/api/channel/2", roleAdoptionUsers["root"])
+
+	for _, roleName := range []string{"tenant_admin", "finance", "auditor"} {
+		t.Run(roleName+" rejects tenant 2 subscriptions", func(t *testing.T) {
+			assertRoleAdoptionRejected(t, r, "/api/subscription/admin/users/7/subscriptions", roleAdoptionUsers[roleName])
+		})
+	}
+	assertRoleAdoptionAllowed(t, r, "/api/subscription/admin/users/7/subscriptions", roleAdoptionUsers["root"])
+}
+
+func TestRoleAuthPhase2DeferredRoutesRemainAdminOnly(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	deferredPaths := []string{
+		"/api/channel/models",
+		"/api/models/",
+		"/api/vendors/",
+		"/api/group/",
+		"/api/prefill_group/",
+	}
+	for _, path := range deferredPaths {
+		for _, roleName := range []string{"finance", "ops", "auditor", "user"} {
+			t.Run(roleName+" rejected deferred "+path, func(t *testing.T) {
+				assertRoleAdoptionRejected(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
 	}
 }
 
