@@ -66,6 +66,8 @@ func SetApiRouter(router *gin.Engine) {
 		opsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		channelReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		subscriptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		catalogReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
+		billingReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 
 		userRoute := apiRouter.Group("/user")
 		{
@@ -164,7 +166,7 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		subscriptionAdminRoute := apiRouter.Group("/subscription/admin")
 		{
-			subscriptionAdminRoute.GET("/plans", middleware.AdminAuth(), controller.AdminListSubscriptionPlans)
+			subscriptionAdminRoute.GET("/plans", billingReadAuth, controller.AdminListSubscriptionPlans)
 			subscriptionAdminRoute.POST("/plans", middleware.RootAuth(), controller.AdminCreateSubscriptionPlan)
 			subscriptionAdminRoute.PUT("/plans/:id", middleware.RootAuth(), controller.AdminUpdateSubscriptionPlan)
 			subscriptionAdminRoute.PATCH("/plans/:id", middleware.RootAuth(), controller.AdminUpdateSubscriptionPlanStatus)
@@ -341,25 +343,23 @@ func SetApiRouter(router *gin.Engine) {
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")
-		vendorRoute.Use(middleware.AdminAuth())
 		{
-			vendorRoute.GET("/", controller.GetAllVendors)
-			vendorRoute.GET("/search", controller.SearchVendors)
-			vendorRoute.GET("/:id", controller.GetVendorMeta)
+			vendorRoute.GET("/", catalogReadAuth, controller.GetAllVendors)
+			vendorRoute.GET("/search", catalogReadAuth, controller.SearchVendors)
+			vendorRoute.GET("/:id", catalogReadAuth, controller.GetVendorMeta)
 			vendorRoute.POST("/", middleware.RootAuth(), controller.CreateVendorMeta)
 			vendorRoute.PUT("/", middleware.RootAuth(), controller.UpdateVendorMeta)
 			vendorRoute.DELETE("/:id", middleware.RootAuth(), controller.DeleteVendorMeta)
 		}
 
 		modelsRoute := apiRouter.Group("/models")
-		modelsRoute.Use(middleware.AdminAuth())
 		{
-			modelsRoute.GET("/sync_upstream/preview", controller.SyncUpstreamPreview)
+			modelsRoute.GET("/sync_upstream/preview", middleware.AdminAuth(), controller.SyncUpstreamPreview)
 			modelsRoute.POST("/sync_upstream", middleware.RootAuth(), controller.SyncUpstreamModels)
-			modelsRoute.GET("/missing", controller.GetMissingModels)
-			modelsRoute.GET("/", controller.GetAllModelsMeta)
-			modelsRoute.GET("/search", controller.SearchModelsMeta)
-			modelsRoute.GET("/:id", controller.GetModelMeta)
+			modelsRoute.GET("/missing", catalogReadAuth, controller.GetMissingModels)
+			modelsRoute.GET("/", middleware.AdminAuth(), controller.GetAllModelsMeta)
+			modelsRoute.GET("/search", middleware.AdminAuth(), controller.SearchModelsMeta)
+			modelsRoute.GET("/:id", middleware.AdminAuth(), controller.GetModelMeta)
 			modelsRoute.POST("/", middleware.RootAuth(), controller.CreateModelMeta)
 			modelsRoute.PUT("/", middleware.RootAuth(), controller.UpdateModelMeta)
 			modelsRoute.DELETE("/:id", middleware.RootAuth(), controller.DeleteModelMeta)
