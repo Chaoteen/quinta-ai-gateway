@@ -106,7 +106,11 @@ func GetLogsStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, model.TenantScopeFromContext(c))
+	scope, ok := operationalReadAccessScope(c)
+	if !ok {
+		return
+	}
+	stat, err := model.SumUsedQuotaByAccessScope(scope, logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return

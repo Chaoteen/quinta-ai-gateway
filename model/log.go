@@ -452,14 +452,24 @@ type Stat struct {
 }
 
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string, scopes ...TenantScope) (stat Stat, err error) {
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return SumUsedQuotaByAccessScope(scope, logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
+}
+
+func SumUsedQuotaByAccessScope(scope AccessScope, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("sum(quota) quota")
 
 	// 为rpm和tpm创建单独的查询
 	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, sum(prompt_tokens) + sum(completion_tokens) tpm")
-	if len(scopes) > 0 {
-		tx = scopes[0].Apply(tx, "logs")
-		rpmTpmQuery = scopes[0].Apply(rpmTpmQuery, "logs")
-	}
+	tx = ApplyOwnershipScope(tx, "logs", scope)
+	rpmTpmQuery = ApplyOwnershipScope(rpmTpmQuery, "logs", scope)
 
 	if username != "" {
 		tx = tx.Where("username = ?", username)

@@ -722,11 +722,24 @@ func GetAllUserSubscriptions(userId int, scopes ...TenantScope) ([]SubscriptionS
 	if userId <= 0 {
 		return nil, errors.New("invalid userId")
 	}
+	scope := AccessScope{IsRoot: true}
+	if len(scopes) > 0 {
+		tenantScope := scopes[0]
+		scope = AccessScope{TenantId: tenantScope.TenantId, IsRoot: tenantScope.IsRoot, RoleKey: common.RoleKeyTenantAdmin}
+		if tenantScope.IsRoot {
+			scope.RoleKey = common.RoleKeyRoot
+		}
+	}
+	return GetAllUserSubscriptionsByAccessScope(userId, scope)
+}
+
+func GetAllUserSubscriptionsByAccessScope(userId int, scope AccessScope) ([]SubscriptionSummary, error) {
+	if userId <= 0 {
+		return nil, errors.New("invalid userId")
+	}
 	var subs []UserSubscription
 	query := DB.Where("user_id = ?", userId)
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "user_subscriptions")
-	}
+	query = ApplyOwnershipScope(query, "user_subscriptions", scope)
 	err := query.
 		Order("end_time desc, id desc").
 		Find(&subs).Error
