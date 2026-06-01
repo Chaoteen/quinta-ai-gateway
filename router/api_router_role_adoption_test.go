@@ -25,6 +25,8 @@ type roleAdoptionUser struct {
 	organization int
 }
 
+const roleAdoptionTenantDeniedMessage = "用户不存在或无权访问"
+
 var roleAdoptionUsers = map[string]roleAdoptionUser{
 	"root":                 {id: 1, role: common.RoleRootUser, roleKey: common.RoleKeyRoot, tenant: 1},
 	"tenant_admin":         {id: 2, role: common.RoleAdminUser, roleKey: common.RoleKeyTenantAdmin, tenant: 1},
@@ -150,9 +152,10 @@ func seedRoleAdoptionRedemption(t *testing.T, db *gorm.DB) {
 func seedRoleAdoptionChannels(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	tag := "phase2"
+	baseURL := "http://127.0.0.1:1"
 	channels := []model.Channel{
-		{Id: 1, TenantId: 1, Name: "tenant-1-channel", Type: 1, Key: "tenant-1-key", Status: common.ChannelStatusEnabled, Models: "gpt-4o,gpt-4o-mini", Group: "default", Tag: &tag},
-		{Id: 2, TenantId: 2, Name: "tenant-2-channel", Type: 1, Key: "tenant-2-key", Status: common.ChannelStatusEnabled, Models: "gpt-4.1", Group: "default", Tag: &tag},
+		{Id: 1, TenantId: 1, Name: "tenant-1-channel", Type: 1, Key: "tenant-1-key", Status: common.ChannelStatusEnabled, Models: "gpt-4o,gpt-4o-mini", Group: "default", Tag: &tag, BaseURL: &baseURL},
+		{Id: 2, TenantId: 2, Name: "tenant-2-channel", Type: 1, Key: "tenant-2-key", Status: common.ChannelStatusEnabled, Models: "gpt-4.1", Group: "default", Tag: &tag, BaseURL: &baseURL},
 	}
 	for _, channel := range channels {
 		requireCreateRoleAdoptionRecord(t, db.Create(&channel).Error)
@@ -263,6 +266,18 @@ func decodeRoleAdoptionSuccess(t *testing.T, recorder *httptest.ResponseRecorder
 		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
 	}
 	return response.Success
+}
+
+func decodeRoleAdoptionBasicResponse(t *testing.T, recorder *httptest.ResponseRecorder) (bool, string) {
+	t.Helper()
+	var response struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	return response.Success, response.Message
 }
 
 func decodeRoleAdoptionUserListIDs(t *testing.T, recorder *httptest.ResponseRecorder) []int {
@@ -390,6 +405,33 @@ func assertRoleAdoptionRejected(t *testing.T, r *gin.Engine, path string, user r
 	recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", user)
 	if decodeRoleAdoptionSuccess(t, recorder) {
 		t.Fatalf("expected role %s to be rejected from %s, status=%d body=%s", user.roleKey, path, recorder.Code, recorder.Body.String())
+	}
+}
+
+func assertRoleAdoptionReachedHandler(t *testing.T, r *gin.Engine, path string, user roleAdoptionUser) {
+	t.Helper()
+	recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", user)
+	_, message := decodeRoleAdoptionBasicResponse(t, recorder)
+	if strings.Contains(message, "权限不足") || strings.Contains(message, "insufficient_privilege") || message == roleAdoptionTenantDeniedMessage {
+		t.Fatalf("expected role %s to reach handler for %s, status=%d body=%s", user.roleKey, path, recorder.Code, recorder.Body.String())
+	}
+}
+
+func assertRoleAdoptionTenantDenied(t *testing.T, r *gin.Engine, path string, user roleAdoptionUser) {
+	t.Helper()
+	recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", user)
+	success, message := decodeRoleAdoptionBasicResponse(t, recorder)
+	if success || message != roleAdoptionTenantDeniedMessage {
+		t.Fatalf("expected role %s to be tenant-denied from %s, status=%d body=%s", user.roleKey, path, recorder.Code, recorder.Body.String())
+	}
+}
+
+func assertRoleAdoptionPrivilegeDenied(t *testing.T, r *gin.Engine, path string, user roleAdoptionUser) {
+	t.Helper()
+	recorder := performRoleAdoptionRequest(r, http.MethodGet, path, "", user)
+	success, message := decodeRoleAdoptionBasicResponse(t, recorder)
+	if success || (!strings.Contains(message, "权限不足") && !strings.Contains(message, "insufficient_privilege")) {
+		t.Fatalf("expected role %s to be privilege-denied from %s, status=%d body=%s", user.roleKey, path, recorder.Code, recorder.Body.String())
 	}
 }
 
@@ -531,6 +573,69 @@ func TestRoleAuthPhase2TenantBoundaries(t *testing.T) {
 		assertRoleAdoptionRejected(t, r, "/api/subscription/admin/users/10/subscriptions", roleAdoptionUsers["organization_admin_0"])
 	})
 	assertRoleAdoptionAllowed(t, r, "/api/subscription/admin/users/7/subscriptions", roleAdoptionUsers["root"])
+}
+
+func TestRoleAuthPhase4ChannelReadExecuteRoutes(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	executePaths := []string{
+		"/api/channel/fetch_models/1",
+		"/api/channel/ollama/version/1",
+		"/api/channel/test/1",
+	}
+	for _, path := range executePaths {
+		for _, roleName := range []string{"tenant_admin", "ops", "root"} {
+			t.Run(roleName+" reaches channel execute "+path, func(t *testing.T) {
+				assertRoleAdoptionReachedHandler(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
+		for _, roleName := range []string{"finance", "auditor", "organization_admin", "user"} {
+			t.Run(roleName+" rejected channel execute "+path, func(t *testing.T) {
+				assertRoleAdoptionPrivilegeDenied(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
+	}
+
+	balancePath := "/api/channel/update_balance/1"
+	for _, roleName := range []string{"tenant_admin", "ops", "finance", "root"} {
+		t.Run(roleName+" reaches channel balance", func(t *testing.T) {
+			assertRoleAdoptionReachedHandler(t, r, balancePath, roleAdoptionUsers[roleName])
+		})
+	}
+	for _, roleName := range []string{"auditor", "organization_admin", "user"} {
+		t.Run(roleName+" rejected channel balance", func(t *testing.T) {
+			assertRoleAdoptionPrivilegeDenied(t, r, balancePath, roleAdoptionUsers[roleName])
+		})
+	}
+}
+
+func TestRoleAuthPhase4ChannelReadExecuteTenantBoundaries(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	tenant2ExecutePaths := []string{
+		"/api/channel/fetch_models/2",
+		"/api/channel/ollama/version/2",
+		"/api/channel/test/2",
+	}
+	for _, path := range tenant2ExecutePaths {
+		for _, roleName := range []string{"tenant_admin", "ops"} {
+			t.Run(roleName+" tenant denied channel execute "+path, func(t *testing.T) {
+				assertRoleAdoptionTenantDenied(t, r, path, roleAdoptionUsers[roleName])
+			})
+		}
+		t.Run("root reaches tenant 2 channel execute "+path, func(t *testing.T) {
+			assertRoleAdoptionReachedHandler(t, r, path, roleAdoptionUsers["root"])
+		})
+	}
+
+	for _, roleName := range []string{"tenant_admin", "ops", "finance"} {
+		t.Run(roleName+" tenant denied channel balance", func(t *testing.T) {
+			assertRoleAdoptionTenantDenied(t, r, "/api/channel/update_balance/2", roleAdoptionUsers[roleName])
+		})
+	}
+	t.Run("root reaches tenant 2 channel balance", func(t *testing.T) {
+		assertRoleAdoptionReachedHandler(t, r, "/api/channel/update_balance/2", roleAdoptionUsers["root"])
+	})
 }
 
 func TestRoleAuthPhase2DeferredRoutesRemainAdminOnly(t *testing.T) {
