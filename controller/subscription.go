@@ -322,6 +322,19 @@ func ensureAdminTargetUserInTenant(c *gin.Context, userId int, scope model.Tenan
 	return true
 }
 
+func ensureAdminTargetUserInAccessScope(c *gin.Context, userId int, scope model.AccessScope) bool {
+	user, err := model.GetUserById(userId, true)
+	if err != nil {
+		common.ApiErrorMsg(c, "用户不存在或无权访问")
+		return false
+	}
+	if !model.AllowsOwnership(scope, user.TenantId, user.OrganizationId, user.DepartmentId) {
+		common.ApiErrorMsg(c, "用户不存在或无权访问")
+		return false
+	}
+	return true
+}
+
 func ensureAdminSubscriptionInTenant(c *gin.Context, subId int, scope model.TenantScope) bool {
 	if scope.IsRoot {
 		return true
@@ -344,11 +357,14 @@ func AdminListUserSubscriptions(c *gin.Context) {
 		common.ApiErrorMsg(c, "无效的用户ID")
 		return
 	}
-	scope := model.TenantScopeFromContext(c)
-	if !ensureAdminTargetUserInTenant(c, userId, scope) {
+	scope, ok := operationalReadAccessScope(c)
+	if !ok {
 		return
 	}
-	subs, err := model.GetAllUserSubscriptions(userId, scope)
+	if !ensureAdminTargetUserInAccessScope(c, userId, scope) {
+		return
+	}
+	subs, err := model.GetAllUserSubscriptionsByAccessScope(userId, scope)
 	if err != nil {
 		common.ApiError(c, err)
 		return

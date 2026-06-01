@@ -173,6 +173,8 @@ func seedRoleAdoptionSubscriptions(t *testing.T, db *gorm.DB) {
 	subscriptions := []model.UserSubscription{
 		{Id: 1, TenantId: 1, UserId: roleAdoptionUsers["user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
 		{Id: 2, TenantId: 2, UserId: roleAdoptionUsers["tenant2_user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
+		{Id: 3, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
+		{Id: 4, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
 	}
 	for _, subscription := range subscriptions {
 		requireCreateRoleAdoptionRecord(t, db.Create(&subscription).Error)
@@ -191,9 +193,9 @@ func seedRoleAdoptionOperationalReads(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	now := common.GetTimestamp()
 	logs := []model.Log{
-		{Id: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, Username: "organization_user", Type: model.LogTypeConsume, CreatedAt: now, Content: "org log"},
-		{Id: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, Username: "other_organization", Type: model.LogTypeConsume, CreatedAt: now, Content: "other org log"},
-		{Id: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, Username: "tenant2_organization", Type: model.LogTypeConsume, CreatedAt: now, Content: "tenant 2 log"},
+		{Id: 101, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, Username: "organization_user", Type: model.LogTypeConsume, CreatedAt: now, Quota: 10, Content: "org log"},
+		{Id: 102, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, Username: "other_organization", Type: model.LogTypeConsume, CreatedAt: now, Quota: 20, Content: "other org log"},
+		{Id: 103, TenantId: 2, OrganizationId: 10, UserId: roleAdoptionUsers["tenant2_organization"].id, Username: "tenant2_organization", Type: model.LogTypeConsume, CreatedAt: now, Quota: 30, Content: "tenant 2 log"},
 	}
 	for _, log := range logs {
 		requireCreateRoleAdoptionRecord(t, db.Create(&log).Error)
@@ -326,6 +328,23 @@ func decodeRoleAdoptionListTotal(t *testing.T, recorder *httptest.ResponseRecord
 	return response.Data.Total
 }
 
+func decodeRoleAdoptionStatQuota(t *testing.T, recorder *httptest.ResponseRecorder) int {
+	t.Helper()
+	var response struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Quota int `json:"quota"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response body %q: %v", recorder.Body.String(), err)
+	}
+	if !response.Success {
+		t.Fatalf("expected stat response success, status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	return response.Data.Quota
+}
+
 func decodeRoleAdoptionUserDetailID(t *testing.T, recorder *httptest.ResponseRecorder) int {
 	t.Helper()
 	var response struct {
@@ -448,6 +467,7 @@ func TestRoleAuthPhase2ReadRoutesAllowExpectedRoles(t *testing.T) {
 		"/api/channel/",
 		"/api/channel/search",
 		"/api/channel/1",
+		"/api/channel/models",
 		"/api/channel/models_enabled",
 		"/api/channel/tag/models?tag=phase2",
 	}
@@ -479,6 +499,9 @@ func TestRoleAuthPhase2ReadRoutesAllowExpectedRoles(t *testing.T) {
 			assertRoleAdoptionAllowed(t, r, subscriptionReadPath, roleAdoptionUsers[roleName])
 		})
 	}
+	t.Run("organization_admin subscription read own organization", func(t *testing.T) {
+		assertRoleAdoptionAllowed(t, r, "/api/subscription/admin/users/10/subscriptions", roleAdoptionUsers["organization_admin"])
+	})
 	for _, roleName := range []string{"ops", "user"} {
 		t.Run(roleName+" rejected subscription read", func(t *testing.T) {
 			assertRoleAdoptionRejected(t, r, subscriptionReadPath, roleAdoptionUsers[roleName])
@@ -501,6 +524,12 @@ func TestRoleAuthPhase2TenantBoundaries(t *testing.T) {
 			assertRoleAdoptionRejected(t, r, "/api/subscription/admin/users/7/subscriptions", roleAdoptionUsers[roleName])
 		})
 	}
+	t.Run("organization_admin rejects other organization subscriptions", func(t *testing.T) {
+		assertRoleAdoptionRejected(t, r, "/api/subscription/admin/users/11/subscriptions", roleAdoptionUsers["organization_admin"])
+	})
+	t.Run("organization_admin without organization rejects subscriptions", func(t *testing.T) {
+		assertRoleAdoptionRejected(t, r, "/api/subscription/admin/users/10/subscriptions", roleAdoptionUsers["organization_admin_0"])
+	})
 	assertRoleAdoptionAllowed(t, r, "/api/subscription/admin/users/7/subscriptions", roleAdoptionUsers["root"])
 }
 
@@ -508,8 +537,6 @@ func TestRoleAuthPhase2DeferredRoutesRemainAdminOnly(t *testing.T) {
 	r := setupRoleAdoptionRouter(t)
 
 	deferredPaths := []string{
-		"/api/channel/models",
-		"/api/models/",
 		"/api/group/",
 		"/api/prefill_group/",
 	}
@@ -529,6 +556,9 @@ func TestRoleAuthPhase3ReadRoutesAllowExpectedRoles(t *testing.T) {
 		"/api/vendors/",
 		"/api/vendors/search",
 		"/api/vendors/1",
+		"/api/models/",
+		"/api/models/search",
+		"/api/models/1",
 		"/api/models/missing",
 	}
 	billingReadPath := "/api/subscription/admin/plans"
@@ -570,9 +600,6 @@ func TestRoleAuthPhase3DeferredRoutesRemainAdminOnly(t *testing.T) {
 	r := setupRoleAdoptionRouter(t)
 
 	deferredPaths := []string{
-		"/api/models/",
-		"/api/models/search",
-		"/api/models/1",
 		"/api/models/sync_upstream/preview",
 		"/api/group/",
 		"/api/prefill_group/",
@@ -734,6 +761,15 @@ func TestOrganizationAdminOperationalReadRoutes(t *testing.T) {
 	})
 	t.Run("organization_admin no org rejected log", func(t *testing.T) {
 		assertRoleAdoptionRejected(t, r, "/api/log/", orgAdminNoOrg)
+	})
+	t.Run("organization_admin scoped log stat", func(t *testing.T) {
+		recorder := performRoleAdoptionRequest(r, http.MethodGet, "/api/log/stat?start_timestamp=0&end_timestamp=9999999999", "", orgAdmin)
+		if got := decodeRoleAdoptionStatQuota(t, recorder); got != 10 {
+			t.Fatalf("organization_admin org log stat quota = %d, want 10", got)
+		}
+	})
+	t.Run("organization_admin no org rejected log stat", func(t *testing.T) {
+		assertRoleAdoptionRejected(t, r, "/api/log/stat?start_timestamp=0&end_timestamp=9999999999", orgAdminNoOrg)
 	})
 	t.Run("tenant_admin tenant scoped log", func(t *testing.T) {
 		recorder := performRoleAdoptionRequest(r, http.MethodGet, logPath+"other_organization", "", tenantAdmin)
