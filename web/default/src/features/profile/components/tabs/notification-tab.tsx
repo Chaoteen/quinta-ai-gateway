@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Bell, Loader2, Mail, Server, Webhook } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { ROLE } from '@/lib/roles'
+import { isAdminConsoleUser } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -53,7 +53,7 @@ interface NotificationTabProps {
 
 export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   const { t } = useTranslation()
-  const isAdmin = (profile?.role ?? 0) >= ROLE.ADMIN
+  const isAdmin = isAdminConsoleUser(profile)
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState<UserSettings>({
     notify_type: 'email',
@@ -81,6 +81,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   useEffect(() => {
     if (profile?.setting) {
       const parsed = parseUserSettings(profile.setting)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettings({
         notify_type: parsed.notify_type || 'email',
         quota_warning_threshold:

@@ -18,8 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import z from 'zod'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
+import { requireRoot } from '@/lib/route-guards'
 import { Models } from '@/features/models'
 import {
   MODELS_SECTION_IDS,
@@ -41,13 +40,7 @@ const modelsSearchSchema = z.object({
 
 export const Route = createFileRoute('/_authenticated/models/$section')({
   beforeLoad: ({ params }) => {
-    const { auth } = useAuthStore.getState()
-
-    if (!auth.user || auth.user.role < ROLE.ADMIN) {
-      throw redirect({
-        to: '/403',
-      })
-    }
+    requireRoot()
 
     const validSections = MODELS_SECTION_IDS as unknown as string[]
     if (!validSections.includes(params.section)) {

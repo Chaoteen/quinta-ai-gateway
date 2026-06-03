@@ -33,6 +33,12 @@ import {
   CreditCard,
   ListTodo,
   Settings,
+  Building2,
+  Network,
+  GitBranch,
+  Share2,
+  ReceiptText,
+  BarChart3,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
@@ -121,6 +127,26 @@ export function useSidebarData(): SidebarData {
         title: t('Admin'),
         items: [
           {
+            title: t('Tenants'),
+            url: '/tenants',
+            icon: Building2,
+          },
+          {
+            title: t('Organizations'),
+            url: '/organizations',
+            icon: Network,
+          },
+          {
+            title: t('Departments'),
+            url: '/departments',
+            icon: GitBranch,
+          },
+          {
+            title: t('Distribution Channels'),
+            url: '/distribution-channels',
+            icon: Share2,
+          },
+          {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
@@ -136,6 +162,11 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
+            title: t('TopUp'),
+            url: '/topup',
+            icon: ReceiptText,
+          },
+          {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
@@ -144,6 +175,18 @@ export function useSidebarData(): SidebarData {
             title: t('Subscription Management'),
             url: '/subscriptions',
             icon: CreditCard,
+          },
+          {
+            title: t('Logs'),
+            url: '/usage-logs/common',
+            activeUrls: ['/usage-logs'],
+            icon: FileText,
+          },
+          {
+            title: t('Statistics'),
+            url: '/dashboard/models',
+            activeUrls: ['/dashboard/models'],
+            icon: BarChart3,
           },
           {
             title: t('System Settings'),

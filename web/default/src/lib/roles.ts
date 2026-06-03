@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { t } from 'i18next'
+import type { AuthUser } from '@/stores/auth-store'
 
 export const ROLE = {
   GUEST: 0, // 后续如果需要用到这个角色那就再加，同语先留一下
@@ -26,6 +27,18 @@ export const ROLE = {
 } as const
 
 export type RoleValue = (typeof ROLE)[keyof typeof ROLE]
+
+export const ROLE_KEY = {
+  ROOT: 'root',
+  TENANT_ADMIN: 'tenant_admin',
+  ORGANIZATION_ADMIN: 'organization_admin',
+  FINANCE: 'finance',
+  OPS: 'ops',
+  AUDITOR: 'auditor',
+  USER: 'user',
+} as const
+
+export type RoleKey = (typeof ROLE_KEY)[keyof typeof ROLE_KEY]
 
 const DEFAULT_ROLE = ROLE.GUEST
 
@@ -42,4 +55,30 @@ export function getRoleLabelKey(role?: number): string {
 
 export function getRoleLabel(role?: number): string {
   return t(getRoleLabelKey(role))
+}
+
+export function normalizeRoleKey(roleKey?: string | null): RoleKey {
+  switch ((roleKey || '').trim().toLowerCase()) {
+    case ROLE_KEY.ROOT:
+      return ROLE_KEY.ROOT
+    case ROLE_KEY.TENANT_ADMIN:
+      return ROLE_KEY.TENANT_ADMIN
+    case ROLE_KEY.ORGANIZATION_ADMIN:
+      return ROLE_KEY.ORGANIZATION_ADMIN
+    case ROLE_KEY.FINANCE:
+      return ROLE_KEY.FINANCE
+    case ROLE_KEY.OPS:
+      return ROLE_KEY.OPS
+    case ROLE_KEY.AUDITOR:
+      return ROLE_KEY.AUDITOR
+    default:
+      return ROLE_KEY.USER
+  }
+}
+
+export function getUserRoleKey(
+  user?: Pick<AuthUser, 'role_key'> | null
+): RoleKey {
+  if (!user) return ROLE_KEY.USER
+  return normalizeRoleKey(user.role_key)
 }

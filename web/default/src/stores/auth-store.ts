@@ -29,7 +29,12 @@ export interface AuthUser {
   display_name?: string
   email?: string
   role: number
+  role_key?: string
   status?: number
+  tenant_id?: number
+  organization_id?: number
+  department_id?: number
+  distribution_channel_id?: number
   group?: string
   quota?: number
   used_quota?: number

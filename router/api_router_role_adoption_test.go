@@ -443,6 +443,52 @@ func assertRoleAdoptionMethodRejected(t *testing.T, r *gin.Engine, method string
 	}
 }
 
+func TestManageUserPromoteDemoteSynchronizesRoleKey(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+	root := roleAdoptionUsers["root"]
+	target := roleAdoptionUsers["user"]
+
+	promoteBody, err := common.Marshal(map[string]any{
+		"id":     target.id,
+		"action": "promote",
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal promote body: %v", err)
+	}
+	promoteRecorder := performRoleAdoptionRequest(r, http.MethodPost, "/api/user/manage", string(promoteBody), root)
+	if !decodeRoleAdoptionSuccess(t, promoteRecorder) {
+		t.Fatalf("expected promote to succeed, status=%d body=%s", promoteRecorder.Code, promoteRecorder.Body.String())
+	}
+
+	var promoted model.User
+	if err := model.DB.Select("role", "role_key").Where("id = ?", target.id).First(&promoted).Error; err != nil {
+		t.Fatalf("failed to load promoted user: %v", err)
+	}
+	if promoted.Role != common.RoleAdminUser || promoted.RoleKey != common.RoleKeyTenantAdmin {
+		t.Fatalf("promote persisted role=(%d, %q), want (%d, %q)", promoted.Role, promoted.RoleKey, common.RoleAdminUser, common.RoleKeyTenantAdmin)
+	}
+
+	demoteBody, err := common.Marshal(map[string]any{
+		"id":     target.id,
+		"action": "demote",
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal demote body: %v", err)
+	}
+	demoteRecorder := performRoleAdoptionRequest(r, http.MethodPost, "/api/user/manage", string(demoteBody), root)
+	if !decodeRoleAdoptionSuccess(t, demoteRecorder) {
+		t.Fatalf("expected demote to succeed, status=%d body=%s", demoteRecorder.Code, demoteRecorder.Body.String())
+	}
+
+	var demoted model.User
+	if err := model.DB.Select("role", "role_key").Where("id = ?", target.id).First(&demoted).Error; err != nil {
+		t.Fatalf("failed to load demoted user: %v", err)
+	}
+	if demoted.Role != common.RoleCommonUser || demoted.RoleKey != common.RoleKeyUser {
+		t.Fatalf("demote persisted role=(%d, %q), want (%d, %q)", demoted.Role, demoted.RoleKey, common.RoleCommonUser, common.RoleKeyUser)
+	}
+}
+
 func TestRoleAuthReadRoutesAllowExpectedRoles(t *testing.T) {
 	r := setupRoleAdoptionRouter(t)
 

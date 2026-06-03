@@ -44,6 +44,25 @@ func LegacyRoleToRoleKey(role int) string {
 	}
 }
 
+func RoleKeyToLegacyRole(roleKey string) int {
+	switch NormalizeRoleKey(roleKey) {
+	case RoleKeyRoot:
+		return RoleRootUser
+	case RoleKeyTenantAdmin:
+		return RoleAdminUser
+	default:
+		return RoleCommonUser
+	}
+}
+
+func NormalizeRoleConsistency(role int, roleKey string) (int, string) {
+	normalizedRoleKey := NormalizeRoleKey(roleKey)
+	if strings.TrimSpace(roleKey) == "" {
+		normalizedRoleKey = LegacyRoleToRoleKey(role)
+	}
+	return RoleKeyToLegacyRole(normalizedRoleKey), normalizedRoleKey
+}
+
 func IsRootRole(roleKey string) bool {
 	return NormalizeRoleKey(roleKey) == RoleKeyRoot
 }

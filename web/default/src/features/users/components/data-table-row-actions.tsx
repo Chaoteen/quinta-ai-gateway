@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { isAdminConsoleUser, isRootUser } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -45,12 +46,7 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
 import { manageUser, resetUserPasskey, resetUserTwoFA } from '../api'
-import {
-  USER_STATUS,
-  USER_ROLE,
-  ERROR_MESSAGES,
-  isUserDeleted,
-} from '../constants'
+import { USER_STATUS, ERROR_MESSAGES, isUserDeleted } from '../constants'
 import { getUserActionMessage } from '../lib'
 import { type User, type ManageUserAction } from '../types'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
@@ -128,8 +124,8 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   }
 
   const isDisabled = user.status === USER_STATUS.DISABLED
-  const isAdmin = user.role >= USER_ROLE.ADMIN
-  const isRoot = user.role === USER_ROLE.ROOT
+  const isAdmin = isAdminConsoleUser(user)
+  const isRoot = isRootUser(user)
 
   if (isUserDeleted(user)) {
     return null

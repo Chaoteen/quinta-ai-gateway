@@ -265,6 +265,55 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { label: t('Role') },
     },
     {
+      accessorKey: 'role_key',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='role_key' />
+      ),
+      cell: ({ row }) => {
+        return (
+          <StatusBadge
+            label={(row.getValue('role_key') as string) || 'user'}
+            variant='neutral'
+            copyable={false}
+          />
+        )
+      },
+      enableSorting: false,
+      meta: { label: 'role_key', mobileHidden: true },
+    },
+    {
+      accessorKey: 'tenant_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='tenant_id' />
+      ),
+      cell: ({ row }) => row.getValue('tenant_id') ?? 0,
+      meta: { label: 'tenant_id', mobileHidden: true },
+    },
+    {
+      accessorKey: 'organization_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='organization_id' />
+      ),
+      cell: ({ row }) => row.getValue('organization_id') ?? 0,
+      meta: { label: 'organization_id', mobileHidden: true },
+    },
+    {
+      accessorKey: 'department_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='department_id' />
+      ),
+      cell: ({ row }) => row.getValue('department_id') ?? 0,
+      meta: { label: 'department_id', mobileHidden: true },
+    },
+    {
+      accessorKey: 'distribution_channel_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title='distribution_channel_id' />
+      ),
+      cell: ({ row }) => row.getValue('distribution_channel_id') ?? 0,
+      meta: { label: 'distribution_channel_id', mobileHidden: true },
+    },
+    {
       id: 'invite_info',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('Invite Info')} />
