@@ -16,13 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute } from '@tanstack/react-router'
-import { requireRoot } from '@/lib/route-guards'
-import { SystemSettings } from '@/features/system-settings'
+import { redirect } from '@tanstack/react-router'
+import { useAuthStore } from '@/stores/auth-store'
+import { hasPermission, RBAC_PERMISSION, type RbacPermission } from './rbac'
 
-export const Route = createFileRoute('/_authenticated/system-settings')({
-  beforeLoad: () => {
-    requireRoot()
-  },
-  component: SystemSettings,
-})
+export function requirePermission(permission: RbacPermission) {
+  const { auth } = useAuthStore.getState()
+  if (!auth.user || !hasPermission(auth.user, permission)) {
+    throw redirect({ to: '/403' })
+  }
+}
+
+export function requireRoot() {
+  requirePermission(RBAC_PERMISSION.ROOT_ADMIN)
+}

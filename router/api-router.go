@@ -220,6 +220,14 @@ func SetApiRouter(router *gin.Engine) {
 			performanceRoute.GET("/logs", controller.GetLogFiles)
 			performanceRoute.DELETE("/logs", controller.CleanupLogFiles)
 		}
+		adminConsoleRoute := apiRouter.Group("/admin_console")
+		adminConsoleRoute.Use(middleware.RootAuth())
+		{
+			adminConsoleRoute.GET("/tenants", controller.GetReadonlyTenants)
+			adminConsoleRoute.GET("/organizations", controller.GetReadonlyOrganizations)
+			adminConsoleRoute.GET("/departments", controller.GetReadonlyDepartments)
+			adminConsoleRoute.GET("/distribution_channels", controller.GetReadonlyDistributionChannels)
+		}
 		ratioSyncRoute := apiRouter.Group("/ratio_sync")
 		ratioSyncRoute.Use(middleware.RootAuth())
 		{

@@ -20,7 +20,7 @@ import { useMemo } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
+import { ADMIN_SIDEBAR_PERMISSION_BY_URL, hasPermission } from '@/lib/rbac'
 import { useLayout } from '@/context/layout-provider'
 import { useSidebarConfig } from '@/hooks/use-sidebar-config'
 import { useSidebarData } from '@/hooks/use-sidebar-data'
@@ -40,7 +40,7 @@ export function AppSidebar() {
   const { t } = useTranslation()
   const { collapsible, variant } = useLayout()
   const { pathname } = useLocation()
-  const userRole = useAuthStore((state) => state.auth.user?.role)
+  const user = useAuthStore((state) => state.auth.user)
   const sidebarData = useSidebarData()
 
   // Get navigation group configuration corresponding to current path from workspace registry
@@ -52,14 +52,23 @@ export function AppSidebar() {
   // Filter navigation groups based on user role
   // Non-Admin users cannot see Admin navigation group
   const currentNavGroups = useMemo(() => {
-    const isAdmin = userRole && userRole >= ROLE.ADMIN
-    return configFilteredNavGroups.filter((group) => {
-      if (group.id === 'admin') {
-        return isAdmin
-      }
-      return true
-    })
-  }, [configFilteredNavGroups, userRole])
+    return configFilteredNavGroups
+      .map((group) => {
+        if (group.id === 'admin') {
+          return {
+            ...group,
+            items: group.items.filter((item) => {
+              const permission =
+                ADMIN_SIDEBAR_PERMISSION_BY_URL[String(item.url)]
+              if (!permission) return false
+              return hasPermission(user, permission)
+            }),
+          }
+        }
+        return group
+      })
+      .filter((group) => group.id !== 'admin' || group.items.length > 0)
+  }, [configFilteredNavGroups, user])
 
   return (
     <Sidebar collapsible={collapsible} variant={variant}>

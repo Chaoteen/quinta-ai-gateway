@@ -17,6 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { RBAC_PERMISSION } from '@/lib/rbac'
+import { requirePermission } from '@/lib/route-guards'
 import { Dashboard } from '@/features/dashboard'
 import {
   DASHBOARD_SECTION_IDS,
@@ -31,6 +33,9 @@ export const Route = createFileRoute('/_authenticated/dashboard/$section')({
         to: '/dashboard/$section',
         params: { section: DASHBOARD_DEFAULT_SECTION },
       })
+    }
+    if (params.section === 'users') {
+      requirePermission(RBAC_PERMISSION.DASHBOARD_USERS)
     }
   },
   component: Dashboard,

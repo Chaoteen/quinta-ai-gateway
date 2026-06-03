@@ -16,17 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
+import { createFileRoute } from '@tanstack/react-router'
+import { RBAC_PERMISSION } from '@/lib/rbac'
+import { requirePermission } from '@/lib/route-guards'
 import { Subscriptions } from '@/features/subscriptions'
 
 export const Route = createFileRoute('/_authenticated/subscriptions/')({
   beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
-    if (!auth.user || auth.user.role < ROLE.ADMIN) {
-      throw redirect({ to: '/403' })
-    }
+    requirePermission(RBAC_PERMISSION.SUBSCRIPTIONS)
   },
   component: Subscriptions,
 })
