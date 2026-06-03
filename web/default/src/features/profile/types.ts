@@ -41,6 +41,8 @@ export interface UserProfile {
   display_name: string
   /** User role (1=普通用户, 10=管理员, 100=超级管理员) */
   role: number
+  /** User role key for frontend RBAC */
+  role_key?: string
   /** Email address */
   email?: string
   /** User group */
