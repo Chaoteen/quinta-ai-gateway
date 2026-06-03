@@ -48,6 +48,9 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 
 	if err := db.AutoMigrate(
 		&model.Tenant{},
+		&model.Organization{},
+		&model.Department{},
+		&model.DistributionChannel{},
 		&model.User{},
 		&model.TwoFA{},
 		&model.Log{},
@@ -61,6 +64,7 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 	}
 	seedRootBoundaryUser(t, db, 1, "root", common.RoleRootUser, 1)
 	seedRootBoundaryUser(t, db, 2, "tenant-admin", common.RoleAdminUser, 2)
+	seedRootBoundaryAdminConsoleHierarchy(t, db)
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("root-boundary-test-secret"))
@@ -110,6 +114,26 @@ func seedRootBoundaryUser(t *testing.T, db *gorm.DB, id int, username string, ro
 	}
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatalf("failed to seed user %d: %v", id, err)
+	}
+}
+
+func seedRootBoundaryAdminConsoleHierarchy(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	tenant := model.Tenant{Id: 1, Name: "root-boundary-tenant-existing", Status: 1}
+	if err := db.Create(&tenant).Error; err != nil {
+		t.Fatalf("failed to seed tenant: %v", err)
+	}
+	organization := model.Organization{Id: 1, TenantId: tenant.Id, Name: "root-boundary-org-existing", Status: 1}
+	if err := db.Create(&organization).Error; err != nil {
+		t.Fatalf("failed to seed organization: %v", err)
+	}
+	department := model.Department{Id: 1, TenantId: tenant.Id, OrganizationId: organization.Id, Name: "root-boundary-dept-existing", Status: 1}
+	if err := db.Create(&department).Error; err != nil {
+		t.Fatalf("failed to seed department: %v", err)
+	}
+	distributionChannel := model.DistributionChannel{Id: 1, TenantId: tenant.Id, Name: "root-boundary-channel-existing", Code: "root-boundary-channel-existing", Status: 1}
+	if err := db.Create(&distributionChannel).Error; err != nil {
+		t.Fatalf("failed to seed distribution channel: %v", err)
 	}
 }
 
@@ -173,6 +197,18 @@ func TestRootBoundaryRoutesRequireRoot(t *testing.T) {
 		{name: "create model", method: http.MethodPost, path: "/api/models/", body: `{"model_name":"root-boundary-model","status":1,"sync_official":1}`},
 		{name: "create vendor", method: http.MethodPost, path: "/api/vendors/", body: `{"name":"root-boundary-vendor","status":1}`},
 		{name: "deployments settings", method: http.MethodGet, path: "/api/deployments/settings"},
+		{name: "admin console create tenant", method: http.MethodPost, path: "/api/admin_console/tenants", body: `{"name":"root-boundary-tenant","status":1}`},
+		{name: "admin console create organization", method: http.MethodPost, path: "/api/admin_console/organizations", body: `{"name":"root-boundary-org","tenant_id":1,"status":1}`},
+		{name: "admin console create department", method: http.MethodPost, path: "/api/admin_console/departments", body: `{"name":"root-boundary-dept","tenant_id":1,"organization_id":1,"status":1}`},
+		{name: "admin console create distribution channel", method: http.MethodPost, path: "/api/admin_console/distribution_channels", body: `{"name":"root-boundary-channel","code":"root-boundary-channel","tenant_id":1,"status":1}`},
+		{name: "admin console update tenant", method: http.MethodPut, path: "/api/admin_console/tenants/1", body: `{"name":"root-boundary-tenant-updated","status":1}`},
+		{name: "admin console update organization", method: http.MethodPut, path: "/api/admin_console/organizations/1", body: `{"name":"root-boundary-org-updated","tenant_id":1,"status":1}`},
+		{name: "admin console update department", method: http.MethodPut, path: "/api/admin_console/departments/1", body: `{"name":"root-boundary-dept-updated","tenant_id":1,"organization_id":1,"status":1}`},
+		{name: "admin console update distribution channel", method: http.MethodPut, path: "/api/admin_console/distribution_channels/1", body: `{"name":"root-boundary-channel-updated","code":"root-boundary-channel-updated","tenant_id":1,"status":1}`},
+		{name: "admin console tenant status", method: http.MethodPatch, path: "/api/admin_console/tenants/1/status", body: `{"status":2}`},
+		{name: "admin console organization status", method: http.MethodPatch, path: "/api/admin_console/organizations/1/status", body: `{"status":2}`},
+		{name: "admin console department status", method: http.MethodPatch, path: "/api/admin_console/departments/1/status", body: `{"status":2}`},
+		{name: "admin console distribution channel status", method: http.MethodPatch, path: "/api/admin_console/distribution_channels/1/status", body: `{"status":2}`},
 	}
 
 	for _, tt := range tests {
