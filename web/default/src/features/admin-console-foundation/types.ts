@@ -50,6 +50,7 @@ export interface DepartmentRecord {
 export interface DistributionChannelRecord {
   id: number
   name: string
+  code: string
   tenant_id: number
   status: number
   created_at: number
@@ -66,4 +67,25 @@ export interface ReadonlyListResponse<T extends ReadonlyRecord> {
   total: number
   page: number
   limit: number
+}
+
+export type ResourceRecordMap = {
+  tenants: TenantRecord
+  organizations: OrganizationRecord
+  departments: DepartmentRecord
+  distribution_channels: DistributionChannelRecord
+}
+
+export type AdminConsoleMutationPayload = {
+  name: string
+  status?: number
+  tenant_id?: number
+  organization_id?: number
+  code?: string
+}
+
+export interface AdminConsoleApiResponse<T = unknown> {
+  success: boolean
+  message: string
+  data: T
 }

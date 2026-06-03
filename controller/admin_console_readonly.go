@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
@@ -33,7 +34,9 @@ func parsePositiveQueryInt(value string, fallback int) int {
 
 func GetReadonlyTenants(c *gin.Context) {
 	page, limit, offset := getReadonlyPagination(c)
-	items, total, err := model.GetAllTenantsReadonly(offset, limit)
+	items, total, err := model.GetAllTenantsReadonly(offset, limit, model.AdminConsoleReadonlyFilters{
+		Keyword: strings.TrimSpace(c.Query("q")),
+	})
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -43,7 +46,10 @@ func GetReadonlyTenants(c *gin.Context) {
 
 func GetReadonlyOrganizations(c *gin.Context) {
 	page, limit, offset := getReadonlyPagination(c)
-	items, total, err := model.GetAllOrganizationsReadonly(offset, limit)
+	items, total, err := model.GetAllOrganizationsReadonly(offset, limit, model.AdminConsoleReadonlyFilters{
+		Keyword:  strings.TrimSpace(c.Query("q")),
+		TenantId: parsePositiveQueryInt(c.Query("tenant_id"), 0),
+	})
 	if err != nil {
 		common.ApiError(c, err)
 		return

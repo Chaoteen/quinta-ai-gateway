@@ -16,27 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 import { api } from '@/lib/api'
 import type {
-  DistributionChannelRecord,
+  AdminConsoleApiResponse,
+  AdminConsoleMutationPayload,
   ReadonlyListResponse,
   ReadonlyResource,
-  DepartmentRecord,
-  OrganizationRecord,
-  TenantRecord,
+  ResourceRecordMap,
 } from './types'
-
-type ResourceRecordMap = {
-  tenants: TenantRecord
-  organizations: OrganizationRecord
-  departments: DepartmentRecord
-  distribution_channels: DistributionChannelRecord
-}
 
 type ReadonlyResourceParams = {
   page?: number
   limit?: number
+  q?: string
+  tenant_id?: number
 }
 
 export async function getReadonlyResource<T extends ReadonlyResource>(
@@ -47,7 +40,39 @@ export async function getReadonlyResource<T extends ReadonlyResource>(
     params: {
       page: params.page ?? 1,
       limit: params.limit ?? 50,
+      q: params.q || undefined,
+      tenant_id: params.tenant_id || undefined,
     },
   })
   return res.data.data
+}
+
+export async function createAdminConsoleResource<T extends ReadonlyResource>(
+  resource: T,
+  payload: AdminConsoleMutationPayload
+): Promise<AdminConsoleApiResponse<ResourceRecordMap[T]>> {
+  const res = await api.post(`/api/admin_console/${resource}`, payload)
+  return res.data
+}
+
+export async function updateAdminConsoleResource<T extends ReadonlyResource>(
+  resource: T,
+  id: number,
+  payload: AdminConsoleMutationPayload
+): Promise<AdminConsoleApiResponse<ResourceRecordMap[T]>> {
+  const res = await api.put(`/api/admin_console/${resource}/${id}`, payload)
+  return res.data
+}
+
+export async function updateAdminConsoleResourceStatus<
+  T extends ReadonlyResource,
+>(
+  resource: T,
+  id: number,
+  status: number
+): Promise<AdminConsoleApiResponse<ResourceRecordMap[T]>> {
+  const res = await api.patch(`/api/admin_console/${resource}/${id}/status`, {
+    status,
+  })
+  return res.data
 }
