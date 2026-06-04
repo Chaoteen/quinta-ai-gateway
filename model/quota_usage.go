@@ -31,10 +31,19 @@ type QuotaUsageRecord struct {
 	UserSubscriptionId    int    `json:"user_subscription_id" gorm:"index"`
 	RequestId             string `json:"request_id" gorm:"type:varchar(128);index"`
 	ReservationId         string `json:"reservation_id" gorm:"type:varchar(128);index"`
+	ProviderName          string `json:"provider_name" gorm:"type:varchar(64);index"`
+	ChannelId             int    `json:"channel_id" gorm:"index;default:0"`
 	ModelName             string `json:"model_name" gorm:"type:varchar(255);index"`
+	UpstreamModelName     string `json:"upstream_model_name" gorm:"type:varchar(255);index;default:''"`
 	QuotaDimension        string `json:"quota_dimension" gorm:"type:varchar(32);index"`
+	RequestCount          int64  `json:"request_count" gorm:"type:bigint;not null;default:0"`
+	InputTokens           int64  `json:"input_tokens" gorm:"type:bigint;not null;default:0"`
+	OutputTokens          int64  `json:"output_tokens" gorm:"type:bigint;not null;default:0"`
+	TotalTokens           int64  `json:"total_tokens" gorm:"type:bigint;not null;default:0"`
 	TokenDelta            int64  `json:"token_delta" gorm:"type:bigint;not null;default:0"`
 	RequestDelta          int64  `json:"request_delta" gorm:"type:bigint;not null;default:0"`
+	UsageSource           string `json:"usage_source" gorm:"type:varchar(32);index;default:''"`
+	UsageSemantic         string `json:"usage_semantic" gorm:"type:varchar(32);index;default:''"`
 	Status                string `json:"status" gorm:"type:varchar(32);index"`
 	Metadata              string `json:"metadata" gorm:"type:text"`
 	OccurredAt            int64  `json:"occurred_at" gorm:"bigint;index"`
@@ -47,7 +56,14 @@ func (r *QuotaUsageRecord) BeforeCreate(tx *gorm.DB) error {
 	if r.OccurredAt == 0 {
 		r.OccurredAt = now
 	}
+	r.ProviderName = strings.TrimSpace(r.ProviderName)
+	r.RequestId = strings.TrimSpace(r.RequestId)
+	r.ReservationId = strings.TrimSpace(r.ReservationId)
+	r.ModelName = strings.TrimSpace(r.ModelName)
+	r.UpstreamModelName = strings.TrimSpace(r.UpstreamModelName)
 	r.QuotaDimension = strings.TrimSpace(r.QuotaDimension)
+	r.UsageSource = strings.TrimSpace(r.UsageSource)
+	r.UsageSemantic = strings.TrimSpace(r.UsageSemantic)
 	r.Status = strings.TrimSpace(r.Status)
 	r.CreatedAt = now
 	r.UpdatedAt = now
@@ -55,7 +71,14 @@ func (r *QuotaUsageRecord) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (r *QuotaUsageRecord) BeforeUpdate(tx *gorm.DB) error {
+	r.ProviderName = strings.TrimSpace(r.ProviderName)
+	r.RequestId = strings.TrimSpace(r.RequestId)
+	r.ReservationId = strings.TrimSpace(r.ReservationId)
+	r.ModelName = strings.TrimSpace(r.ModelName)
+	r.UpstreamModelName = strings.TrimSpace(r.UpstreamModelName)
 	r.QuotaDimension = strings.TrimSpace(r.QuotaDimension)
+	r.UsageSource = strings.TrimSpace(r.UsageSource)
+	r.UsageSemantic = strings.TrimSpace(r.UsageSemantic)
 	r.Status = strings.TrimSpace(r.Status)
 	r.UpdatedAt = common.GetTimestamp()
 	return nil

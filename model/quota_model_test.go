@@ -88,17 +88,34 @@ func TestQuotaUsageRecordStatuses(t *testing.T) {
 	for idx, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			record := QuotaUsageRecord{
-				RequestId:      "quota-usage-request-" + strconv.Itoa(idx+1),
-				ReservationId:  "quota-usage-reservation-" + strconv.Itoa(idx+1),
-				UserId:         200 + idx,
-				ModelName:      "gpt-4o",
-				QuotaDimension: " " + tc.dimension + " ",
-				TokenDelta:     100,
-				RequestDelta:   1,
-				Status:         " " + tc.status + " ",
+				RequestId:         "quota-usage-request-" + strconv.Itoa(idx+1),
+				ReservationId:     "quota-usage-reservation-" + strconv.Itoa(idx+1),
+				ProviderName:      "openai",
+				ChannelId:         10 + idx,
+				UserId:            200 + idx,
+				ModelName:         "gpt-4o",
+				UpstreamModelName: "gpt-4o-2024-08-06",
+				QuotaDimension:    " " + tc.dimension + " ",
+				RequestCount:      1,
+				InputTokens:       40,
+				OutputTokens:      60,
+				TotalTokens:       100,
+				TokenDelta:        100,
+				RequestDelta:      1,
+				UsageSource:       "upstream",
+				UsageSemantic:     "openai",
+				Status:            " " + tc.status + " ",
 			}
 			require.NoError(t, DB.Create(&record).Error)
+			require.Equal(t, "openai", record.ProviderName)
+			require.Equal(t, 10+idx, record.ChannelId)
 			require.Equal(t, tc.dimension, record.QuotaDimension)
+			require.Equal(t, int64(1), record.RequestCount)
+			require.Equal(t, int64(40), record.InputTokens)
+			require.Equal(t, int64(60), record.OutputTokens)
+			require.Equal(t, int64(100), record.TotalTokens)
+			require.Equal(t, "upstream", record.UsageSource)
+			require.Equal(t, "openai", record.UsageSemantic)
 			require.Equal(t, tc.status, record.Status)
 			require.NotZero(t, record.OccurredAt)
 			require.NotZero(t, record.CreatedAt)
@@ -110,6 +127,19 @@ func TestQuotaUsageRecordStatuses(t *testing.T) {
 func TestQuotaEngineModelsAreMigrated(t *testing.T) {
 	require.True(t, DB.Migrator().HasTable(&QuotaReservation{}))
 	require.True(t, DB.Migrator().HasTable(&QuotaUsageRecord{}))
+	for _, column := range []string{
+		"provider_name",
+		"channel_id",
+		"request_count",
+		"input_tokens",
+		"output_tokens",
+		"total_tokens",
+		"usage_source",
+		"usage_semantic",
+		"upstream_model_name",
+	} {
+		require.True(t, DB.Migrator().HasColumn(&QuotaUsageRecord{}, column), "missing quota usage column %s", column)
+	}
 }
 
 func TestQuotaFoundationRecordsDoNotMutateLegacyQuotaOrOrders(t *testing.T) {
