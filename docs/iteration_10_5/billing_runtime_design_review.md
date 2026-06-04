@@ -645,3 +645,57 @@ Why multiple committed usage facts for one request are rejected:
 - Keep it non-blocking and non-balance-affecting.
 - Log shadow generation failures without changing current response or settlement behavior.
 - Do not replace `PostTextConsumeQuota()` settlement until BillingRecord parity tests exist.
+
+## 10.5D Implementation Notes
+
+Implemented Relay shadow billing integration:
+
+- Extended the service-layer relay usage metering adapter.
+- After `TryCommitRelayUsageFactDryRun()` successfully creates or finds a committed `QuotaUsageRecord`, it now attempts Billing Runtime shadow generation.
+- The Billing Runtime call uses `CreateShadowBillingFromRequestId()` so the request-level ambiguity guard remains active.
+- Added helper entry points for usage fact, usage record id, and request id shadow generation.
+
+Actual integration point:
+
+```text
+Relay non-stream text path
+  -> TryCommitRelayUsageFactDryRun()
+  -> CommitRelayUsageFactDryRun()
+  -> QuotaUsageRecord(status=committed)
+  -> TryCreateRelayShadowBillingFromUsageFact()
+  -> CreateShadowBillingFromRequestId()
+  -> BillingRecord(status=pending, phase=usage_fact)
+  -> existing PostTextConsumeQuota()
+```
+
+Why this still does not replace `PostTextConsumeQuota()`:
+
+- `PostTextConsumeQuota()` remains the current production settlement path.
+- BillingRecord generation is still shadow mode and must not change balances.
+- Replacing settlement before parity tests would risk double charging, undercharging, or inconsistent finance data.
+
+Idempotency:
+
+- BillingRecord creation remains idempotent by `usage_record_id`.
+- The Relay adapter uses `request_id` shadow generation so a request with multiple committed usage facts is rejected rather than guessed.
+- Repeated relay dry calls for the same single usage fact return the existing BillingRecord.
+
+Failure behavior:
+
+- Billing shadow generation errors are logged.
+- Errors do not interrupt user responses.
+- Errors do not affect `PostTextConsumeQuota()`.
+- Errors do not trigger refunds.
+- Errors do not mutate wallet, token, or subscription balances.
+
+Why multiple committed usage facts still fail closed:
+
+- The current synchronous non-stream text policy is one committed usage fact per request.
+- If multiple committed facts exist, Billing Runtime cannot know whether to sum, choose one, or split billing without a product rule.
+- The safe shadow behavior is to create no BillingRecord and log the ambiguity.
+
+10.5E recommended scope:
+
+- Add parity tests comparing BillingRecord shadow charge snapshots with existing `PostTextConsumeQuota()` calculated quota.
+- Keep tests isolated from real relay providers.
+- Continue avoiding real settlement migration until parity is proven for OpenAI, Claude, Gemini, compatible usage, cache tokens, and tiered billing paths.
