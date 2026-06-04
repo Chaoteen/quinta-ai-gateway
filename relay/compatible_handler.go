@@ -88,6 +88,9 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		if containAudioTokens && containsAudioRatios {
 			service.PostAudioConsumeQuota(c, info, usage, "")
 		} else {
+			if !info.IsStream {
+				service.TryCommitRelayUsageFactDryRun(c, info, usage)
+			}
 			service.PostTextConsumeQuota(c, info, usage, nil)
 		}
 		return nil
@@ -211,6 +214,9 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 	if containAudioTokens && containsAudioRatios {
 		service.PostAudioConsumeQuota(c, info, usage.(*dto.Usage), "")
 	} else {
+		if !info.IsStream {
+			service.TryCommitRelayUsageFactDryRun(c, info, usage.(*dto.Usage))
+		}
 		service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), nil)
 	}
 	return nil

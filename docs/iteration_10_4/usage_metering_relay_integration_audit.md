@@ -471,3 +471,55 @@ if err == nil:
 ```
 
 The dry integration must be non-balance-affecting and idempotent. Billing integration should wait for 10.5, where Billing can explicitly read one committed usage fact and settle once.
+
+## 10.4D Implementation Notes
+
+Implemented dry integration scope:
+
+- Added a service-layer relay usage metering adapter that converts `RelayInfo + dto.Usage` into `UsageMeteringInput`.
+- Inserted the dry metering call after `adaptor.DoResponse()` and before `PostTextConsumeQuota()` in synchronous text non-stream paths.
+- Covered OpenAI-compatible text, Claude text, Gemini text, and OpenAI Responses text paths.
+- Explicitly skipped audio branches and guarded all relay calls with `!info.IsStream`.
+
+Actual insertion points:
+
+- `relay/compatible_handler.go`
+- `relay/claude_handler.go`
+- `relay/gemini_handler.go`
+- `relay/responses_handler.go`
+
+Double-write avoidance:
+
+- Relay dry integration calls `UsageMetering.NormalizeUsage()` and `UsageMetering.CommitUsageFact()`.
+- Relay dry integration does not call `QuotaEngine.CommitUsage()`.
+- The adapter checks `request_id + status=committed` before writing, so repeated dry integration for the same request returns the existing committed fact instead of inserting another row.
+
+Failure behavior:
+
+- `dto.Usage == nil` skips metering.
+- Input normalization or committed fact write failures are logged and swallowed by the relay-facing helper.
+- Existing `PostTextConsumeQuota()` still runs after metering failure.
+- No provider response is blocked by Usage Metering failure in this dry integration.
+
+Billing impact:
+
+- No `BillingSession` calls are added.
+- No `FundingSource` calls are added.
+- No wallet mutation is added.
+- No token quota mutation is added.
+- No `UserSubscription.amount_used` mutation is added.
+- Existing billing and settlement still run only through `PostTextConsumeQuota()`.
+
+Tenant and channel attribution:
+
+- The committed usage fact preserves `tenant_id`, `organization_id`, `department_id`, `distribution_channel_id`, `user_id`, `user_subscription_id`, `channel_id`, provider name, model name, and upstream model name from `RelayInfo`.
+- Missing tenant ownership fails validation and is logged rather than defaulting to a cross-tenant record.
+
+Deferred items:
+
+- Streaming usage facts.
+- Audio usage facts.
+- Realtime/WebSocket usage facts.
+- Async task usage facts.
+- Billing reads from committed usage facts.
+- Quota Runtime reservation finalization.
