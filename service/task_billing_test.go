@@ -38,6 +38,8 @@ func TestMain(m *testing.M) {
 
 	if err := db.AutoMigrate(
 		&model.Task{},
+		&model.Tenant{},
+		&model.DistributionChannel{},
 		&model.User{},
 		&model.Token{},
 		&model.Log{},
@@ -48,6 +50,8 @@ func TestMain(m *testing.M) {
 		&model.QuotaReservation{},
 		&model.QuotaUsageRecord{},
 		&model.BillingRecord{},
+		&model.RevenueShareRule{},
+		&model.RevenueShareRecord{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -63,6 +67,8 @@ func truncate(t *testing.T) {
 	t.Helper()
 	t.Cleanup(func() {
 		model.DB.Exec("DELETE FROM tasks")
+		model.DB.Exec("DELETE FROM tenants")
+		model.DB.Exec("DELETE FROM distribution_channels")
 		model.DB.Exec("DELETE FROM users")
 		model.DB.Exec("DELETE FROM tokens")
 		model.DB.Exec("DELETE FROM logs")
@@ -73,6 +79,8 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM quota_reservations")
 		model.DB.Exec("DELETE FROM quota_usage_records")
 		model.DB.Exec("DELETE FROM billing_records")
+		model.DB.Exec("DELETE FROM revenue_share_rules")
+		model.DB.Exec("DELETE FROM revenue_share_records")
 	})
 }
 
