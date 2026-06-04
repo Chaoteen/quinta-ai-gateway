@@ -786,6 +786,63 @@ func TestRoleAuthPhase3WriteRoutesRemainRootOnly(t *testing.T) {
 	}
 }
 
+func TestSubscriptionPlanAdminDTOHidesPaymentFields(t *testing.T) {
+	r := setupRoleAdoptionRouter(t)
+
+	recorder := performRoleAdoptionRequest(r, http.MethodGet, "/api/subscription/admin/plans", "", roleAdoptionUsers["root"])
+	if !decodeRoleAdoptionSuccess(t, recorder) {
+		t.Fatalf("expected plan list success: %s", recorder.Body.String())
+	}
+	if strings.Contains(recorder.Body.String(), "stripe_price_id") || strings.Contains(recorder.Body.String(), "creem_product_id") {
+		t.Fatalf("subscription plan DTO leaked payment fields: %s", recorder.Body.String())
+	}
+}
+
+func TestSubscriptionUserManagementRoleKeyAndTenantScope(t *testing.T) {
+	writeBody := `{"plan_id":1}`
+
+	t.Run("tenant_admin can assign own tenant user subscription", func(t *testing.T) {
+		r := setupRoleAdoptionRouter(t)
+		recorder := performRoleAdoptionRequest(r, http.MethodPost, "/api/subscription/admin/users/6/subscriptions", writeBody, roleAdoptionUsers["tenant_admin"])
+		if !decodeRoleAdoptionSuccess(t, recorder) {
+			t.Fatalf("tenant_admin should assign own tenant subscription: %s", recorder.Body.String())
+		}
+	})
+
+	t.Run("tenant_admin cannot assign other tenant user subscription", func(t *testing.T) {
+		r := setupRoleAdoptionRouter(t)
+		assertRoleAdoptionMethodRejected(t, r, http.MethodPost, "/api/subscription/admin/users/7/subscriptions", writeBody, roleAdoptionUsers["tenant_admin"])
+	})
+
+	for _, roleName := range []string{"finance", "auditor", "organization_admin", "user"} {
+		t.Run(roleName+" cannot assign user subscription", func(t *testing.T) {
+			r := setupRoleAdoptionRouter(t)
+			assertRoleAdoptionMethodRejected(t, r, http.MethodPost, "/api/subscription/admin/users/6/subscriptions", writeBody, roleAdoptionUsers[roleName])
+		})
+	}
+
+	t.Run("tenant_admin can cancel own tenant subscription", func(t *testing.T) {
+		r := setupRoleAdoptionRouter(t)
+		recorder := performRoleAdoptionRequest(r, http.MethodPatch, "/api/subscription/admin/user-subscriptions/1/cancel", "", roleAdoptionUsers["tenant_admin"])
+		if !decodeRoleAdoptionSuccess(t, recorder) {
+			t.Fatalf("tenant_admin should cancel own tenant subscription: %s", recorder.Body.String())
+		}
+	})
+
+	t.Run("tenant_admin cannot cancel other tenant subscription", func(t *testing.T) {
+		r := setupRoleAdoptionRouter(t)
+		assertRoleAdoptionMethodRejected(t, r, http.MethodPatch, "/api/subscription/admin/user-subscriptions/2/cancel", "", roleAdoptionUsers["tenant_admin"])
+	})
+
+	t.Run("root can renew other tenant subscription", func(t *testing.T) {
+		r := setupRoleAdoptionRouter(t)
+		recorder := performRoleAdoptionRequest(r, http.MethodPatch, "/api/subscription/admin/user-subscriptions/2/renew", "", roleAdoptionUsers["root"])
+		if !decodeRoleAdoptionSuccess(t, recorder) {
+			t.Fatalf("root should renew globally: %s", recorder.Body.String())
+		}
+	})
+}
+
 func TestOrganizationAdminUserReadRoutes(t *testing.T) {
 	r := setupRoleAdoptionRouter(t)
 

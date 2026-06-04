@@ -51,10 +51,13 @@ import {
   getUserSubscriptions,
   createUserSubscription,
   invalidateUserSubscription,
-  deleteUserSubscription,
+  renewUserSubscription,
+  suspendUserSubscription,
 } from '../../api'
 import { formatTimestamp } from '../../lib'
 import type { PlanRecord, UserSubscriptionRecord } from '../../types'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface Props {
   open: boolean
@@ -70,7 +73,8 @@ function SubscriptionStatusBadge(props: {
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now() / 1000
   const isExpired = (props.sub.end_time || 0) > 0 && props.sub.end_time < now
-  const isActive = props.sub.status === 'active' && !isExpired
+  const lifecycle = props.sub.lifecycle_status
+  const isActive = lifecycle === 'active' && !isExpired
   if (isActive)
     return (
       <StatusBadge
@@ -79,7 +83,7 @@ function SubscriptionStatusBadge(props: {
         copyable={false}
       />
     )
-  if (props.sub.status === 'cancelled')
+  if (lifecycle === 'cancelled')
     return (
       <StatusBadge
         label={props.t('Invalidated')}
@@ -104,14 +108,19 @@ export function UserSubscriptionsDialog(props: Props) {
   const [subs, setSubs] = useState<UserSubscriptionRecord[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [confirmAction, setConfirmAction] = useState<{
-    type: 'invalidate' | 'delete'
+    type: 'invalidate' | 'suspend' | 'renew'
     subId: number
   } | null>(null)
+  const authUser = useAuthStore((state) => state.auth.user)
+  const roleKey = getUserRoleKey(authUser)
+  const canManage =
+    roleKey === ROLE_KEY.ROOT || roleKey === ROLE_KEY.TENANT_ADMIN
 
   const planTitleMap = useMemo(() => {
     const map = new Map<number, string>()
     plans.forEach((p) => {
-      if (p.plan.id) map.set(p.plan.id, p.plan.title || `#${p.plan.id}`)
+      if (p.plan.id)
+        map.set(p.plan.id, p.plan.name || `#${p.plan.id}`)
     })
     return map
   }, [plans])
@@ -173,10 +182,17 @@ export function UserSubscriptionsDialog(props: Props) {
           await loadData()
           props.onSuccess?.()
         }
-      } else {
-        const res = await deleteUserSubscription(confirmAction.subId)
+      } else if (confirmAction.type === 'suspend') {
+        const res = await suspendUserSubscription(confirmAction.subId)
         if (res.success) {
-          toast.success(t('Deleted'))
+          toast.success(res.data?.message || t('Has been suspended'))
+          await loadData()
+          props.onSuccess?.()
+        }
+      } else {
+        const res = await renewUserSubscription(confirmAction.subId)
+        if (res.success) {
+          toast.success(t('Renewed successfully'))
           await loadData()
           props.onSuccess?.()
         }
@@ -200,15 +216,17 @@ export function UserSubscriptionsDialog(props: Props) {
           </SheetHeader>
 
           <div className='mt-4 space-y-4'>
-            <div className='flex gap-2'>
+            {canManage && (
+              <div className='flex gap-2'>
               <Select
                 items={[
                   ...plans.map((p) => ({
                     value: String(p.plan.id),
                     label: (
                       <>
-                        {p.plan.title}($
-                        {Number(p.plan.price_amount || 0).toFixed(2)})
+                        {p.plan.name}($
+                        {Number(p.plan.monthly_price ?? 0).toFixed(2)}
+                        )
                       </>
                     ),
                   })),
@@ -223,8 +241,9 @@ export function UserSubscriptionsDialog(props: Props) {
                   <SelectGroup>
                     {plans.map((p) => (
                       <SelectItem key={p.plan.id} value={String(p.plan.id)}>
-                        {p.plan.title} ($
-                        {Number(p.plan.price_amount || 0).toFixed(2)})
+                        {p.plan.name} ($
+                        {Number(p.plan.monthly_price ?? 0).toFixed(2)}
+                        )
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -237,7 +256,8 @@ export function UserSubscriptionsDialog(props: Props) {
                 <Plus className='mr-1 h-4 w-4' />
                 {t('Add subscription')}
               </Button>
-            </div>
+              </div>
+            )}
 
             <div className='rounded-md border'>
               <Table>
@@ -248,20 +268,27 @@ export function UserSubscriptionsDialog(props: Props) {
                     <TableHead>{t('Status')}</TableHead>
                     <TableHead>{t('Validity')}</TableHead>
                     <TableHead>{t('Total Quota')}</TableHead>
-                    <TableHead className='text-right'>{t('Actions')}</TableHead>
+                    {canManage && (
+                      <TableHead className='text-right'>
+                        {t('Actions')}
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className='py-8 text-center'>
+                      <TableCell
+                        colSpan={canManage ? 6 : 5}
+                        className='py-8 text-center'
+                      >
                         {t('Loading...')}
                       </TableCell>
                     </TableRow>
                   ) : subs.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={canManage ? 6 : 5}
                         className='text-muted-foreground py-8 text-center'
                       >
                         {t('No subscription records')}
@@ -273,9 +300,9 @@ export function UserSubscriptionsDialog(props: Props) {
                       const now = Date.now() / 1000
                       const isExpired =
                         (sub.end_time || 0) > 0 && sub.end_time < now
-                      const isActive = sub.status === 'active' && !isExpired
-                      const total = Number(sub.amount_total || 0)
-                      const used = Number(sub.amount_used || 0)
+                      const lifecycle = sub.lifecycle_status
+                      const isActive = lifecycle === 'active' && !isExpired
+                      const total = Number(sub.token_quota_snapshot || 0)
 
                       return (
                         <TableRow key={sub.id}>
@@ -283,11 +310,9 @@ export function UserSubscriptionsDialog(props: Props) {
                           <TableCell>
                             <div>
                               <div className='font-medium'>
-                                {planTitleMap.get(sub.plan_id) ||
+                                {sub.plan_name ||
+                                  planTitleMap.get(sub.plan_id) ||
                                   `#${sub.plan_id}`}
-                              </div>
-                              <div className='text-muted-foreground text-xs'>
-                                {t('Source')}: {sub.source || '-'}
                               </div>
                             </div>
                           </TableCell>
@@ -305,37 +330,52 @@ export function UserSubscriptionsDialog(props: Props) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {total > 0 ? `${used}/${total}` : t('Unlimited')}
+                            {total > 0 ? `${total}` : t('Unlimited')}
                           </TableCell>
-                          <TableCell className='text-right'>
-                            <div className='flex justify-end gap-1'>
-                              <Button
-                                size='sm'
-                                variant='outline'
-                                disabled={!isActive}
-                                onClick={() =>
-                                  setConfirmAction({
-                                    type: 'invalidate',
-                                    subId: sub.id,
-                                  })
-                                }
-                              >
-                                {t('Invalidate')}
-                              </Button>
-                              <Button
-                                size='sm'
-                                variant='destructive'
-                                onClick={() =>
-                                  setConfirmAction({
-                                    type: 'delete',
-                                    subId: sub.id,
-                                  })
-                                }
-                              >
-                                {t('Delete')}
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {canManage && (
+                            <TableCell className='text-right'>
+                              <div className='flex justify-end gap-1'>
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  disabled={!isActive}
+                                  onClick={() =>
+                                    setConfirmAction({
+                                      type: 'invalidate',
+                                      subId: sub.id,
+                                    })
+                                  }
+                                >
+                                  {t('Cancel')}
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  disabled={lifecycle === 'suspended'}
+                                  onClick={() =>
+                                    setConfirmAction({
+                                      type: 'suspend',
+                                      subId: sub.id,
+                                    })
+                                  }
+                                >
+                                  {t('Suspend')}
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  onClick={() =>
+                                    setConfirmAction({
+                                      type: 'renew',
+                                      subId: sub.id,
+                                    })
+                                  }
+                                >
+                                  {t('Renew')}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       )
                     })
@@ -354,19 +394,25 @@ export function UserSubscriptionsDialog(props: Props) {
           title={
             confirmAction.type === 'invalidate'
               ? t('Confirm invalidate')
-              : t('Confirm delete')
+              : confirmAction.type === 'suspend'
+                ? t('Confirm suspend')
+                : t('Confirm renew')
           }
           desc={
             confirmAction.type === 'invalidate'
               ? t(
                   'After invalidating, this subscription will be immediately deactivated. Historical records are not affected. Continue?'
                 )
+              : confirmAction.type === 'suspend'
+                ? t(
+                    'After suspending, this subscription cannot be used until renewed or reassigned. Continue?'
+                  )
               : t(
-                  'Deleting will permanently remove this subscription record (including benefit details). Continue?'
+                  'Renewing will create a new subscription period from the same plan. Continue?'
                 )
           }
           handleConfirm={handleConfirmAction}
-          destructive={confirmAction.type === 'delete'}
+          destructive={confirmAction.type !== 'renew'}
         />
       )}
     </>

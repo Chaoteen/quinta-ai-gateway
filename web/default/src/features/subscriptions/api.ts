@@ -22,18 +22,22 @@ import type {
   PlanRecord,
   PlanPayload,
   UserSubscriptionRecord,
+  SelfSubscriptionRecord,
   CreateUserSubscriptionRequest,
   SubscriptionPayResponse,
   SubscriptionPayRequest,
   SelfSubscriptionData,
+  AdminListParams,
 } from './types'
 
 // ============================================================================
 // Admin Plan Management
 // ============================================================================
 
-export async function getAdminPlans(): Promise<ApiResponse<PlanRecord[]>> {
-  const res = await api.get('/api/subscription/admin/plans')
+export async function getAdminPlans(
+  params?: AdminListParams
+): Promise<ApiResponse<PlanRecord[]>> {
+  const res = await api.get('/api/subscription/admin/plans', { params })
   return res.data
 }
 
@@ -58,6 +62,7 @@ export async function patchPlanStatus(
 ): Promise<ApiResponse> {
   const res = await api.patch(`/api/subscription/admin/plans/${id}`, {
     enabled,
+    status: enabled ? 'enabled' : 'disabled',
   })
   return res.data
 }
@@ -75,6 +80,15 @@ export async function getUserSubscriptions(
   return res.data
 }
 
+export async function getAdminUserSubscriptions(
+  params?: AdminListParams
+): Promise<ApiResponse<UserSubscriptionRecord[]>> {
+  const res = await api.get('/api/subscription/admin/user-subscriptions', {
+    params,
+  })
+  return res.data
+}
+
 export async function createUserSubscription(
   userId: number,
   data: CreateUserSubscriptionRequest
@@ -89,17 +103,26 @@ export async function createUserSubscription(
 export async function invalidateUserSubscription(
   subId: number
 ): Promise<ApiResponse<{ message?: string }>> {
-  const res = await api.post(
-    `/api/subscription/admin/user_subscriptions/${subId}/invalidate`
+  const res = await api.patch(
+    `/api/subscription/admin/user-subscriptions/${subId}/cancel`
   )
   return res.data
 }
 
-export async function deleteUserSubscription(
+export async function suspendUserSubscription(
   subId: number
-): Promise<ApiResponse> {
-  const res = await api.delete(
-    `/api/subscription/admin/user_subscriptions/${subId}`
+): Promise<ApiResponse<{ message?: string }>> {
+  const res = await api.patch(
+    `/api/subscription/admin/user-subscriptions/${subId}/suspend`
+  )
+  return res.data
+}
+
+export async function renewUserSubscription(
+  subId: number
+): Promise<ApiResponse<UserSubscriptionRecord>> {
+  const res = await api.patch(
+    `/api/subscription/admin/user-subscriptions/${subId}/renew`
   )
   return res.data
 }
@@ -137,7 +160,7 @@ export async function paySubscriptionEpay(
 // ============================================================================
 
 export async function getSelfSubscriptions(): Promise<
-  ApiResponse<UserSubscriptionRecord[]>
+  ApiResponse<SelfSubscriptionRecord[]>
 > {
   const res = await api.get('/api/subscription/self')
   return res.data

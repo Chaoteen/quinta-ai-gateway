@@ -26,6 +26,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { isRootUser } from '@/lib/rbac'
+import { useAuthStore } from '@/stores/auth-store'
 import type { PlanRecord } from '../types'
 import { useSubscriptions } from './subscriptions-provider'
 
@@ -36,6 +38,9 @@ interface DataTableRowActionsProps {
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
   const { setOpen, setCurrentRow } = useSubscriptions()
+  const user = useAuthStore((state) => state.auth.user)
+
+  if (!isRootUser(user)) return null
 
   return (
     <DropdownMenu>
@@ -60,7 +65,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             setOpen('toggle-status')
           }}
         >
-          {row.original.plan.enabled ? (
+          {row.original.plan.status === 'enabled' ? (
             <>
               <PowerOff className='mr-2 h-4 w-4' />
               {t('Disable')}
