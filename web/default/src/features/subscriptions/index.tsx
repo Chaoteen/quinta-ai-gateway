@@ -16,14 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SectionPageLayout } from '@/components/layout'
 import { SubscriptionsDialogs } from './components/subscriptions-dialogs'
 import { SubscriptionsPrimaryButtons } from './components/subscriptions-primary-buttons'
 import { SubscriptionsProvider } from './components/subscriptions-provider'
 import { SubscriptionsTable } from './components/subscriptions-table'
+import { UserSubscriptionsSection } from './components/user-subscriptions-section'
 
 export function Subscriptions() {
   const { t } = useTranslation()
@@ -34,23 +33,26 @@ export function Subscriptions() {
           {t('Subscription Management')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Description>
-          {t('Manage subscription plan creation, pricing and status')}
+          {t('Manage subscription plans and assigned user subscriptions')}
         </SectionPageLayout.Description>
         <SectionPageLayout.Actions>
-          <div className='flex items-center gap-2'>
-            <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
-              <Info className='h-4 w-4' />
-              <AlertDescription className='text-xs'>
-                {t(
-                  'Stripe/Creem requires creating products on the third-party platform and entering the ID'
-                )}
-              </AlertDescription>
-            </Alert>
-            <SubscriptionsPrimaryButtons />
-          </div>
+          <SubscriptionsPrimaryButtons />
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <SubscriptionsTable />
+          <div className='space-y-8'>
+            <div className='space-y-3'>
+              <div>
+                <h2 className='text-base font-semibold'>
+                  {t('Subscription Plans')}
+                </h2>
+                <p className='text-muted-foreground text-sm'>
+                  {t('Manage plan metadata, pricing, quotas and status')}
+                </p>
+              </div>
+              <SubscriptionsTable />
+            </div>
+            <UserSubscriptionsSection />
+          </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 

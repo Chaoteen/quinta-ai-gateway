@@ -55,7 +55,7 @@ import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/
 import { formatDuration, formatResetPeriod } from '@/features/subscriptions/lib'
 import type {
   PlanRecord,
-  UserSubscriptionRecord,
+  SelfSubscriptionRecord,
 } from '@/features/subscriptions/types'
 import type { PaymentMethod, TopupInfo } from '../types'
 
@@ -96,10 +96,10 @@ export function SubscriptionPlansCard({
 
   const [plans, setPlans] = useState<PlanRecord[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<
-    UserSubscriptionRecord[]
+    SelfSubscriptionRecord[]
   >([])
   const [allSubscriptions, setAllSubscriptions] = useState<
-    UserSubscriptionRecord[]
+    SelfSubscriptionRecord[]
   >([])
   const [billingPreference, setBillingPreference] =
     useState('subscription_first')
@@ -191,11 +191,11 @@ export function SubscriptionPlansCard({
     disablePref && isSubPref ? 'wallet_first' : billingPreference
 
   const planPurchaseCountMap = useMemo(() => {
-    const map = new Map<number, number>()
+    const map = new Map<string, number>()
     for (const sub of allSubscriptions) {
-      const planId = sub?.subscription?.plan_id
-      if (!planId) continue
-      map.set(planId, (map.get(planId) || 0) + 1)
+      const planCode = sub?.subscription?.plan_code
+      if (!planCode) continue
+      map.set(planCode, (map.get(planCode) || 0) + 1)
     }
     return map
   }, [allSubscriptions])
@@ -204,26 +204,16 @@ export function SubscriptionPlansCard({
     onAvailabilityChange?.(isAvailable)
   }, [isAvailable, onAvailabilityChange])
 
-  const planTitleMap = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const p of plans) {
-      if (p?.plan?.id) {
-        map.set(p.plan.id, p.plan.title || '')
-      }
-    }
-    return map
-  }, [plans])
-
-  const getRemainingDays = (sub: UserSubscriptionRecord) => {
+  const getRemainingDays = (sub: SelfSubscriptionRecord) => {
     const endTime = sub?.subscription?.end_time || 0
     if (!endTime) return 0
     const now = Date.now() / 1000
     return Math.max(0, Math.ceil((endTime - now) / 86400))
   }
 
-  const getUsagePercent = (sub: UserSubscriptionRecord) => {
-    const total = Number(sub?.subscription?.amount_total || 0)
-    const used = Number(sub?.subscription?.amount_used || 0)
+  const getUsagePercent = (sub: SelfSubscriptionRecord) => {
+    const total = Number(sub?.subscription?.token_quota || 0)
+    const used = Number(sub?.subscription?.token_used || 0)
     if (total <= 0) return 0
     return Math.round((used / total) * 100)
   }
@@ -390,31 +380,32 @@ export function SubscriptionPlansCard({
               <div className='max-h-64 space-y-3 overflow-y-auto pr-1'>
                 {allSubscriptions.map((sub) => {
                   const subscription = sub.subscription
-                  const totalAmount = Number(subscription?.amount_total || 0)
-                  const usedAmount = Number(subscription?.amount_used || 0)
-                  const remainAmount =
-                    totalAmount > 0 ? Math.max(0, totalAmount - usedAmount) : 0
-                  const planTitle =
-                    planTitleMap.get(subscription?.plan_id) || ''
+                  const totalAmount = Number(subscription?.token_quota || 0)
+                  const usedAmount = Number(subscription?.token_used || 0)
+                  const remainAmount = Number(
+                    subscription?.token_remaining || 0
+                  )
+                  const planTitle = subscription?.plan_name || ''
                   const remainDays = getRemainingDays(sub)
                   const usagePercent = getUsagePercent(sub)
                   const now = Date.now() / 1000
                   const isExpired = (subscription?.end_time || 0) < now
-                  const isCancelled = subscription?.status === 'cancelled'
+                  const isCancelled =
+                    subscription?.lifecycle_status === 'cancelled'
                   const isActive =
-                    subscription?.status === 'active' && !isExpired
+                    subscription?.lifecycle_status === 'active' && !isExpired
 
                   return (
                     <div
-                      key={subscription?.id}
+                      key={`${subscription?.plan_code || 'subscription'}-${subscription?.start_time}-${subscription?.end_time}`}
                       className='bg-background rounded-md border p-3 text-xs'
                     >
                       <div className='flex items-center justify-between'>
                         <div className='flex items-center gap-2'>
                           <span className='font-medium'>
                             {planTitle
-                              ? `${planTitle} · ${t('Subscription')} #${subscription?.id}`
-                              : `${t('Subscription')} #${subscription?.id}`}
+                              ? `${planTitle} · ${t('Subscription')}`
+                              : t('Subscription')}
                           </span>
                           {isActive ? (
                             <StatusBadge
@@ -514,7 +505,7 @@ export function SubscriptionPlansCard({
               const price = Number(plan.price_amount || 0).toFixed(2)
               const isPopular = index === 0 && plans.length > 1
               const limit = Number(plan.max_purchase_per_user || 0)
-              const count = planPurchaseCountMap.get(plan.id) || 0
+              const count = plan.code ? planPurchaseCountMap.get(plan.code) || 0 : 0
               const reached = limit > 0 && count >= limit
 
               const benefits = [
@@ -637,8 +628,8 @@ export function SubscriptionPlansCard({
             : undefined
         }
         purchaseCount={
-          selectedPlan?.plan?.id
-            ? planPurchaseCountMap.get(selectedPlan.plan.id)
+          selectedPlan?.plan?.code
+            ? planPurchaseCountMap.get(selectedPlan.plan.code)
             : undefined
         }
       />

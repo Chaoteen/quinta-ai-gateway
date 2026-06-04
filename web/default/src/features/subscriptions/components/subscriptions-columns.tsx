@@ -20,9 +20,7 @@ import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
-import { formatDuration, formatResetPeriod } from '../lib'
 import type { PlanRecord } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 
@@ -44,8 +42,8 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         size: 60,
       },
       {
-        accessorFn: (row) => row.plan.title,
-        id: 'title',
+        accessorFn: (row) => row.plan.name,
+        id: 'name',
         meta: { label: t('Plan'), mobileTitle: true },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('Plan')} />
@@ -53,81 +51,61 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         cell: ({ row }) => {
           const plan = row.original.plan
           return (
-            <div className='max-w-[200px]'>
-              <div className='truncate font-medium'>{plan.title}</div>
-              {plan.subtitle && (
+            <div className='max-w-[240px]'>
+              <div className='truncate font-medium'>
+                {plan.name}
+              </div>
+              <div className='text-muted-foreground truncate text-xs'>
+                {plan.code || `#${plan.id}`}
+              </div>
+              {plan.description && (
                 <div className='text-muted-foreground truncate text-xs'>
-                  {plan.subtitle}
+                  {plan.description}
                 </div>
               )}
             </div>
           )
         },
-        size: 200,
+        size: 240,
       },
       {
-        accessorFn: (row) => row.plan.price_amount,
-        id: 'price',
-        meta: { label: t('Price') },
+        accessorFn: (row) => row.plan.monthly_price,
+        id: 'monthly_price',
+        meta: { label: t('Monthly Price') },
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Price')} />
+          <DataTableColumnHeader column={column} title={t('Monthly Price')} />
         ),
         cell: ({ row }) => (
           <span className='font-semibold text-emerald-600'>
-            ${Number(row.original.plan.price_amount || 0).toFixed(2)}
+            $
+            {Number(row.original.plan.monthly_price ?? 0).toFixed(2)}
           </span>
         ),
         size: 100,
       },
       {
-        id: 'duration',
-        meta: { label: t('Validity') },
+        accessorFn: (row) => row.plan.yearly_price,
+        id: 'yearly_price',
+        meta: { label: t('Yearly Price'), mobileHidden: true },
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Validity')} />
+          <DataTableColumnHeader column={column} title={t('Yearly Price')} />
         ),
         cell: ({ row }) => (
           <span className='text-muted-foreground'>
-            {formatDuration(row.original.plan, t)}
+            ${Number(row.original.plan.yearly_price || 0).toFixed(2)}
           </span>
         ),
         size: 100,
       },
       {
-        id: 'reset',
-        meta: { label: t('Quota Reset'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Quota Reset')} />
-        ),
-        cell: ({ row }) => (
-          <span className='text-muted-foreground'>
-            {formatResetPeriod(row.original.plan, t)}
-          </span>
-        ),
-        size: 80,
-      },
-      {
-        accessorFn: (row) => row.plan.sort_order,
-        id: 'sort_order',
-        meta: { label: t('Priority'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Priority')} />
-        ),
-        cell: ({ row }) => (
-          <span className='text-muted-foreground'>
-            {row.original.plan.sort_order}
-          </span>
-        ),
-        size: 80,
-      },
-      {
-        accessorFn: (row) => row.plan.enabled,
-        id: 'enabled',
+        accessorFn: (row) => row.plan.status,
+        id: 'status',
         meta: { label: t('Status'), mobileBadge: true },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={t('Status')} />
         ),
         cell: ({ row }) =>
-          row.original.plan.enabled ? (
+          row.original.plan.status === 'enabled' ? (
             <StatusBadge
               label={t('Enable')}
               variant='success'
@@ -143,38 +121,15 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         size: 80,
       },
       {
-        id: 'payment',
-        meta: { label: t('Payment Channel'), mobileHidden: true },
+        id: 'token_quota',
+        meta: { label: t('Token Quota'), mobileHidden: true },
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Payment Channel')} />
+          <DataTableColumnHeader column={column} title={t('Token Quota')} />
         ),
         cell: ({ row }) => {
-          const plan = row.original.plan
-          return (
-            <div className='flex gap-1'>
-              {plan.stripe_price_id && (
-                <StatusBadge
-                  label='Stripe'
-                  variant='neutral'
-                  copyable={false}
-                />
-              )}
-              {plan.creem_product_id && (
-                <StatusBadge label='Creem' variant='neutral' copyable={false} />
-              )}
-            </div>
+          const total = Number(
+            row.original.plan.token_quota ?? 0
           )
-        },
-        size: 140,
-      },
-      {
-        id: 'total_amount',
-        meta: { label: t('Total Quota'), mobileHidden: true },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Total Quota')} />
-        ),
-        cell: ({ row }) => {
-          const total = Number(row.original.plan.total_amount || 0)
           return (
             <span className='text-muted-foreground'>
               {total > 0 ? total : t('Unlimited')}
@@ -184,19 +139,18 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         size: 100,
       },
       {
-        id: 'upgrade_group',
-        meta: { label: t('Upgrade Group'), mobileHidden: true },
+        id: 'request_quota',
+        meta: { label: t('Request Quota'), mobileHidden: true },
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Upgrade Group')} />
+          <DataTableColumnHeader column={column} title={t('Request Quota')} />
         ),
         cell: ({ row }) => {
-          const group = row.original.plan.upgrade_group
-          if (!group) {
-            return (
-              <span className='text-muted-foreground'>{t('No Upgrade')}</span>
-            )
-          }
-          return <GroupBadge group={group} />
+          const total = Number(row.original.plan.request_quota || 0)
+          return (
+            <span className='text-muted-foreground'>
+              {total > 0 ? total : t('Unlimited')}
+            </span>
+          )
         },
         size: 100,
       },

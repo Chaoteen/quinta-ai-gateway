@@ -19,11 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { isRootUser } from '@/lib/rbac'
+import { useAuthStore } from '@/stores/auth-store'
 import { useSubscriptions } from './subscriptions-provider'
 
 export function SubscriptionsPrimaryButtons() {
   const { t } = useTranslation()
   const { setOpen } = useSubscriptions()
+  const user = useAuthStore((state) => state.auth.user)
+  if (!isRootUser(user)) return null
   return (
     <div className='flex gap-2'>
       <Button size='sm' onClick={() => setOpen('create')}>

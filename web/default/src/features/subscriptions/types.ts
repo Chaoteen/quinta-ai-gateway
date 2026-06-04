@@ -24,22 +24,34 @@ import { z } from 'zod'
 
 export const subscriptionPlanSchema = z.object({
   id: z.number(),
-  title: z.string(),
+  code: z.string().optional(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  monthly_price: z.number().optional(),
+  yearly_price: z.number().optional(),
+  token_quota: z.number().optional(),
+  request_quota: z.number().optional(),
+  model_quota: z.string().optional(),
+  status: z.string().optional(),
+  title: z.string().optional(),
   subtitle: z.string().optional(),
-  price_amount: z.number(),
-  currency: z.string().default('USD'),
-  duration_unit: z.enum(['year', 'month', 'day', 'hour', 'custom']),
-  duration_value: z.number(),
+  price_amount: z.number().optional(),
+  currency: z.string().optional().default('USD'),
+  duration_unit: z.enum(['year', 'month', 'day', 'hour', 'custom']).optional(),
+  duration_value: z.number().optional(),
   custom_seconds: z.number().optional(),
-  quota_reset_period: z.enum(['never', 'daily', 'weekly', 'monthly', 'custom']),
+  quota_reset_period: z
+    .enum(['never', 'daily', 'weekly', 'monthly', 'custom'])
+    .optional(),
   quota_reset_custom_seconds: z.number().optional(),
-  enabled: z.boolean(),
-  sort_order: z.number(),
-  max_purchase_per_user: z.number(),
-  total_amount: z.number(),
+  enabled: z.boolean().optional(),
+  max_purchase_per_user: z.number().optional(),
+  total_amount: z.number().optional(),
   upgrade_group: z.string().optional(),
   stripe_price_id: z.string().optional(),
   creem_product_id: z.string().optional(),
+  created_at: z.number().optional(),
+  updated_at: z.number().optional(),
 })
 
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>
@@ -54,21 +66,50 @@ export interface PlanRecord {
 
 export const userSubscriptionSchema = z.object({
   id: z.number(),
+  tenant_id: z.number().optional(),
+  organization_id: z.number().optional(),
+  department_id: z.number().optional(),
+  distribution_channel_id: z.number().optional(),
   user_id: z.number(),
   plan_id: z.number(),
-  status: z.string(),
-  source: z.string().optional(),
+  plan_code: z.string().optional(),
+  plan_name: z.string().optional(),
+  lifecycle_status: z.string(),
   start_time: z.number(),
   end_time: z.number(),
-  amount_total: z.number(),
-  amount_used: z.number(),
+  token_quota_snapshot: z.number().optional(),
+  request_quota_snapshot: z.number().optional(),
+  model_quota_snapshot: z.string().optional(),
   next_reset_time: z.number().optional(),
+  created_at: z.number().optional(),
+  updated_at: z.number().optional(),
 })
 
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>
 
 export interface UserSubscriptionRecord {
   subscription: UserSubscription
+}
+
+export const selfSubscriptionSchema = z.object({
+  plan_code: z.string().optional(),
+  plan_name: z.string().optional(),
+  lifecycle_status: z.string(),
+  start_time: z.number(),
+  end_time: z.number(),
+  token_quota_snapshot: z.number().optional(),
+  request_quota_snapshot: z.number().optional(),
+  model_quota_snapshot: z.string().optional(),
+  next_reset_time: z.number().optional(),
+  token_quota: z.number().optional(),
+  token_used: z.number().optional(),
+  token_remaining: z.number().optional(),
+})
+
+export type SelfSubscription = z.infer<typeof selfSubscriptionSchema>
+
+export interface SelfSubscriptionRecord {
+  subscription: SelfSubscription
 }
 
 // ============================================================================
@@ -104,14 +145,22 @@ export interface CreateUserSubscriptionRequest {
   plan_id: number
 }
 
+export interface AdminListParams {
+  page?: number
+  limit?: number
+  status?: string
+  q?: string
+  user_id?: number
+}
+
 // ============================================================================
 // Self Subscription Data (user-facing)
 // ============================================================================
 
 export interface SelfSubscriptionData {
   billing_preference: string
-  subscriptions: UserSubscriptionRecord[]
-  all_subscriptions: UserSubscriptionRecord[]
+  subscriptions: SelfSubscriptionRecord[]
+  all_subscriptions: SelfSubscriptionRecord[]
 }
 
 // ============================================================================

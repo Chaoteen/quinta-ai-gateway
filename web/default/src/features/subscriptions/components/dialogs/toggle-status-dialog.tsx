@@ -30,7 +30,7 @@ export function ToggleStatusDialog() {
 
   if (open !== 'toggle-status' || !currentRow) return null
 
-  const isEnabled = currentRow.plan.enabled
+  const isEnabled = currentRow.plan.status === 'enabled'
   const title = isEnabled ? t('Confirm disable') : t('Confirm enable')
   const description = isEnabled
     ? t(
