@@ -364,3 +364,94 @@ Phase 4: distribution channel reporting
 
 - Aggregate committed usage facts by `distribution_channel_id`, channel, model, and time window.
 - Revenue share remains a later billing/reconciliation iteration.
+
+## 10.4B Implementation Notes
+
+Implemented Usage Metering fields on `QuotaUsageRecord`:
+
+- `provider_name`
+- `channel_id`
+- `request_count`
+- `input_tokens`
+- `output_tokens`
+- `total_tokens`
+- `usage_source`
+- `usage_semantic`
+- `upstream_model_name`
+
+Field semantics:
+
+- `token_delta` remains the Quota Runtime quota consumption field.
+- `request_delta` remains the Quota Runtime request quota field.
+- `input_tokens`, `output_tokens`, and `total_tokens` are Usage Metering fact fields.
+- `request_count` is the metering request-count fact.
+- `channel_id` is authoritative for channel attribution.
+- `channel_name` is intentionally not an authoritative column. If a display name is needed, it belongs in metadata or should be read from the channel table.
+
+Implemented service foundation:
+
+- `UsageMeteringInput`
+- `UsageMeteringService`
+- `FoundationUsageMeteringService`
+- `ValidateUsageFact()`
+- `NormalizeUsage()`
+- `CommitUsageFact()`
+
+Defined usage source constants:
+
+- `upstream`
+- `estimated`
+- `converted`
+- `manual`
+
+Defined usage semantic constants:
+
+- `openai`
+- `anthropic`
+- `gemini`
+- `compatible`
+- `unknown`
+
+Normalization behavior:
+
+- OpenAI and compatible usage prefer explicit `input_tokens` / `output_tokens` when available and otherwise use `prompt_tokens` / `completion_tokens`.
+- Claude / Anthropic usage is preserved as Anthropic semantic and maps provider input/output to metering input/output facts.
+- Gemini usage maps normalized prompt/completion/total values produced by the Gemini adaptor into metering facts.
+- Estimated usage is supported through `usage_source = estimated`.
+- `request_count = 0` is normalized to `1`; negative values remain invalid.
+
+Commit behavior:
+
+- `CommitUsageFact()` writes one committed `QuotaUsageRecord`.
+- It preserves ownership fields, user attribution, subscription attribution, channel attribution, provider attribution, usage source, and usage semantic.
+- It does not mutate `BillingSession`.
+- It does not call `FundingSource`.
+- It does not mutate `User.Quota`.
+- It does not mutate `Token.RemainQuota`.
+- It does not mutate `UserSubscription.amount_used`.
+- It does not create or update `SubscriptionPreConsumeRecord`.
+
+Why 10.4B does not connect Relay:
+
+- Relay hot-path integration should happen only after usage facts have deterministic model/service coverage.
+- Provider handlers already normalize usage into `dto.Usage`; the next step is to insert the metering service centrally after `adaptor.DoResponse()`, not inside each channel.
+- Realtime and async task metering need separate policies and remain deferred.
+
+Why 10.4B does not connect Billing:
+
+- Current Billing Runtime still settles from quota calculated by `PostTextConsumeQuota()` / `PostAudioConsumeQuota()`.
+- If Billing also reads usage facts in this iteration, requests could be double-counted.
+- The correct future model is for Billing to read one committed usage fact by `usage_record_id`, `reservation_id`, or `request_id`, then settle once through one explicit billing path.
+
+Why `Log` is not the metering source:
+
+- Consume logs can be disabled.
+- `Other` is unstructured and display-oriented.
+- Logs are useful for UI and audit display, but Usage Metering needs a durable fact table with stable ownership, channel, provider, and token fields.
+
+10.5 Billing integration guidance:
+
+- Billing should read committed usage facts, not provider response bodies.
+- Billing should store a settlement reference to `quota_usage_records.id`.
+- Wallet/subscription/token mutation should happen in Billing Runtime only, after it has selected exactly one committed usage fact as input.
+- Billing should not rewrite usage facts; corrections should be represented as explicit billing or usage adjustment records in a later iteration.
