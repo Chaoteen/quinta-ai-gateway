@@ -68,6 +68,8 @@ func SetApiRouter(router *gin.Engine) {
 		subscriptionWriteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
 		catalogReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		billingReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		revenueShareReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		revenueShareWriteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -193,6 +195,16 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", controller.SubscriptionEpayReturn)
+
+		revenueShareRoute := apiRouter.Group("/revenue-share")
+		{
+			revenueShareRoute.POST("/rules", revenueShareWriteAuth, controller.CreateRevenueShareRule)
+			revenueShareRoute.GET("/rules", revenueShareReadAuth, controller.ListRevenueShareRules)
+			revenueShareRoute.PUT("/rules/:id", revenueShareWriteAuth, controller.UpdateRevenueShareRule)
+			revenueShareRoute.POST("/rules/:id/enable", revenueShareWriteAuth, controller.EnableRevenueShareRule)
+			revenueShareRoute.POST("/rules/:id/disable", revenueShareWriteAuth, controller.DisableRevenueShareRule)
+			revenueShareRoute.GET("/records", revenueShareReadAuth, controller.ListRevenueShareRecords)
+		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
 		{
