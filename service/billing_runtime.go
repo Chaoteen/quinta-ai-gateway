@@ -11,12 +11,17 @@ import (
 )
 
 var (
-	ErrBillingRuntimeInvalidUsage = errors.New("billing runtime usage fact is invalid")
-	ErrBillingRecordNotFound      = errors.New("billing record not found")
+	ErrBillingRuntimeInvalidUsage  = errors.New("billing runtime usage fact is invalid")
+	ErrBillingRecordNotFound       = errors.New("billing record not found")
+	ErrBillingUsageRecordNotFound  = errors.New("billing usage record not found")
+	ErrBillingUsageRecordAmbiguous = errors.New("billing usage record is ambiguous")
 )
 
 type BillingRuntimeService interface {
 	CreateBillingRecordFromUsage(ctx context.Context, usage model.QuotaUsageRecord) (model.BillingRecord, error)
+	CreateShadowBillingFromUsageRecordId(ctx context.Context, usageRecordId int) (model.BillingRecord, error)
+	CreateShadowBillingFromRequestId(ctx context.Context, requestId string) (model.BillingRecord, error)
+	EnsureBillingRecordForUsage(ctx context.Context, usage model.QuotaUsageRecord) (model.BillingRecord, error)
 	CalculateCharge(ctx context.Context, usage model.QuotaUsageRecord) (BillingCharge, error)
 	GetBillingRecordByRequestId(ctx context.Context, requestId string) (model.BillingRecord, error)
 	GetBillingRecordByUsageRecordId(ctx context.Context, usageRecordId int) (model.BillingRecord, error)
@@ -37,6 +42,47 @@ func NewFoundationBillingRuntimeService() BillingRuntimeService {
 }
 
 func (s *FoundationBillingRuntimeService) CreateBillingRecordFromUsage(ctx context.Context, usage model.QuotaUsageRecord) (model.BillingRecord, error) {
+	return s.EnsureBillingRecordForUsage(ctx, usage)
+}
+
+func (s *FoundationBillingRuntimeService) CreateShadowBillingFromUsageRecordId(ctx context.Context, usageRecordId int) (model.BillingRecord, error) {
+	if usageRecordId <= 0 {
+		return model.BillingRecord{}, errors.Join(ErrBillingUsageRecordNotFound, errors.New("usage_record_id is required"))
+	}
+	var usage model.QuotaUsageRecord
+	if err := model.DB.WithContext(ctx).Where("id = ?", usageRecordId).First(&usage).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return model.BillingRecord{}, ErrBillingUsageRecordNotFound
+		}
+		return model.BillingRecord{}, err
+	}
+	return s.EnsureBillingRecordForUsage(ctx, usage)
+}
+
+func (s *FoundationBillingRuntimeService) CreateShadowBillingFromRequestId(ctx context.Context, requestId string) (model.BillingRecord, error) {
+	requestId = strings.TrimSpace(requestId)
+	if requestId == "" {
+		return model.BillingRecord{}, errors.Join(ErrBillingRuntimeInvalidUsage, errors.New("request_id is required"))
+	}
+
+	var usages []model.QuotaUsageRecord
+	if err := model.DB.WithContext(ctx).
+		Where("request_id = ? AND status = ?", requestId, model.QuotaUsageStatusCommitted).
+		Order("id asc").
+		Find(&usages).Error; err != nil {
+		return model.BillingRecord{}, err
+	}
+	switch len(usages) {
+	case 0:
+		return model.BillingRecord{}, ErrBillingUsageRecordNotFound
+	case 1:
+		return s.EnsureBillingRecordForUsage(ctx, usages[0])
+	default:
+		return model.BillingRecord{}, errors.Join(ErrBillingUsageRecordAmbiguous, errors.New("multiple committed usage records for request_id"))
+	}
+}
+
+func (s *FoundationBillingRuntimeService) EnsureBillingRecordForUsage(ctx context.Context, usage model.QuotaUsageRecord) (model.BillingRecord, error) {
 	if err := validateBillingUsageFact(usage); err != nil {
 		return model.BillingRecord{}, err
 	}

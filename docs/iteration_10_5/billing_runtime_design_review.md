@@ -601,3 +601,47 @@ Tenant safety:
 Next implementation step:
 
 - 10.5C should remain shadow-mode unless billing parity tests prove that `BillingRecord` charge snapshots match the existing `PostTextConsumeQuota()` settlement outputs.
+
+## 10.5C Implementation Notes
+
+Implemented shadow generation scope:
+
+- Added `CreateShadowBillingFromUsageRecordId()`.
+- Added `CreateShadowBillingFromRequestId()`.
+- Added `EnsureBillingRecordForUsage()`.
+- Kept `CreateBillingRecordFromUsage()` as a compatibility wrapper around `EnsureBillingRecordForUsage()`.
+
+Shadow generation behavior:
+
+- `CreateShadowBillingFromUsageRecordId()` loads one `QuotaUsageRecord` by primary key, requires `status=committed`, then creates or returns the idempotent `BillingRecord`.
+- `CreateShadowBillingFromRequestId()` loads committed usage facts by `request_id`.
+- If one committed usage fact exists, it creates or returns the idempotent `BillingRecord`.
+- If zero committed usage facts exist, it returns a missing usage error.
+- If multiple committed usage facts exist, it rejects the request and creates no billing record.
+- `EnsureBillingRecordForUsage()` is the central idempotent creation path and uses `usage_record_id` as the primary idempotency key.
+
+Why this does not connect Relay yet:
+
+- Relay already has legacy settlement through `PostTextConsumeQuota()` / `PostAudioConsumeQuota()`.
+- 10.5C only proves BillingRecord generation from existing committed usage facts.
+- Connecting Relay before parity testing would risk creating operational ambiguity between legacy settlement and Billing Runtime shadow records.
+
+Why this does not connect FundingSource:
+
+- `FundingSource` mutates wallet, token, or subscription balances.
+- 10.5C is explicitly shadow generation and must not alter balances.
+- BillingRecord is a durable fact candidate, not the active settlement executor in this iteration.
+
+Why multiple committed usage facts for one request are rejected:
+
+- Synchronous text billing currently assumes one billable usage fact per `request_id`.
+- Multiple committed usage facts could represent streaming, retries, future realtime sessions, or a data bug.
+- Generating one BillingRecord in that situation would risk underbilling or overbilling.
+- 10.5C therefore fails closed until product-specific multi-fact billing policy is defined.
+
+10.5D recommended scope:
+
+- Add Relay dry-path orchestration that calls `CreateShadowBillingFromRequestId()` after Usage Metering writes the committed usage fact.
+- Keep it non-blocking and non-balance-affecting.
+- Log shadow generation failures without changing current response or settlement behavior.
+- Do not replace `PostTextConsumeQuota()` settlement until BillingRecord parity tests exist.

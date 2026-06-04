@@ -157,6 +157,178 @@ func TestBillingRuntimeDoesNotMutateWalletTokenOrSubscription(t *testing.T) {
 	require.Equal(t, sub.AmountUsed, reloadedSub.AmountUsed)
 }
 
+func TestBillingRuntimeShadowGenerationFromUsageRecordId(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-usage-id")
+
+	record, err := service.CreateShadowBillingFromUsageRecordId(ctx, usage.Id)
+	require.NoError(t, err)
+	require.Equal(t, usage.Id, record.UsageRecordId)
+	require.Equal(t, usage.RequestId, record.RequestId)
+}
+
+func TestBillingRuntimeShadowGenerationFromRequestId(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-request-id")
+
+	record, err := service.CreateShadowBillingFromRequestId(ctx, usage.RequestId)
+	require.NoError(t, err)
+	require.Equal(t, usage.Id, record.UsageRecordId)
+	require.Equal(t, usage.RequestId, record.RequestId)
+}
+
+func TestBillingRuntimeShadowGenerationIsIdempotent(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-idempotent")
+
+	first, err := service.CreateShadowBillingFromUsageRecordId(ctx, usage.Id)
+	require.NoError(t, err)
+	second, err := service.EnsureBillingRecordForUsage(ctx, usage)
+	require.NoError(t, err)
+	third, err := service.CreateShadowBillingFromRequestId(ctx, usage.RequestId)
+	require.NoError(t, err)
+	require.Equal(t, first.Id, second.Id)
+	require.Equal(t, first.Id, third.Id)
+
+	var count int64
+	require.NoError(t, model.DB.Model(&model.BillingRecord{}).
+		Where("usage_record_id = ?", usage.Id).
+		Count(&count).Error)
+	require.Equal(t, int64(1), count)
+}
+
+func TestBillingRuntimeShadowGenerationRejectsMissingUsageRecord(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+
+	_, err := service.CreateShadowBillingFromUsageRecordId(ctx, 999999)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBillingUsageRecordNotFound))
+}
+
+func TestBillingRuntimeShadowGenerationRejectsNonCommittedUsageRecord(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-non-committed")
+	require.NoError(t, model.DB.Model(&model.QuotaUsageRecord{}).
+		Where("id = ?", usage.Id).
+		Update("status", model.QuotaUsageStatusReserved).Error)
+
+	_, err := service.CreateShadowBillingFromUsageRecordId(ctx, usage.Id)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBillingRuntimeInvalidUsage))
+}
+
+func TestBillingRuntimeShadowGenerationRejectsEmptyRequestId(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+
+	_, err := service.CreateShadowBillingFromRequestId(ctx, " ")
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBillingRuntimeInvalidUsage))
+}
+
+func TestBillingRuntimeShadowGenerationRejectsAmbiguousRequestId(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	requestId := "billing-shadow-ambiguous"
+	createBillingRuntimeUsageRecord(t, requestId)
+	createBillingRuntimeUsageRecord(t, requestId)
+
+	_, err := service.CreateShadowBillingFromRequestId(ctx, requestId)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBillingUsageRecordAmbiguous))
+
+	var count int64
+	require.NoError(t, model.DB.Model(&model.BillingRecord{}).
+		Where("request_id = ?", requestId).
+		Count(&count).Error)
+	require.Zero(t, count)
+}
+
+func TestBillingRuntimeShadowGenerationRejectsMissingTenant(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-missing-tenant")
+	require.NoError(t, model.DB.Model(&model.QuotaUsageRecord{}).
+		Where("id = ?", usage.Id).
+		Update("tenant_id", 0).Error)
+
+	_, err := service.CreateShadowBillingFromUsageRecordId(ctx, usage.Id)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBillingRuntimeInvalidUsage))
+}
+
+func TestBillingRuntimeShadowGenerationDoesNotMutateWalletTokenOrSubscription(t *testing.T) {
+	truncate(t)
+	ctx := context.Background()
+	service := NewFoundationBillingRuntimeService()
+
+	user := model.User{
+		Id:       8601,
+		TenantId: 8,
+		Username: "billing-shadow-user-" + time.Now().Format("150405.000000"),
+		Quota:    9000,
+		Status:   common.UserStatusEnabled,
+	}
+	require.NoError(t, model.DB.Create(&user).Error)
+	token := model.Token{
+		Id:          8602,
+		TenantId:    user.TenantId,
+		UserId:      user.Id,
+		Key:         "billing-shadow-token-" + time.Now().Format("150405.000000"),
+		Name:        "billing shadow token",
+		Status:      common.TokenStatusEnabled,
+		RemainQuota: 8000,
+	}
+	require.NoError(t, model.DB.Create(&token).Error)
+	sub := model.UserSubscription{
+		Id:                   8603,
+		TenantId:             user.TenantId,
+		UserId:               user.Id,
+		AmountTotal:          100000,
+		AmountUsed:           321,
+		StartTime:            time.Now().Add(-time.Hour).Unix(),
+		EndTime:              time.Now().Add(24 * time.Hour).Unix(),
+		Status:               model.SubscriptionLifecycleActive,
+		LifecycleStatus:      model.SubscriptionLifecycleActive,
+		TokenQuotaSnapshot:   1000,
+		RequestQuotaSnapshot: 10,
+	}
+	require.NoError(t, model.DB.Create(&sub).Error)
+
+	usage := createBillingRuntimeUsageRecord(t, "billing-shadow-no-mutation")
+	usage.UserId = user.Id
+	usage.UserSubscriptionId = sub.Id
+	require.NoError(t, model.DB.Save(&usage).Error)
+
+	_, err := service.CreateShadowBillingFromUsageRecordId(ctx, usage.Id)
+	require.NoError(t, err)
+
+	var reloadedUser model.User
+	require.NoError(t, model.DB.Select("quota").Where("id = ?", user.Id).First(&reloadedUser).Error)
+	require.Equal(t, user.Quota, reloadedUser.Quota)
+
+	var reloadedToken model.Token
+	require.NoError(t, model.DB.Select("remain_quota").Where("id = ?", token.Id).First(&reloadedToken).Error)
+	require.Equal(t, token.RemainQuota, reloadedToken.RemainQuota)
+
+	var reloadedSub model.UserSubscription
+	require.NoError(t, model.DB.Select("amount_used").Where("id = ?", sub.Id).First(&reloadedSub).Error)
+	require.Equal(t, sub.AmountUsed, reloadedSub.AmountUsed)
+}
+
 func createBillingRuntimeUsageRecord(t *testing.T, requestId string) model.QuotaUsageRecord {
 	t.Helper()
 	usage := model.QuotaUsageRecord{
