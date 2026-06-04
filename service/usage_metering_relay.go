@@ -18,8 +18,40 @@ import (
 var ErrRelayUsageMeteringSkipped = errors.New("relay usage metering skipped")
 
 func TryCommitRelayUsageFactDryRun(c *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage) {
-	if _, err := CommitRelayUsageFactDryRun(c, relayInfo, usage); err != nil && !errors.Is(err, ErrRelayUsageMeteringSkipped) {
-		logger.LogWarn(c.Request.Context(), "usage metering dry integration skipped: "+err.Error())
+	record, err := CommitRelayUsageFactDryRun(c, relayInfo, usage)
+	if err != nil {
+		if !errors.Is(err, ErrRelayUsageMeteringSkipped) {
+			logger.LogWarn(c.Request.Context(), "usage metering dry integration skipped: "+err.Error())
+		}
+		return
+	}
+	TryCreateRelayShadowBillingFromUsageFact(c, record)
+}
+
+func TryCreateRelayShadowBillingFromUsageFact(c *gin.Context, usage model.QuotaUsageRecord) {
+	if usage.Id <= 0 || usage.RequestId == "" {
+		return
+	}
+	if _, err := NewFoundationBillingRuntimeService().CreateShadowBillingFromRequestId(c.Request.Context(), usage.RequestId); err != nil {
+		logger.LogWarn(c.Request.Context(), "billing runtime shadow integration skipped: "+err.Error())
+	}
+}
+
+func TryCreateRelayShadowBillingFromUsageRecordId(c *gin.Context, usageRecordId int) {
+	if usageRecordId <= 0 {
+		return
+	}
+	if _, err := NewFoundationBillingRuntimeService().CreateShadowBillingFromUsageRecordId(c.Request.Context(), usageRecordId); err != nil {
+		logger.LogWarn(c.Request.Context(), "billing runtime shadow integration skipped: "+err.Error())
+	}
+}
+
+func TryCreateRelayShadowBillingFromRequestId(c *gin.Context, requestId string) {
+	if requestId == "" {
+		return
+	}
+	if _, err := NewFoundationBillingRuntimeService().CreateShadowBillingFromRequestId(c.Request.Context(), requestId); err != nil {
+		logger.LogWarn(c.Request.Context(), "billing runtime shadow integration skipped: "+err.Error())
 	}
 }
 

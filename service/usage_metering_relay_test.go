@@ -102,6 +102,77 @@ func TestRelayUsageMeteringDryIntegrationIdempotentByRequestId(t *testing.T) {
 	require.Equal(t, int64(1), count)
 }
 
+func TestRelayUsageMeteringDryIntegrationCreatesShadowBillingRecord(t *testing.T) {
+	truncate(t)
+	c := relayUsageMeteringContext("relay-metering-shadow-billing")
+	info := relayUsageMeteringInfo("relay-metering-shadow-billing", constant.ChannelTypeOpenAI, types.RelayFormatOpenAI)
+
+	TryCommitRelayUsageFactDryRun(c, info, &dto.Usage{
+		PromptTokens:     33,
+		CompletionTokens: 7,
+		TotalTokens:      40,
+	})
+
+	var usage model.QuotaUsageRecord
+	require.NoError(t, model.DB.Where("request_id = ? AND status = ?", info.RequestId, model.QuotaUsageStatusCommitted).First(&usage).Error)
+
+	var billing model.BillingRecord
+	require.NoError(t, model.DB.Where("usage_record_id = ?", usage.Id).First(&billing).Error)
+	require.Equal(t, usage.RequestId, billing.RequestId)
+	require.Equal(t, usage.Id, billing.UsageRecordId)
+	require.Equal(t, usage.TenantId, billing.TenantId)
+	require.Equal(t, usage.DistributionChannelId, billing.DistributionChannelId)
+	require.Equal(t, usage.ProviderName, billing.ProviderName)
+	require.Equal(t, usage.ChannelId, billing.ChannelId)
+	require.Equal(t, model.BillingStatusPending, billing.BillingStatus)
+}
+
+func TestRelayUsageMeteringDryIntegrationShadowBillingIsIdempotent(t *testing.T) {
+	truncate(t)
+	c := relayUsageMeteringContext("relay-metering-shadow-idempotent")
+	info := relayUsageMeteringInfo("relay-metering-shadow-idempotent", constant.ChannelTypeOpenAI, types.RelayFormatOpenAI)
+	usage := &dto.Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15}
+
+	TryCommitRelayUsageFactDryRun(c, info, usage)
+	TryCommitRelayUsageFactDryRun(c, info, usage)
+
+	var usageCount int64
+	require.NoError(t, model.DB.Model(&model.QuotaUsageRecord{}).
+		Where("request_id = ? AND status = ?", info.RequestId, model.QuotaUsageStatusCommitted).
+		Count(&usageCount).Error)
+	require.Equal(t, int64(1), usageCount)
+
+	var billingCount int64
+	require.NoError(t, model.DB.Model(&model.BillingRecord{}).
+		Where("request_id = ?", info.RequestId).
+		Count(&billingCount).Error)
+	require.Equal(t, int64(1), billingCount)
+}
+
+func TestRelayUsageMeteringDryIntegrationShadowBillingFailureDoesNotAffectUsageFact(t *testing.T) {
+	truncate(t)
+	c := relayUsageMeteringContext("relay-metering-shadow-ambiguous")
+	info := relayUsageMeteringInfo("relay-metering-shadow-ambiguous", constant.ChannelTypeOpenAI, types.RelayFormatOpenAI)
+	usageOne := relayUsageMeteringCommittedUsage(info.RequestId, "relay-metering-shadow-ambiguous-reservation-1")
+	usageTwo := relayUsageMeteringCommittedUsage(info.RequestId, "relay-metering-shadow-ambiguous-reservation-2")
+	require.NoError(t, model.DB.Create(&usageOne).Error)
+	require.NoError(t, model.DB.Create(&usageTwo).Error)
+
+	TryCreateRelayShadowBillingFromRequestId(c, info.RequestId)
+
+	var usageCount int64
+	require.NoError(t, model.DB.Model(&model.QuotaUsageRecord{}).
+		Where("request_id = ? AND status = ?", info.RequestId, model.QuotaUsageStatusCommitted).
+		Count(&usageCount).Error)
+	require.Equal(t, int64(2), usageCount)
+
+	var billingCount int64
+	require.NoError(t, model.DB.Model(&model.BillingRecord{}).
+		Where("request_id = ?", info.RequestId).
+		Count(&billingCount).Error)
+	require.Zero(t, billingCount)
+}
+
 func TestRelayUsageMeteringDryIntegrationFailureDoesNotTouchBillingOrBalances(t *testing.T) {
 	truncate(t)
 	c := relayUsageMeteringContext("relay-metering-failure")
@@ -150,6 +221,66 @@ func TestRelayUsageMeteringDryIntegrationFailureDoesNotTouchBillingOrBalances(t 
 	require.Equal(t, token.RemainQuota, reloadedToken.RemainQuota)
 }
 
+func TestRelayUsageMeteringDryIntegrationShadowBillingDoesNotMutateWalletTokenOrSubscription(t *testing.T) {
+	truncate(t)
+	c := relayUsageMeteringContext("relay-metering-shadow-no-mutation")
+	info := relayUsageMeteringInfo("relay-metering-shadow-no-mutation", constant.ChannelTypeOpenAI, types.RelayFormatOpenAI)
+
+	user := model.User{
+		Id:       7601,
+		TenantId: info.TenantId,
+		Username: "relay-shadow-user-" + time.Now().Format("150405.000000"),
+		Quota:    9000,
+		Status:   common.UserStatusEnabled,
+	}
+	require.NoError(t, model.DB.Create(&user).Error)
+	token := model.Token{
+		Id:          7602,
+		TenantId:    user.TenantId,
+		UserId:      user.Id,
+		Key:         "relay-shadow-token-" + time.Now().Format("150405.000000"),
+		Name:        "relay shadow token",
+		Status:      common.TokenStatusEnabled,
+		RemainQuota: 8000,
+	}
+	require.NoError(t, model.DB.Create(&token).Error)
+	sub := model.UserSubscription{
+		Id:                   info.SubscriptionId,
+		TenantId:             user.TenantId,
+		UserId:               user.Id,
+		AmountTotal:          100000,
+		AmountUsed:           77,
+		StartTime:            time.Now().Add(-time.Hour).Unix(),
+		EndTime:              time.Now().Add(24 * time.Hour).Unix(),
+		Status:               model.SubscriptionLifecycleActive,
+		LifecycleStatus:      model.SubscriptionLifecycleActive,
+		TokenQuotaSnapshot:   1000,
+		RequestQuotaSnapshot: 10,
+	}
+	require.NoError(t, model.DB.Create(&sub).Error)
+	info.UserId = user.Id
+
+	TryCommitRelayUsageFactDryRun(c, info, &dto.Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15})
+
+	var billingCount int64
+	require.NoError(t, model.DB.Model(&model.BillingRecord{}).
+		Where("request_id = ?", info.RequestId).
+		Count(&billingCount).Error)
+	require.Equal(t, int64(1), billingCount)
+
+	var reloadedUser model.User
+	require.NoError(t, model.DB.Select("quota").Where("id = ?", user.Id).First(&reloadedUser).Error)
+	require.Equal(t, user.Quota, reloadedUser.Quota)
+
+	var reloadedToken model.Token
+	require.NoError(t, model.DB.Select("remain_quota").Where("id = ?", token.Id).First(&reloadedToken).Error)
+	require.Equal(t, token.RemainQuota, reloadedToken.RemainQuota)
+
+	var reloadedSub model.UserSubscription
+	require.NoError(t, model.DB.Select("amount_used").Where("id = ?", sub.Id).First(&reloadedSub).Error)
+	require.Equal(t, sub.AmountUsed, reloadedSub.AmountUsed)
+}
+
 func relayUsageMeteringContext(requestId string) *gin.Context {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -158,6 +289,33 @@ func relayUsageMeteringContext(requestId string) *gin.Context {
 	c.Request = req
 	c.Set(common.RequestIdKey, requestId)
 	return c
+}
+
+func relayUsageMeteringCommittedUsage(requestId string, reservationId string) model.QuotaUsageRecord {
+	return model.QuotaUsageRecord{
+		TenantId:              7,
+		OrganizationId:        8,
+		DepartmentId:          9,
+		DistributionChannelId: 10,
+		UserId:                7101,
+		UserSubscriptionId:    7201,
+		RequestId:             requestId,
+		ReservationId:         reservationId,
+		ProviderName:          "openai",
+		ChannelId:             7301,
+		ModelName:             "gpt-4o",
+		UpstreamModelName:     "upstream-model",
+		QuotaDimension:        model.QuotaDimensionToken,
+		RequestCount:          1,
+		InputTokens:           10,
+		OutputTokens:          5,
+		TotalTokens:           15,
+		TokenDelta:            15,
+		RequestDelta:          1,
+		UsageSource:           UsageSourceUpstream,
+		UsageSemantic:         UsageSemanticOpenAI,
+		Status:                model.QuotaUsageStatusCommitted,
+	}
 }
 
 func relayUsageMeteringInfo(requestId string, channelType int, relayFormat types.RelayFormat) *relaycommon.RelayInfo {
