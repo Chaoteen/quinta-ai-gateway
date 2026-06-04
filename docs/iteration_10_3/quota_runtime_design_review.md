@@ -275,3 +275,47 @@ Recommended scope:
 - Full service tests before any hot-path integration.
 
 The main architectural risk is double accounting. That risk is controlled by keeping Quota Runtime as an auditable reservation and usage event system first, then connecting relay and billing in later iterations through one explicit adapter boundary.
+
+## 10.3B Implementation Notes
+
+Implemented service interfaces:
+
+- `CheckQuota()`
+- `ReserveQuota()`
+- `CommitUsage()`
+- `RollbackReservation()`
+- `ResetQuota()`
+
+Runtime behavior added:
+
+- `CheckQuota()` reads active `UserSubscription` rows by `user_id`, lifecycle status, start/end time, and exact ownership scope.
+- Model quota enforcement uses `model_quota_snapshot`; empty snapshot remains unrestricted and allowlist snapshots enforce exact model names.
+- Token and request quota checks use subscription snapshot limits plus current runtime usage.
+- Runtime usage includes committed `QuotaUsageRecord` rows and non-expired active `QuotaReservation` rows in the current reset window.
+- `ReserveQuota()` creates one active `QuotaReservation` and one `reserved` `QuotaUsageRecord`.
+- Reservation idempotency is enforced by looking up existing `reservation_id` or `request_id` before creating a new row.
+- `CommitUsage()` performs `active -> committed`, writes a `committed` usage event, and is idempotent by `reservation_id`.
+- `RollbackReservation()` performs `active -> rolled_back`, writes a `rolled_back` usage event, and is idempotent by `reservation_id`.
+- `ResetQuota()` writes a `reset` usage event and updates the subscription reset window.
+
+Still not connected:
+
+- No relay hot-path integration.
+- No controller or router integration.
+- No Admin Console integration.
+- No BillingSession integration.
+- No FundingSource integration.
+- No wallet deduction.
+- No token quota deduction.
+- No payment, invoice, voucher, billing deduction, or revenue-share behavior.
+
+Why wallet, token quota, and legacy subscription quota are not modified:
+
+- `User.Quota` is wallet/billing runtime state, not subscription runtime entitlement.
+- `Token.RemainQuota` is token-level access guard state, not subscription quota entitlement.
+- `UserSubscription.amount_used` belongs to the legacy subscription deduction path and is still used by `SubscriptionPreConsumeRecord` and `SubscriptionFunding`.
+- Updating any of those fields inside Quota Runtime would create double-accounting risk before relay and billing are connected through an explicit adapter boundary.
+
+Current limitation:
+
+- `QuotaReservation.request_id` is still an indexed field, not a unique constraint. The 10.3B service enforces request idempotency in code, but stronger cross-process concurrency guarantees may require a future migration or a dedicated idempotency key.
