@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
+	"github.com/Chaoteen/quinta-ai-gateway/middleware"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -112,6 +113,94 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 	})
 	SetApiRouter(r)
 	return r
+}
+
+func setupRoleAdoptionAuthOnlyRouter(t *testing.T) *gin.Engine {
+	t.Helper()
+
+	gin.SetMode(gin.TestMode)
+	common.UsingSQLite = true
+	common.UsingMySQL = false
+	common.UsingPostgreSQL = false
+	common.RedisEnabled = false
+	previousSQLitePath := common.SQLitePath
+	previousIsMasterNode := common.IsMasterNode
+	common.IsMasterNode = true
+
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
+	common.SQLitePath = dsn
+	t.Cleanup(func() {
+		common.SQLitePath = previousSQLitePath
+		common.IsMasterNode = previousIsMasterNode
+	})
+	if err := model.InitDB(); err != nil {
+		t.Fatalf("failed to initialize sqlite db: %v", err)
+	}
+	db := model.DB
+	model.LOG_DB = db
+	t.Cleanup(func() {
+		sqlDB, err := db.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	})
+
+	for name, user := range roleAdoptionUsers {
+		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey, user.tenant, user.organization)
+	}
+	seedRoleAdoptionChannels(t, db)
+
+	r := gin.New()
+	store := cookie.NewStore([]byte("role-adoption-test-secret"))
+	r.Use(sessions.Sessions("session", store))
+	r.Use(func(c *gin.Context) {
+		userIDHeader := c.GetHeader("X-Test-User-ID")
+		roleHeader := c.GetHeader("X-Test-Role")
+		if userIDHeader == "" || roleHeader == "" {
+			c.Next()
+			return
+		}
+		userID, err := strconv.Atoi(userIDHeader)
+		if err != nil {
+			t.Fatalf("invalid test user id: %v", err)
+		}
+		role, err := strconv.Atoi(roleHeader)
+		if err != nil {
+			t.Fatalf("invalid test role: %v", err)
+		}
+		session := sessions.Default(c)
+		session.Set("id", userID)
+		session.Set("username", fmt.Sprintf("test-user-%d", userID))
+		session.Set("role", role)
+		session.Set("status", common.UserStatusEnabled)
+		session.Set("group", "default")
+		if err := session.Save(); err != nil {
+			t.Fatalf("failed to save test session: %v", err)
+		}
+		c.Next()
+	})
+
+	apiRouter := r.Group("/api")
+	channelExecuteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps)
+	channelBalanceExecuteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyFinance)
+	apiRouter.GET("/channel/fetch_models/:id", channelExecuteAuth, roleAdoptionChannelScopeProbe)
+	apiRouter.GET("/channel/ollama/version/:id", channelExecuteAuth, roleAdoptionChannelScopeProbe)
+	apiRouter.GET("/channel/test/:id", channelExecuteAuth, roleAdoptionChannelScopeProbe)
+	apiRouter.GET("/channel/update_balance/:id", channelBalanceExecuteAuth, roleAdoptionChannelScopeProbe)
+	return r
+}
+
+func roleAdoptionChannelScopeProbe(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if id <= 0 {
+		common.ApiErrorMsg(c, "无效的ID")
+		return
+	}
+	if _, err := model.GetChannelByIdScoped(id, true, model.TenantScopeFromContext(c)); err != nil {
+		common.ApiErrorMsg(c, roleAdoptionTenantDeniedMessage)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"reached": true})
 }
 
 func seedRoleAdoptionUser(t *testing.T, db *gorm.DB, id int, username string, role int, roleKey string, tenantId int, organizationId int) {
@@ -648,7 +737,7 @@ func TestRoleAuthPhase2TenantBoundaries(t *testing.T) {
 }
 
 func TestRoleAuthPhase4ChannelReadExecuteRoutes(t *testing.T) {
-	r := setupRoleAdoptionRouter(t)
+	r := setupRoleAdoptionAuthOnlyRouter(t)
 
 	executePaths := []string{
 		"/api/channel/fetch_models/1",
@@ -682,7 +771,7 @@ func TestRoleAuthPhase4ChannelReadExecuteRoutes(t *testing.T) {
 }
 
 func TestRoleAuthPhase4ChannelReadExecuteTenantBoundaries(t *testing.T) {
-	r := setupRoleAdoptionRouter(t)
+	r := setupRoleAdoptionAuthOnlyRouter(t)
 
 	tenant2ExecutePaths := []string{
 		"/api/channel/fetch_models/2",
