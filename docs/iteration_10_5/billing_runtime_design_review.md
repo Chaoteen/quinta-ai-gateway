@@ -552,3 +552,52 @@ QuotaUsageRecord(status=committed)
 ```
 
 10.5B should create durable billing facts and service boundaries without changing current balance mutation behavior. Actual settlement migration should wait until BillingRecord parity and idempotency tests are strong enough to avoid double charging.
+
+## 10.5B Implementation Notes
+
+Implemented foundation scope:
+
+- Added `BillingRecord` as a durable Billing Runtime foundation fact.
+- Added migration registration for `BillingRecord`.
+- Added `BillingRuntimeService` foundation interface and implementation.
+- Added shadow-mode charge calculation from `QuotaUsageRecord(status=committed)`.
+- Added lookup helpers by `request_id` and `usage_record_id`.
+
+BillingRecord fields:
+
+- Ownership: `tenant_id`, `organization_id`, `department_id`, `distribution_channel_id`.
+- Correlation: `request_id`, `reservation_id`, `usage_record_id`.
+- Subject: `user_id`, `token_id`, `user_subscription_id`.
+- Attribution: `provider_name`, `channel_id`, `model_name`.
+- Billing state: `funding_source`, `billing_status`, `billing_phase`, `currency`.
+- Usage snapshot: `input_tokens`, `output_tokens`, `total_tokens`, `request_count`.
+- Charge snapshot: `quota_charged`, `unit_price_snapshot`, `price_snapshot`, `settled_delta`.
+- Audit payload: `metadata`, `created_at`, `updated_at`.
+
+Foundation behavior:
+
+- `CreateBillingRecordFromUsage()` accepts a committed `QuotaUsageRecord` and creates a `BillingRecord`.
+- `CalculateCharge()` runs in shadow mode and maps usage token quota to `quota_charged`.
+- `GetBillingRecordByRequestId()` reads the persisted billing fact by relay request id.
+- `GetBillingRecordByUsageRecordId()` reads the persisted billing fact by usage fact id.
+- Creation is idempotent by `usage_record_id`.
+
+Explicit non-goals preserved:
+
+- No changes to `PostTextConsumeQuota()`.
+- No changes to `PostAudioConsumeQuota()`.
+- No changes to `BillingSession`.
+- No changes to `FundingSource`.
+- No wallet mutation.
+- No token quota mutation.
+- No subscription amount mutation.
+- No `SubscriptionPreConsumeRecord` mutation.
+
+Tenant safety:
+
+- Billing facts are created only from usage facts with explicit `tenant_id`.
+- Ownership, provider, channel, model, user, and subscription attribution are copied from the committed usage fact.
+
+Next implementation step:
+
+- 10.5C should remain shadow-mode unless billing parity tests prove that `BillingRecord` charge snapshots match the existing `PostTextConsumeQuota()` settlement outputs.

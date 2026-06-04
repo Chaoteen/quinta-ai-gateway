@@ -212,6 +212,11 @@ func (snapshot OwnershipSnapshot) ApplyTo(target any) {
 		v.OrganizationId = snapshot.OrganizationId
 		v.DepartmentId = snapshot.DepartmentId
 		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *BillingRecord:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
 	case *Midjourney:
 		v.TenantId = snapshot.TenantId
 		v.OrganizationId = snapshot.OrganizationId
