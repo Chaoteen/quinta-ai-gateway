@@ -699,3 +699,50 @@ Why multiple committed usage facts still fail closed:
 - Add parity tests comparing BillingRecord shadow charge snapshots with existing `PostTextConsumeQuota()` calculated quota.
 - Keep tests isolated from real relay providers.
 - Continue avoiding real settlement migration until parity is proven for OpenAI, Claude, Gemini, compatible usage, cache tokens, and tiered billing paths.
+
+## 10.5E Notes
+
+10.5E completed a Billing Runtime parity audit and added:
+
+- `docs/iteration_10_5/billing_runtime_parity_audit.md`
+
+Key audit conclusion:
+
+- Current BillingRecord shadow generation is not calculation-parity with production billing.
+- `BillingRuntime.CalculateCharge()` records `token_delta` or `total_tokens` as `quota_charged`.
+- Production `PostTextConsumeQuota()` and `PostAudioConsumeQuota()` apply model ratios, completion ratios, cache ratios, audio/image ratios, group ratios, fixed prices, tiered expressions, tool surcharges, and multiple provider-specific special cases.
+
+Recommendation:
+
+- Continue with `10.5F Billing Runtime Parity Test Foundation` before attempting any settlement migration.
+- BillingRecord is safe as a shadow billing fact, but not yet authoritative finance revenue.
+- PR scope should be described as Billing Runtime shadow foundation, not Billing Runtime replacement.
+
+## 10.5F Notes
+
+10.5F added a non-mutating parity test foundation:
+
+- `BillingCalculationSnapshot`
+- `BuildBillingCalculationSnapshotFromUsage()`
+- `CompareBillingCalculationSnapshot()`
+
+Current parity foundation can compare:
+
+- expected quota vs actual shadow `quota_charged`
+- token-delta driven shadow charge
+- total-token fallback shadow charge
+- tenant/provider/channel/model attribution preservation
+
+Current parity foundation cannot yet compare:
+
+- full `PostTextConsumeQuota()` formula output
+- full `PostAudioConsumeQuota()` formula output
+- cache read/write pricing
+- Claude 5m/1h cache pricing
+- image/audio pricing
+- fixed-price mode
+- tiered billing
+- tool surcharges
+- other ratios
+
+The foundation is intentionally non-balance-affecting and does not change production settlement behavior.
