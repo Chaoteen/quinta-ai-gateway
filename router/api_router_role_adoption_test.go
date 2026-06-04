@@ -171,10 +171,36 @@ func seedRoleAdoptionChannels(t *testing.T, db *gorm.DB) {
 
 func seedRoleAdoptionSubscriptions(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	plan := model.SubscriptionPlan{Id: 1, Title: "role adoption plan", Enabled: true, TotalAmount: 1000}
+	plan := model.SubscriptionPlan{
+		Id:             1,
+		Code:           "role-alpha",
+		Name:           "Role Alpha",
+		Title:          "role adoption plan",
+		PriceAmount:    10,
+		Currency:       "USD",
+		DurationUnit:   model.SubscriptionDurationMonth,
+		DurationValue:  1,
+		Enabled:        true,
+		Status:         model.SubscriptionPlanStatusEnabled,
+		TotalAmount:    1000,
+		TokenQuota:     1000,
+		StripePriceId:  "price_role_alpha",
+		CreemProductId: "product_role_alpha",
+	}
 	requireCreateRoleAdoptionRecord(t, db.Create(&plan).Error)
+	disabledPlan := model.SubscriptionPlan{
+		Id:            2,
+		Code:          "role-disabled",
+		Name:          "Role Disabled",
+		Title:         "role disabled plan",
+		DurationUnit:  model.SubscriptionDurationMonth,
+		DurationValue: 1,
+		Enabled:       false,
+		Status:        model.SubscriptionPlanStatusDisabled,
+	}
+	requireCreateRoleAdoptionRecord(t, db.Create(&disabledPlan).Error)
 	subscriptions := []model.UserSubscription{
-		{Id: 1, TenantId: 1, UserId: roleAdoptionUsers["user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
+		{Id: 1, TenantId: 1, DepartmentId: 30, DistributionChannelId: 40, UserId: roleAdoptionUsers["user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
 		{Id: 2, TenantId: 2, UserId: roleAdoptionUsers["tenant2_user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
 		{Id: 3, TenantId: 1, OrganizationId: 10, UserId: roleAdoptionUsers["organization_user"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
 		{Id: 4, TenantId: 1, OrganizationId: 20, UserId: roleAdoptionUsers["other_organization"].id, PlanId: 1, Status: "active", AmountTotal: 1000, EndTime: common.GetTimestamp() + 3600},
