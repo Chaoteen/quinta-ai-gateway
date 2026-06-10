@@ -70,6 +70,8 @@ func SetApiRouter(router *gin.Engine) {
 		billingReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		revenueShareReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		revenueShareWriteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
+		paymentReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
+		paymentReviewAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -204,6 +206,21 @@ func SetApiRouter(router *gin.Engine) {
 			revenueShareRoute.POST("/rules/:id/enable", revenueShareWriteAuth, controller.EnableRevenueShareRule)
 			revenueShareRoute.POST("/rules/:id/disable", revenueShareWriteAuth, controller.DisableRevenueShareRule)
 			revenueShareRoute.GET("/records", revenueShareReadAuth, controller.ListRevenueShareRecords)
+		}
+		paymentRoute := apiRouter.Group("/payment")
+		paymentRoute.Use(middleware.UserAuth())
+		{
+			paymentRoute.POST("/orders", middleware.CriticalRateLimit(), controller.CreatePaymentOrder)
+			paymentRoute.GET("/orders", controller.ListUserPaymentOrders)
+			paymentRoute.GET("/orders/:id", controller.GetUserPaymentOrder)
+			paymentRoute.POST("/bank-transfer", middleware.CriticalRateLimit(), controller.CreateBankTransferRecord)
+		}
+		adminPaymentRoute := apiRouter.Group("/admin/payment")
+		{
+			adminPaymentRoute.GET("/orders", paymentReadAuth, controller.AdminListPaymentOrders)
+			adminPaymentRoute.GET("/callback-logs", paymentReadAuth, controller.AdminListPaymentCallbackLogs)
+			adminPaymentRoute.GET("/bank-transfers", paymentReadAuth, controller.AdminListBankTransfers)
+			adminPaymentRoute.POST("/bank-transfers/:id/review", paymentReviewAuth, controller.AdminReviewBankTransfer)
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())

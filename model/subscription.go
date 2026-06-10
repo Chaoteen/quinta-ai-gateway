@@ -584,6 +584,10 @@ func CreateUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *Subscriptio
 	return createUserSubscriptionFromPlanTx(tx, userId, plan, source, OwnershipByUserId(userId))
 }
 
+func CreateUserSubscriptionFromPlanWithOwnershipTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, source string, ownership OwnershipSnapshot) (*UserSubscription, error) {
+	return createUserSubscriptionFromPlanTx(tx, userId, plan, source, ownership)
+}
+
 func createUserSubscriptionFromPlanTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, source string, ownership OwnershipSnapshot) (*UserSubscription, error) {
 	if tx == nil {
 		return nil, errors.New("tx is nil")
