@@ -82,6 +82,8 @@ func SetApiRouter(router *gin.Engine) {
 		revenueShareWriteAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
 		paymentReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		paymentReviewAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
+		voucherAdminAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
+		voucherRedemptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -225,12 +227,31 @@ func SetApiRouter(router *gin.Engine) {
 			paymentRoute.GET("/orders/:id", controller.GetUserPaymentOrder)
 			paymentRoute.POST("/bank-transfer", middleware.CriticalRateLimit(), controller.CreateBankTransferRecord)
 		}
+		voucherRoute := apiRouter.Group("/vouchers")
+		voucherRoute.Use(middleware.UserAuth())
+		{
+			voucherRoute.POST("/redeem", middleware.CriticalRateLimit(), controller.RedeemVoucher)
+			voucherRoute.GET("/history", controller.ListVoucherHistory)
+		}
 		adminPaymentRoute := apiRouter.Group("/admin/payment")
 		{
 			adminPaymentRoute.GET("/orders", paymentReadAuth, controller.AdminListPaymentOrders)
 			adminPaymentRoute.GET("/callback-logs", paymentReadAuth, controller.AdminListPaymentCallbackLogs)
 			adminPaymentRoute.GET("/bank-transfers", paymentReadAuth, controller.AdminListBankTransfers)
 			adminPaymentRoute.POST("/bank-transfers/:id/review", paymentReviewAuth, controller.AdminReviewBankTransfer)
+		}
+		adminVoucherRoute := apiRouter.Group("/admin/vouchers")
+		{
+			adminVoucherRoute.POST("/batches", voucherAdminAuth, controller.AdminCreateVoucherBatch)
+			adminVoucherRoute.GET("/batches", voucherAdminAuth, controller.AdminListVoucherBatches)
+			adminVoucherRoute.GET("", voucherAdminAuth, controller.AdminListVouchers)
+			adminVoucherRoute.GET("/redemptions", voucherRedemptionReadAuth, controller.AdminListVoucherRedemptions)
+			adminVoucherRoute.POST("/:id/disable", voucherAdminAuth, controller.AdminDisableVoucher)
+		}
+		adminVoucherBatchRoute := apiRouter.Group("/admin/voucher-batches")
+		{
+			adminVoucherBatchRoute.POST("/:id/generate", voucherAdminAuth, controller.AdminGenerateVouchers)
+			adminVoucherBatchRoute.POST("/:id/disable", voucherAdminAuth, controller.AdminDisableVoucherBatch)
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())

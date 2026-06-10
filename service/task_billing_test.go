@@ -55,6 +55,9 @@ func TestMain(m *testing.M) {
 		&model.PaymentOrder{},
 		&model.PaymentCallbackLog{},
 		&model.BankTransferRecord{},
+		&model.VoucherBatch{},
+		&model.Voucher{},
+		&model.VoucherRedemption{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -87,6 +90,9 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM payment_orders")
 		model.DB.Exec("DELETE FROM payment_callback_logs")
 		model.DB.Exec("DELETE FROM bank_transfer_records")
+		model.DB.Exec("DELETE FROM voucher_redemptions")
+		model.DB.Exec("DELETE FROM vouchers")
+		model.DB.Exec("DELETE FROM voucher_batches")
 	})
 }
 

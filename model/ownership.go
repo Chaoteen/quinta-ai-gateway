@@ -230,6 +230,16 @@ func (snapshot OwnershipSnapshot) ApplyTo(target any) {
 		v.DistributionChannelId = snapshot.DistributionChannelId
 	case *BankTransferRecord:
 		v.TenantId = snapshot.TenantId
+	case *VoucherBatch:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
+	case *VoucherRedemption:
+		v.TenantId = snapshot.TenantId
+		v.OrganizationId = snapshot.OrganizationId
+		v.DepartmentId = snapshot.DepartmentId
+		v.DistributionChannelId = snapshot.DistributionChannelId
 	case *Midjourney:
 		v.TenantId = snapshot.TenantId
 		v.OrganizationId = snapshot.OrganizationId

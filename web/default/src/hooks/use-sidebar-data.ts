@@ -39,6 +39,7 @@ import {
   Share2,
   ReceiptText,
   BarChart3,
+  Gift,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
@@ -121,6 +122,11 @@ export function useSidebarData(): SidebarData {
             icon: ReceiptText,
           },
           {
+            title: t('Voucher'),
+            url: '/vouchers',
+            icon: Gift,
+          },
+          {
             title: t('Profile'),
             url: '/profile',
             icon: User,
@@ -175,6 +181,11 @@ export function useSidebarData(): SidebarData {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+          },
+          {
+            title: t('Voucher'),
+            url: '/admin/vouchers',
+            icon: Gift,
           },
           {
             title: t('Subscription Management'),
