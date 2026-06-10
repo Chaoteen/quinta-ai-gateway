@@ -62,6 +62,16 @@ func SetApiRouter(router *gin.Engine) {
 		// Universal secure verification routes
 		apiRouter.POST("/verify", middleware.UserAuth(), middleware.CriticalRateLimit(), controller.UniversalVerify)
 
+		billingPortalRoute := apiRouter.Group("/billing")
+		billingPortalRoute.Use(middleware.UserAuth())
+		{
+			billingPortalRoute.GET("/summary", controller.GetBillingPortalSummary)
+			billingPortalRoute.GET("/payments", controller.GetBillingPortalPayments)
+			billingPortalRoute.GET("/usages", controller.GetBillingPortalUsages)
+			billingPortalRoute.GET("/records", controller.GetBillingPortalRecords)
+			billingPortalRoute.GET("/subscriptions", controller.GetBillingPortalSubscriptions)
+		}
+
 		financeReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		channelReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
 		subscriptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
