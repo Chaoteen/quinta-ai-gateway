@@ -29,6 +29,7 @@ export const RBAC_PERMISSION = {
   REDEMPTION_CODES: 'redemptionCodes',
   VOUCHERS: 'vouchers',
   FINANCE_CONSOLE: 'financeConsole',
+  INVOICES: 'invoices',
   SUBSCRIPTIONS: 'subscriptions',
   USAGE_LOGS: 'usageLogs',
   DASHBOARD_USERS: 'dashboardUsers',
@@ -63,6 +64,7 @@ export const RBAC_PERMISSION_MATRIX: Record<
     ROLE_KEY.TENANT_ADMIN,
     ROLE_KEY.FINANCE,
   ],
+  [RBAC_PERMISSION.INVOICES]: [ROLE_KEY.TENANT_ADMIN, ROLE_KEY.FINANCE],
   [RBAC_PERMISSION.SUBSCRIPTIONS]: [
     ROLE_KEY.TENANT_ADMIN,
     ROLE_KEY.ORGANIZATION_ADMIN,
@@ -98,6 +100,7 @@ export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
   '/redemption-codes': RBAC_PERMISSION.REDEMPTION_CODES,
   '/admin/vouchers': RBAC_PERMISSION.VOUCHERS,
   '/admin/finance': RBAC_PERMISSION.FINANCE_CONSOLE,
+  '/admin/invoices': RBAC_PERMISSION.INVOICES,
   '/subscriptions': RBAC_PERMISSION.SUBSCRIPTIONS,
   '/usage-logs/common': RBAC_PERMISSION.USAGE_LOGS,
   '/dashboard/models': RBAC_PERMISSION.DASHBOARD_STATS,

@@ -49,6 +49,7 @@ import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOrganizationsIndexRouteImport } from './routes/_authenticated/organizations/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
+import { Route as AuthenticatedInvoicesIndexRouteImport } from './routes/_authenticated/invoices/index'
 import { Route as AuthenticatedDistributionChannelsIndexRouteImport } from './routes/_authenticated/distribution-channels/index'
 import { Route as AuthenticatedDepartmentsIndexRouteImport } from './routes/_authenticated/departments/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
@@ -68,6 +69,7 @@ import { Route as AuthenticatedSystemSettingsContentIndexRouteImport } from './r
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedAdminVouchersIndexRouteImport } from './routes/_authenticated/admin/vouchers/index'
+import { Route as AuthenticatedAdminInvoicesIndexRouteImport } from './routes/_authenticated/admin/invoices/index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated/admin/finance/index'
 import { Route as AuthenticatedSystemSettingsSiteSectionRouteImport } from './routes/_authenticated/system-settings/site/$section'
 import { Route as AuthenticatedSystemSettingsSecuritySectionRouteImport } from './routes/_authenticated/system-settings/security/$section'
@@ -287,6 +289,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvoicesIndexRoute =
+  AuthenticatedInvoicesIndexRouteImport.update({
+    id: '/invoices/',
+    path: '/invoices/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDistributionChannelsIndexRoute =
   AuthenticatedDistributionChannelsIndexRouteImport.update({
     id: '/distribution-channels/',
@@ -399,6 +407,12 @@ const AuthenticatedAdminVouchersIndexRoute =
     path: '/admin/vouchers/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminInvoicesIndexRoute =
+  AuthenticatedAdminInvoicesIndexRouteImport.update({
+    id: '/admin/invoices/',
+    path: '/admin/invoices/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminFinanceIndexRoute =
   AuthenticatedAdminFinanceIndexRouteImport.update({
     id: '/admin/finance/',
@@ -483,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/departments/': typeof AuthenticatedDepartmentsIndexRoute
   '/distribution-channels/': typeof AuthenticatedDistributionChannelsIndexRoute
+  '/invoices/': typeof AuthenticatedInvoicesIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/organizations/': typeof AuthenticatedOrganizationsIndexRoute
@@ -506,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
+  '/admin/invoices/': typeof AuthenticatedAdminInvoicesIndexRoute
   '/admin/vouchers/': typeof AuthenticatedAdminVouchersIndexRoute
   '/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
@@ -549,6 +565,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/departments': typeof AuthenticatedDepartmentsIndexRoute
   '/distribution-channels': typeof AuthenticatedDistributionChannelsIndexRoute
+  '/invoices': typeof AuthenticatedInvoicesIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/organizations': typeof AuthenticatedOrganizationsIndexRoute
@@ -572,6 +589,7 @@ export interface FileRoutesByTo {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
+  '/admin/invoices': typeof AuthenticatedAdminInvoicesIndexRoute
   '/admin/vouchers': typeof AuthenticatedAdminVouchersIndexRoute
   '/system-settings/auth': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing': typeof AuthenticatedSystemSettingsBillingIndexRoute
@@ -619,6 +637,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/departments/': typeof AuthenticatedDepartmentsIndexRoute
   '/_authenticated/distribution-channels/': typeof AuthenticatedDistributionChannelsIndexRoute
+  '/_authenticated/invoices/': typeof AuthenticatedInvoicesIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/organizations/': typeof AuthenticatedOrganizationsIndexRoute
@@ -642,6 +661,7 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/_authenticated/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
+  '/_authenticated/admin/invoices/': typeof AuthenticatedAdminInvoicesIndexRoute
   '/_authenticated/admin/vouchers/': typeof AuthenticatedAdminVouchersIndexRoute
   '/_authenticated/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/_authenticated/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
@@ -688,6 +708,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/departments/'
     | '/distribution-channels/'
+    | '/invoices/'
     | '/keys/'
     | '/models/'
     | '/organizations/'
@@ -711,6 +732,7 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/admin/finance/'
+    | '/admin/invoices/'
     | '/admin/vouchers/'
     | '/system-settings/auth/'
     | '/system-settings/billing/'
@@ -754,6 +776,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/departments'
     | '/distribution-channels'
+    | '/invoices'
     | '/keys'
     | '/models'
     | '/organizations'
@@ -777,6 +800,7 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/admin/finance'
+    | '/admin/invoices'
     | '/admin/vouchers'
     | '/system-settings/auth'
     | '/system-settings/billing'
@@ -823,6 +847,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/'
     | '/_authenticated/departments/'
     | '/_authenticated/distribution-channels/'
+    | '/_authenticated/invoices/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/organizations/'
@@ -846,6 +871,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/security/$section'
     | '/_authenticated/system-settings/site/$section'
     | '/_authenticated/admin/finance/'
+    | '/_authenticated/admin/invoices/'
     | '/_authenticated/admin/vouchers/'
     | '/_authenticated/system-settings/auth/'
     | '/_authenticated/system-settings/billing/'
@@ -1159,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/invoices/': {
+      id: '/_authenticated/invoices/'
+      path: '/invoices'
+      fullPath: '/invoices/'
+      preLoaderRoute: typeof AuthenticatedInvoicesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/distribution-channels/': {
       id: '/_authenticated/distribution-channels/'
       path: '/distribution-channels'
@@ -1290,6 +1323,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/vouchers'
       fullPath: '/admin/vouchers/'
       preLoaderRoute: typeof AuthenticatedAdminVouchersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/invoices/': {
+      id: '/_authenticated/admin/invoices/'
+      path: '/admin/invoices'
+      fullPath: '/admin/invoices/'
+      preLoaderRoute: typeof AuthenticatedAdminInvoicesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/finance/': {
@@ -1445,6 +1485,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDepartmentsIndexRoute: typeof AuthenticatedDepartmentsIndexRoute
   AuthenticatedDistributionChannelsIndexRoute: typeof AuthenticatedDistributionChannelsIndexRoute
+  AuthenticatedInvoicesIndexRoute: typeof AuthenticatedInvoicesIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOrganizationsIndexRoute: typeof AuthenticatedOrganizationsIndexRoute
@@ -1459,6 +1500,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVouchersIndexRoute: typeof AuthenticatedVouchersIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
   AuthenticatedAdminFinanceIndexRoute: typeof AuthenticatedAdminFinanceIndexRoute
+  AuthenticatedAdminInvoicesIndexRoute: typeof AuthenticatedAdminInvoicesIndexRoute
   AuthenticatedAdminVouchersIndexRoute: typeof AuthenticatedAdminVouchersIndexRoute
 }
 
@@ -1477,6 +1519,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDepartmentsIndexRoute: AuthenticatedDepartmentsIndexRoute,
   AuthenticatedDistributionChannelsIndexRoute:
     AuthenticatedDistributionChannelsIndexRoute,
+  AuthenticatedInvoicesIndexRoute: AuthenticatedInvoicesIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOrganizationsIndexRoute: AuthenticatedOrganizationsIndexRoute,
@@ -1492,6 +1535,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVouchersIndexRoute: AuthenticatedVouchersIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
   AuthenticatedAdminFinanceIndexRoute: AuthenticatedAdminFinanceIndexRoute,
+  AuthenticatedAdminInvoicesIndexRoute: AuthenticatedAdminInvoicesIndexRoute,
   AuthenticatedAdminVouchersIndexRoute: AuthenticatedAdminVouchersIndexRoute,
 }
 

@@ -51,6 +51,9 @@ func TestMain(m *testing.M) {
 		&PaymentOrder{},
 		&PaymentCallbackLog{},
 		&BankTransferRecord{},
+		&InvoiceProfile{},
+		&InvoiceApplication{},
+		&InvoiceFile{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
