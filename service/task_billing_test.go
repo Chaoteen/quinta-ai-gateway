@@ -58,6 +58,9 @@ func TestMain(m *testing.M) {
 		&model.VoucherBatch{},
 		&model.Voucher{},
 		&model.VoucherRedemption{},
+		&model.InvoiceProfile{},
+		&model.InvoiceApplication{},
+		&model.InvoiceFile{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -93,6 +96,9 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM voucher_redemptions")
 		model.DB.Exec("DELETE FROM vouchers")
 		model.DB.Exec("DELETE FROM voucher_batches")
+		model.DB.Exec("DELETE FROM invoice_files")
+		model.DB.Exec("DELETE FROM invoice_applications")
+		model.DB.Exec("DELETE FROM invoice_profiles")
 	})
 }
 

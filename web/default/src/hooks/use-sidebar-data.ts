@@ -128,6 +128,11 @@ export function useSidebarData(): SidebarData {
             icon: Gift,
           },
           {
+            title: t('Invoice'),
+            url: '/invoices',
+            icon: ReceiptText,
+          },
+          {
             title: t('Profile'),
             url: '/profile',
             icon: User,
@@ -192,6 +197,11 @@ export function useSidebarData(): SidebarData {
             title: t('Finance'),
             url: '/admin/finance',
             icon: Landmark,
+          },
+          {
+            title: t('Invoice Management'),
+            url: '/admin/invoices',
+            icon: ReceiptText,
           },
           {
             title: t('Subscription Management'),

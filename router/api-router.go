@@ -85,6 +85,7 @@ func SetApiRouter(router *gin.Engine) {
 		voucherAdminAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
 		voucherRedemptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		financeConsoleAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
+		invoiceAdminAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -234,6 +235,16 @@ func SetApiRouter(router *gin.Engine) {
 			voucherRoute.POST("/redeem", middleware.CriticalRateLimit(), controller.RedeemVoucher)
 			voucherRoute.GET("/history", controller.ListVoucherHistory)
 		}
+		invoiceRoute := apiRouter.Group("/invoices")
+		invoiceRoute.Use(middleware.UserAuth())
+		{
+			invoiceRoute.POST("/profiles", controller.CreateInvoiceProfile)
+			invoiceRoute.GET("/profiles", controller.ListInvoiceProfiles)
+			invoiceRoute.POST("/profiles/:id/disable", controller.DisableInvoiceProfile)
+			invoiceRoute.POST("/applications", controller.CreateInvoiceApplication)
+			invoiceRoute.GET("/applications", controller.ListInvoiceApplications)
+			invoiceRoute.GET("/files", controller.ListInvoiceFiles)
+		}
 		adminPaymentRoute := apiRouter.Group("/admin/payment")
 		{
 			adminPaymentRoute.GET("/orders", paymentReadAuth, controller.AdminListPaymentOrders)
@@ -265,6 +276,15 @@ func SetApiRouter(router *gin.Engine) {
 			adminFinanceRoute.GET("/recent-redemptions", financeConsoleAuth, controller.GetFinanceRecentRedemptions)
 			adminFinanceRoute.GET("/recent-subscriptions", financeConsoleAuth, controller.GetFinanceRecentSubscriptions)
 			adminFinanceRoute.GET("/recent-billing", financeConsoleAuth, controller.GetFinanceRecentBilling)
+		}
+		adminInvoiceRoute := apiRouter.Group("/admin/invoices")
+		{
+			adminInvoiceRoute.GET("/applications", invoiceAdminAuth, controller.AdminListInvoiceApplications)
+			adminInvoiceRoute.POST("/applications/:id/review", invoiceAdminAuth, controller.AdminReviewInvoiceApplication)
+			adminInvoiceRoute.POST("/applications/:id/issue", invoiceAdminAuth, controller.AdminIssueInvoice)
+			adminInvoiceRoute.GET("/profiles", invoiceAdminAuth, controller.AdminListInvoiceProfiles)
+			adminInvoiceRoute.POST("/profiles", invoiceAdminAuth, controller.AdminCreateInvoiceProfile)
+			adminInvoiceRoute.GET("/files", invoiceAdminAuth, controller.AdminListInvoiceFiles)
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
