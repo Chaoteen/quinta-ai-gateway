@@ -84,6 +84,7 @@ func SetApiRouter(router *gin.Engine) {
 		paymentReviewAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		voucherAdminAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin)
 		voucherRedemptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
+		financeConsoleAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -252,6 +253,18 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			adminVoucherBatchRoute.POST("/:id/generate", voucherAdminAuth, controller.AdminGenerateVouchers)
 			adminVoucherBatchRoute.POST("/:id/disable", voucherAdminAuth, controller.AdminDisableVoucherBatch)
+		}
+		adminFinanceRoute := apiRouter.Group("/admin/finance")
+		{
+			adminFinanceRoute.GET("/summary", financeConsoleAuth, controller.GetFinanceSummary)
+			adminFinanceRoute.GET("/top-tenants", financeConsoleAuth, controller.GetFinanceTopTenants)
+			adminFinanceRoute.GET("/top-models", financeConsoleAuth, controller.GetFinanceTopModels)
+			adminFinanceRoute.GET("/top-providers", financeConsoleAuth, controller.GetFinanceTopProviders)
+			adminFinanceRoute.GET("/top-channels", financeConsoleAuth, controller.GetFinanceTopChannels)
+			adminFinanceRoute.GET("/recent-payments", financeConsoleAuth, controller.GetFinanceRecentPayments)
+			adminFinanceRoute.GET("/recent-redemptions", financeConsoleAuth, controller.GetFinanceRecentRedemptions)
+			adminFinanceRoute.GET("/recent-subscriptions", financeConsoleAuth, controller.GetFinanceRecentSubscriptions)
+			adminFinanceRoute.GET("/recent-billing", financeConsoleAuth, controller.GetFinanceRecentBilling)
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())
