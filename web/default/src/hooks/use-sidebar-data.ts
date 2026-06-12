@@ -40,6 +40,7 @@ import {
   ReceiptText,
   BarChart3,
   Gift,
+  Landmark,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
@@ -186,6 +187,11 @@ export function useSidebarData(): SidebarData {
             title: t('Voucher'),
             url: '/admin/vouchers',
             icon: Gift,
+          },
+          {
+            title: t('Finance'),
+            url: '/admin/finance',
+            icon: Landmark,
           },
           {
             title: t('Subscription Management'),
