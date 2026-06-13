@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,
+  Building2,
   BookOpen,
   Check,
   ChevronDown,
@@ -32,9 +33,12 @@ import {
   ListChecks,
   Play,
   RadioTower,
+  ReceiptText,
   ShieldCheck,
   TerminalSquare,
   Timer,
+  Users,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -43,13 +47,27 @@ import { useAuthStore } from '@/stores/auth-store'
 import { getUserModels } from '@/lib/api'
 import { MOTION_TRANSITION } from '@/lib/motion'
 import { isAdminConsoleUser } from '@/lib/rbac'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { CopyButton } from '@/components/copy-button'
 import {
   CardStaggerContainer,
   CardStaggerItem,
 } from '@/components/page-transition'
+import { getBillingSummary } from '@/features/billing-portal/api'
+import {
+  getFinanceRecentBilling,
+  getFinanceSummary,
+} from '@/features/finance-console/api'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import type { ApiKey } from '@/features/keys/types'
 import { useApiInfo } from '../../hooks/use-status-data'
@@ -419,6 +437,269 @@ function CompactQuickAction(props: { action: QuickAction }) {
   )
 }
 
+function formatNumber(value?: number): string {
+  return new Intl.NumberFormat().format(Number(value ?? 0))
+}
+
+function formatMoney(value?: number, currency?: string): string {
+  return `${formatNumber(value)} ${currency || 'USD'}`
+}
+
+function TenantMetricCard(props: {
+  title: string
+  value: string
+  description: string
+  icon: LucideIcon
+}) {
+  const Icon = props.icon
+
+  return (
+    <Card size='sm'>
+      <CardHeader>
+        <CardTitle className='flex items-center gap-2 text-sm'>
+          <span className='bg-muted flex size-8 items-center justify-center rounded-lg'>
+            <Icon className='size-4' aria-hidden='true' />
+          </span>
+          {props.title}
+        </CardTitle>
+        <CardDescription>{props.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className='text-2xl font-semibold tabular-nums'>
+          {props.value}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TenantAdminOverviewDashboard() {
+  const { t } = useTranslation()
+
+  const billingSummaryQuery = useQuery({
+    queryKey: ['tenant-admin', 'overview', 'billing-summary'],
+    queryFn: getBillingSummary,
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+
+  const financeSummaryQuery = useQuery({
+    queryKey: ['tenant-admin', 'overview', 'finance-summary'],
+    queryFn: () => getFinanceSummary({ days: 30 }),
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+
+  const recentBillingQuery = useQuery({
+    queryKey: ['tenant-admin', 'overview', 'recent-billing'],
+    queryFn: () => getFinanceRecentBilling({ p: 1, page_size: 5 }),
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+
+  const billingSummary = billingSummaryQuery.data?.data
+  const financeSummary = financeSummaryQuery.data?.data
+  const recentBilling = recentBillingQuery.data?.data?.items ?? []
+  const isLoading =
+    billingSummaryQuery.isLoading ||
+    financeSummaryQuery.isLoading ||
+    recentBillingQuery.isLoading
+  const hasError =
+    billingSummaryQuery.isError ||
+    financeSummaryQuery.isError ||
+    recentBillingQuery.isError
+
+  return (
+    <div className='flex flex-col gap-4'>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('Tenant Console')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Operate users, channels, subscriptions, billing, vouchers, invoices, and usage from one tenant workspace.'
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='flex flex-wrap gap-2'>
+          <Button size='sm' render={<Link to='/users' />}>
+            <Users data-icon='inline-start' />
+            {t('User Management')}
+          </Button>
+          <Button size='sm' variant='outline' render={<Link to='/channels' />}>
+            <RadioTower data-icon='inline-start' />
+            {t('Channel Management')}
+          </Button>
+          <Button size='sm' variant='outline' render={<Link to='/billing' />}>
+            <ReceiptText data-icon='inline-start' />
+            {t('Billing Center')}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {hasError && (
+        <Card className='border-destructive/30 bg-destructive/5'>
+          <CardHeader>
+            <CardTitle>{t('Failed to load tenant overview')}</CardTitle>
+            <CardDescription>
+              {t('Please refresh the page or check your tenant permissions.')}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
+        <TenantMetricCard
+          title={t('Enterprise Account Balance')}
+          value={isLoading ? '-' : formatNumber(billingSummary?.balance_quota)}
+          description={t('Current available quota')}
+          icon={WalletCards}
+        />
+        <TenantMetricCard
+          title={t('This Month Usage')}
+          value={
+            isLoading
+              ? '-'
+              : formatMoney(
+                  financeSummary?.consumption.month_consumption_amount,
+                  financeSummary?.consumption.currency
+                )
+          }
+          description={t('Tenant consumption in the current month')}
+          icon={ReceiptText}
+        />
+        <TenantMetricCard
+          title={t('Recent 30d Requests')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(financeSummary?.consumption.total_requests)
+          }
+          description={t('Requests observed in tenant finance scope')}
+          icon={TerminalSquare}
+        />
+        <TenantMetricCard
+          title={t('Active Subscriptions')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(financeSummary?.activity.active_subscription_count)
+          }
+          description={t('Currently active tenant subscriptions')}
+          icon={CreditCard}
+        />
+        <TenantMetricCard
+          title={t('User Count')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(financeSummary?.activity.active_user_count)
+          }
+          description={t('Active users in tenant scope')}
+          icon={Users}
+        />
+        <TenantMetricCard
+          title={t('Channel Status')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(financeSummary?.activity.active_channel_count)
+          }
+          description={t('Active distribution and model channels')}
+          icon={RadioTower}
+        />
+        <TenantMetricCard
+          title={t('Token Usage')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(financeSummary?.consumption.total_tokens)
+          }
+          description={t('Total tokens consumed in tenant scope')}
+          icon={Timer}
+        />
+        <TenantMetricCard
+          title={t('Subscription Status')}
+          value={
+            isLoading
+              ? '-'
+              : formatNumber(billingSummary?.current_subscriptions.length)
+          }
+          description={t('Subscriptions visible from billing portal')}
+          icon={Building2}
+        />
+      </div>
+
+      <div className='grid gap-4 xl:grid-cols-2'>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('Recent Bills')}</CardTitle>
+            <CardDescription>
+              {t('Latest tenant billing records and model consumption.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='divide-border rounded-lg border'>
+              {recentBilling.length === 0 ? (
+                <div className='text-muted-foreground px-4 py-8 text-center text-sm'>
+                  {isLoading ? t('Loading') : t('No data')}
+                </div>
+              ) : (
+                recentBilling.map((record) => (
+                  <div
+                    key={record.id}
+                    className='flex items-center justify-between gap-3 px-4 py-3 text-sm'
+                  >
+                    <div className='min-w-0'>
+                      <div className='truncate font-medium'>
+                        {record.model_name || record.provider_name || '-'}
+                      </div>
+                      <div className='text-muted-foreground truncate text-xs'>
+                        {record.provider_name || '-'} ·{' '}
+                        {formatNumber(record.total_tokens)} tokens
+                      </div>
+                    </div>
+                    <Badge variant='outline'>
+                      {formatNumber(record.quota_charged)}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('Recent Usage Logs')}</CardTitle>
+            <CardDescription>
+              {t('Use the tenant usage log to inspect requests and failures.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='flex flex-col gap-3'>
+            <div className='text-muted-foreground rounded-lg border px-4 py-8 text-center text-sm'>
+              {t(
+                'Open usage logs to review request details, billing status, and provider responses.'
+              )}
+            </div>
+            <Button
+              variant='outline'
+              render={
+                <Link
+                  to='/usage-logs/$section'
+                  params={{ section: 'common' }}
+                />
+              }
+            >
+              <FileText data-icon='inline-start' />
+              {t('Usage Logs')}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
 export function OverviewDashboard() {
   const { t } = useTranslation()
   const user = useAuthStore((state) => state.auth.user)
@@ -431,6 +712,7 @@ export function OverviewDashboard() {
   const remainQuota = Number(user?.quota ?? 0)
   const usedQuota = Number(user?.used_quota ?? 0)
   const isAdmin = isAdminConsoleUser(user)
+  const isTenantAdmin = getUserRoleKey(user) === ROLE_KEY.TENANT_ADMIN
 
   const apiKeysQuery = useQuery({
     queryKey: ['dashboard', 'overview', 'api-keys'],
@@ -438,6 +720,7 @@ export function OverviewDashboard() {
       const result = await getApiKeys({ p: 1, size: 10 })
       return result.success ? (result.data?.items ?? []) : []
     },
+    enabled: !isTenantAdmin,
     staleTime: 60 * 1000,
   })
 
@@ -447,6 +730,7 @@ export function OverviewDashboard() {
       const result = await getUserModels()
       return result.success ? (result.data ?? []) : []
     },
+    enabled: !isTenantAdmin,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -462,7 +746,7 @@ export function OverviewDashboard() {
       const result = await fetchTokenKey(preferredKey.id)
       return result.success && result.data?.key ? `sk-${result.data.key}` : ''
     },
-    enabled: Boolean(preferredKey?.id),
+    enabled: Boolean(preferredKey?.id) && !isTenantAdmin,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -579,6 +863,10 @@ export function OverviewDashboard() {
     const nextExpanded = !setupGuideExpanded
     setManualSetupGuideExpanded(nextExpanded)
     saveSetupGuideExpanded(nextExpanded)
+  }
+
+  if (isTenantAdmin) {
+    return <TenantAdminOverviewDashboard />
   }
 
   return (

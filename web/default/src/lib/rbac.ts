@@ -102,6 +102,11 @@ export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
   '/admin/finance': RBAC_PERMISSION.FINANCE_CONSOLE,
   '/admin/invoices': RBAC_PERMISSION.INVOICES,
   '/subscriptions': RBAC_PERMISSION.SUBSCRIPTIONS,
+  '/quota-dashboard': RBAC_PERMISSION.FINANCE_CONSOLE,
+  '/billing-dashboard': RBAC_PERMISSION.FINANCE_CONSOLE,
+  '/payment-center': RBAC_PERMISSION.FINANCE_CONSOLE,
+  '/revenue-share': RBAC_PERMISSION.FINANCE_CONSOLE,
+  '/usage-analytics': RBAC_PERMISSION.USAGE_LOGS,
   '/usage-logs/common': RBAC_PERMISSION.USAGE_LOGS,
   '/dashboard/models': RBAC_PERMISSION.DASHBOARD_STATS,
   '/system-settings/site': RBAC_PERMISSION.SYSTEM_SETTINGS,
@@ -122,4 +127,31 @@ export function isRootUser(user?: PermissionSubject): boolean {
 
 export function isAdminConsoleUser(user?: PermissionSubject): boolean {
   return hasPermission(user, RBAC_PERMISSION.ADMIN_CONSOLE)
+}
+
+const TENANT_ADMIN_RESTRICTED_PATH_PREFIXES = [
+  '/playground',
+  '/chat',
+  '/keys',
+  '/wallet',
+  '/vouchers',
+  '/invoices',
+  '/usage-logs/task',
+  '/usage-logs/drawing',
+]
+
+function matchesPathPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
+export function isPathAllowedForRole(
+  user: PermissionSubject,
+  pathname: string
+): boolean {
+  const roleKey = getUserRoleKey(user)
+  if (roleKey !== ROLE_KEY.TENANT_ADMIN) return true
+
+  return !TENANT_ADMIN_RESTRICTED_PATH_PREFIXES.some((prefix) =>
+    matchesPathPrefix(pathname, prefix)
+  )
 }

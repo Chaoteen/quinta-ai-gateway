@@ -26,7 +26,7 @@ import {
 const defaultSiteSettings: SiteSettings = {
   'theme.frontend': 'default',
   Notice: '',
-  SystemName: 'New API',
+  SystemName: 'Quinta AI Gateway',
   Logo: '',
   Footer: '',
   About: '',

@@ -39,13 +39,17 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedVouchersIndexRouteImport } from './routes/_authenticated/vouchers/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
+import { Route as AuthenticatedUsageAnalyticsIndexRouteImport } from './routes/_authenticated/usage-analytics/index'
 import { Route as AuthenticatedTopupIndexRouteImport } from './routes/_authenticated/topup/index'
 import { Route as AuthenticatedTenantsIndexRouteImport } from './routes/_authenticated/tenants/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
+import { Route as AuthenticatedRevenueShareIndexRouteImport } from './routes/_authenticated/revenue-share/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
+import { Route as AuthenticatedQuotaDashboardIndexRouteImport } from './routes/_authenticated/quota-dashboard/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
+import { Route as AuthenticatedPaymentCenterIndexRouteImport } from './routes/_authenticated/payment-center/index'
 import { Route as AuthenticatedOrganizationsIndexRouteImport } from './routes/_authenticated/organizations/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
@@ -55,6 +59,7 @@ import { Route as AuthenticatedDepartmentsIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedBillingIndexRouteImport } from './routes/_authenticated/billing/index'
+import { Route as AuthenticatedBillingDashboardIndexRouteImport } from './routes/_authenticated/billing-dashboard/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -231,6 +236,12 @@ const AuthenticatedUsageLogsIndexRoute =
     path: '/usage-logs/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedUsageAnalyticsIndexRoute =
+  AuthenticatedUsageAnalyticsIndexRouteImport.update({
+    id: '/usage-analytics/',
+    path: '/usage-analytics/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTopupIndexRoute = AuthenticatedTopupIndexRouteImport.update({
   id: '/topup/',
   path: '/topup/',
@@ -254,10 +265,22 @@ const AuthenticatedSubscriptionsIndexRoute =
     path: '/subscriptions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRevenueShareIndexRoute =
+  AuthenticatedRevenueShareIndexRouteImport.update({
+    id: '/revenue-share/',
+    path: '/revenue-share/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRedemptionCodesIndexRoute =
   AuthenticatedRedemptionCodesIndexRouteImport.update({
     id: '/redemption-codes/',
     path: '/redemption-codes/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQuotaDashboardIndexRoute =
+  AuthenticatedQuotaDashboardIndexRouteImport.update({
+    id: '/quota-dashboard/',
+    path: '/quota-dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProfileIndexRoute =
@@ -270,6 +293,12 @@ const AuthenticatedPlaygroundIndexRoute =
   AuthenticatedPlaygroundIndexRouteImport.update({
     id: '/playground/',
     path: '/playground/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPaymentCenterIndexRoute =
+  AuthenticatedPaymentCenterIndexRouteImport.update({
+    id: '/payment-center/',
+    path: '/payment-center/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOrganizationsIndexRoute =
@@ -323,6 +352,12 @@ const AuthenticatedBillingIndexRoute =
   AuthenticatedBillingIndexRouteImport.update({
     id: '/billing/',
     path: '/billing/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBillingDashboardIndexRoute =
+  AuthenticatedBillingDashboardIndexRouteImport.update({
+    id: '/billing-dashboard/',
+    path: '/billing-dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedUsageLogsSectionRoute =
@@ -492,6 +527,7 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/billing-dashboard/': typeof AuthenticatedBillingDashboardIndexRoute
   '/billing/': typeof AuthenticatedBillingIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -501,13 +537,17 @@ export interface FileRoutesByFullPath {
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/organizations/': typeof AuthenticatedOrganizationsIndexRoute
+  '/payment-center/': typeof AuthenticatedPaymentCenterIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
+  '/quota-dashboard/': typeof AuthenticatedQuotaDashboardIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/tenants/': typeof AuthenticatedTenantsIndexRoute
   '/topup/': typeof AuthenticatedTopupIndexRoute
+  '/usage-analytics/': typeof AuthenticatedUsageAnalyticsIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/vouchers/': typeof AuthenticatedVouchersIndexRoute
@@ -560,6 +600,7 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/billing-dashboard': typeof AuthenticatedBillingDashboardIndexRoute
   '/billing': typeof AuthenticatedBillingIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -569,13 +610,17 @@ export interface FileRoutesByTo {
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/organizations': typeof AuthenticatedOrganizationsIndexRoute
+  '/payment-center': typeof AuthenticatedPaymentCenterIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
+  '/quota-dashboard': typeof AuthenticatedQuotaDashboardIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/revenue-share': typeof AuthenticatedRevenueShareIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
   '/topup': typeof AuthenticatedTopupIndexRoute
+  '/usage-analytics': typeof AuthenticatedUsageAnalyticsIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/vouchers': typeof AuthenticatedVouchersIndexRoute
@@ -632,6 +677,7 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/billing-dashboard/': typeof AuthenticatedBillingDashboardIndexRoute
   '/_authenticated/billing/': typeof AuthenticatedBillingIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -641,13 +687,17 @@ export interface FileRoutesById {
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/organizations/': typeof AuthenticatedOrganizationsIndexRoute
+  '/_authenticated/payment-center/': typeof AuthenticatedPaymentCenterIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
+  '/_authenticated/quota-dashboard/': typeof AuthenticatedQuotaDashboardIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/_authenticated/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
   '/_authenticated/topup/': typeof AuthenticatedTopupIndexRoute
+  '/_authenticated/usage-analytics/': typeof AuthenticatedUsageAnalyticsIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/vouchers/': typeof AuthenticatedVouchersIndexRoute
@@ -703,6 +753,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/billing-dashboard/'
     | '/billing/'
     | '/channels/'
     | '/dashboard/'
@@ -712,13 +763,17 @@ export interface FileRouteTypes {
     | '/keys/'
     | '/models/'
     | '/organizations/'
+    | '/payment-center/'
     | '/playground/'
     | '/profile/'
+    | '/quota-dashboard/'
     | '/redemption-codes/'
+    | '/revenue-share/'
     | '/subscriptions/'
     | '/system-settings/'
     | '/tenants/'
     | '/topup/'
+    | '/usage-analytics/'
     | '/usage-logs/'
     | '/users/'
     | '/vouchers/'
@@ -771,6 +826,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/billing-dashboard'
     | '/billing'
     | '/channels'
     | '/dashboard'
@@ -780,13 +836,17 @@ export interface FileRouteTypes {
     | '/keys'
     | '/models'
     | '/organizations'
+    | '/payment-center'
     | '/playground'
     | '/profile'
+    | '/quota-dashboard'
     | '/redemption-codes'
+    | '/revenue-share'
     | '/subscriptions'
     | '/system-settings'
     | '/tenants'
     | '/topup'
+    | '/usage-analytics'
     | '/usage-logs'
     | '/users'
     | '/vouchers'
@@ -842,6 +902,7 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/billing-dashboard/'
     | '/_authenticated/billing/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
@@ -851,13 +912,17 @@ export interface FileRouteTypes {
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/organizations/'
+    | '/_authenticated/payment-center/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
+    | '/_authenticated/quota-dashboard/'
     | '/_authenticated/redemption-codes/'
+    | '/_authenticated/revenue-share/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-settings/'
     | '/_authenticated/tenants/'
     | '/_authenticated/topup/'
+    | '/_authenticated/usage-analytics/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
     | '/_authenticated/vouchers/'
@@ -1115,6 +1180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsageLogsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/usage-analytics/': {
+      id: '/_authenticated/usage-analytics/'
+      path: '/usage-analytics'
+      fullPath: '/usage-analytics/'
+      preLoaderRoute: typeof AuthenticatedUsageAnalyticsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/topup/': {
       id: '/_authenticated/topup/'
       path: '/topup'
@@ -1143,11 +1215,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/revenue-share/': {
+      id: '/_authenticated/revenue-share/'
+      path: '/revenue-share'
+      fullPath: '/revenue-share/'
+      preLoaderRoute: typeof AuthenticatedRevenueShareIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/redemption-codes/': {
       id: '/_authenticated/redemption-codes/'
       path: '/redemption-codes'
       fullPath: '/redemption-codes/'
       preLoaderRoute: typeof AuthenticatedRedemptionCodesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quota-dashboard/': {
+      id: '/_authenticated/quota-dashboard/'
+      path: '/quota-dashboard'
+      fullPath: '/quota-dashboard/'
+      preLoaderRoute: typeof AuthenticatedQuotaDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile/': {
@@ -1162,6 +1248,13 @@ declare module '@tanstack/react-router' {
       path: '/playground'
       fullPath: '/playground/'
       preLoaderRoute: typeof AuthenticatedPlaygroundIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/payment-center/': {
+      id: '/_authenticated/payment-center/'
+      path: '/payment-center'
+      fullPath: '/payment-center/'
+      preLoaderRoute: typeof AuthenticatedPaymentCenterIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/organizations/': {
@@ -1225,6 +1318,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing/'
       preLoaderRoute: typeof AuthenticatedBillingIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/billing-dashboard/': {
+      id: '/_authenticated/billing-dashboard/'
+      path: '/billing-dashboard'
+      fullPath: '/billing-dashboard/'
+      preLoaderRoute: typeof AuthenticatedBillingDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/usage-logs/$section': {
@@ -1480,6 +1580,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedBillingDashboardIndexRoute: typeof AuthenticatedBillingDashboardIndexRoute
   AuthenticatedBillingIndexRoute: typeof AuthenticatedBillingIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -1489,12 +1590,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOrganizationsIndexRoute: typeof AuthenticatedOrganizationsIndexRoute
+  AuthenticatedPaymentCenterIndexRoute: typeof AuthenticatedPaymentCenterIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
+  AuthenticatedQuotaDashboardIndexRoute: typeof AuthenticatedQuotaDashboardIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
+  AuthenticatedRevenueShareIndexRoute: typeof AuthenticatedRevenueShareIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
   AuthenticatedTopupIndexRoute: typeof AuthenticatedTopupIndexRoute
+  AuthenticatedUsageAnalyticsIndexRoute: typeof AuthenticatedUsageAnalyticsIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedVouchersIndexRoute: typeof AuthenticatedVouchersIndexRoute
@@ -1513,6 +1618,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedBillingDashboardIndexRoute:
+    AuthenticatedBillingDashboardIndexRoute,
   AuthenticatedBillingIndexRoute: AuthenticatedBillingIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
@@ -1523,13 +1630,17 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOrganizationsIndexRoute: AuthenticatedOrganizationsIndexRoute,
+  AuthenticatedPaymentCenterIndexRoute: AuthenticatedPaymentCenterIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
+  AuthenticatedQuotaDashboardIndexRoute: AuthenticatedQuotaDashboardIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
+  AuthenticatedRevenueShareIndexRoute: AuthenticatedRevenueShareIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
   AuthenticatedTopupIndexRoute: AuthenticatedTopupIndexRoute,
+  AuthenticatedUsageAnalyticsIndexRoute: AuthenticatedUsageAnalyticsIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedVouchersIndexRoute: AuthenticatedVouchersIndexRoute,

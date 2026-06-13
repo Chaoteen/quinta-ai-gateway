@@ -91,6 +91,8 @@ export interface UsageRecord {
   model_name: string
   request_id: string
   request_count: number
+  input_tokens?: number
+  output_tokens?: number
   total_tokens: number
   token_delta: number
   request_delta: number

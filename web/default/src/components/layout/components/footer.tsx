@@ -87,7 +87,7 @@ function ProjectAttribution(props: { currentYear: number }) {
           rel='noopener noreferrer'
           className='text-foreground/70 hover:text-foreground font-medium transition-colors'
         >
-          {t('New API')}
+          {t('Quinta AI Gateway')}
         </a>
         . {t(NEW_API_FOOTER_ATTRIBUTION_KEY)}
       </span>
@@ -105,7 +105,7 @@ export function Footer(props: FooterProps) {
   } = useSystemConfig()
 
   const displayLogo = systemLogo || props.logo || '/logo.png'
-  const displayName = systemName || props.name || 'New API'
+  const displayName = systemName || props.name || 'Quinta AI Gateway'
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
 
@@ -210,7 +210,7 @@ export function Footer(props: FooterProps) {
               </span>
             </Link>
             <p className='text-muted-foreground/60 mt-3 max-w-[200px] text-xs leading-relaxed'>
-              {t('Powerful API Management Platform')}
+              {t('Enterprise AI Gateway & MaaS Platform')}
             </p>
           </div>
 

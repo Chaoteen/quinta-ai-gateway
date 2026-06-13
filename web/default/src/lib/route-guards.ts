@@ -18,7 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { redirect } from '@tanstack/react-router'
 import { useAuthStore } from '@/stores/auth-store'
-import { hasPermission, RBAC_PERMISSION, type RbacPermission } from './rbac'
+import {
+  hasPermission,
+  isPathAllowedForRole,
+  RBAC_PERMISSION,
+  type RbacPermission,
+} from './rbac'
 
 export function requirePermission(permission: RbacPermission) {
   const { auth } = useAuthStore.getState()
@@ -29,4 +34,11 @@ export function requirePermission(permission: RbacPermission) {
 
 export function requireRoot() {
   requirePermission(RBAC_PERMISSION.ROOT_ADMIN)
+}
+
+export function requirePathAllowed(pathname: string) {
+  const { auth } = useAuthStore.getState()
+  if (!auth.user || !isPathAllowedForRole(auth.user, pathname)) {
+    throw redirect({ to: '/403' })
+  }
 }

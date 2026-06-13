@@ -43,21 +43,114 @@ import {
   Landmark,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
 import { type SidebarData } from '@/components/layout/types'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const user = useAuthStore((state) => state.auth.user)
+  const roleKey = getUserRoleKey(user)
+
+  const workspaces = [
+    {
+      id: WORKSPACE_IDS.DEFAULT,
+      name: '', // Dynamically fetches system name
+      logo: Command,
+      plan: '', // Dynamically fetches system version
+    },
+  ]
+
+  if (roleKey === ROLE_KEY.TENANT_ADMIN) {
+    return {
+      workspaces,
+      navGroups: [
+        {
+          id: 'tenant-admin',
+          title: t('Tenant Admin Console'),
+          items: [
+            {
+              title: t('Tenant Console'),
+              url: '/dashboard/overview',
+              icon: LayoutDashboard,
+            },
+            {
+              title: t('Enterprise Management'),
+              icon: Building2,
+              items: [
+                {
+                  title: t('User Management'),
+                  url: '/users',
+                },
+                {
+                  title: t('Channel Management'),
+                  url: '/channels',
+                },
+              ],
+            },
+            {
+              title: t('Commercial Center'),
+              icon: CreditCard,
+              items: [
+                {
+                  title: t('Subscription Management'),
+                  url: '/subscriptions',
+                },
+                {
+                  title: t('Billing Center'),
+                  url: '/billing-dashboard',
+                },
+                {
+                  title: t('Voucher Management'),
+                  url: '/admin/vouchers',
+                },
+                {
+                  title: t('Invoice Management'),
+                  url: '/admin/invoices',
+                },
+              ],
+            },
+            {
+              title: t('Operations Center'),
+              icon: BarChart3,
+              items: [
+                {
+                  title: t('Usage Logs'),
+                  url: '/usage-logs/common',
+                },
+                {
+                  title: t('Quota and Usage'),
+                  url: '/quota-dashboard',
+                  activeUrls: ['/usage-analytics'],
+                },
+                {
+                  title: t('Usage Analytics'),
+                  url: '/usage-analytics',
+                },
+                {
+                  title: t('Payment Center'),
+                  url: '/payment-center',
+                },
+                {
+                  title: t('Revenue Share Dashboard'),
+                  url: '/revenue-share',
+                },
+              ],
+            },
+            {
+              title: t('Enterprise Settings'),
+              url: '/profile',
+              icon: Settings,
+            },
+          ],
+        },
+      ],
+    }
+  }
 
   return {
-    workspaces: [
-      {
-        id: WORKSPACE_IDS.DEFAULT,
-        name: '', // Dynamically fetches system name
-        logo: Command,
-        plan: '', // Dynamically fetches system version
-      },
-    ],
+    workspaces,
     navGroups: [
       {
         id: 'chat',

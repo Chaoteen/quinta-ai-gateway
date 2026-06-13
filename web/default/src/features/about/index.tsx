@@ -57,7 +57,7 @@ function EmptyAboutState() {
         </div>
         <div className='space-y-4 text-sm'>
           <p>
-            {t('New API Project Repository:')}{' '}
+            {t('Quinta AI Gateway Project Repository:')}{' '}
             <a
               href='https://github.com/Chaoteen/quinta-ai-gateway'
               target='_blank'
@@ -74,7 +74,7 @@ function EmptyAboutState() {
               rel='noopener noreferrer'
               className='text-primary hover:underline'
             >
-              {t('NewAPI')}
+              {t('Quinta AI Gateway')}
             </a>{' '}
             © {currentYear}{' '}
             <a

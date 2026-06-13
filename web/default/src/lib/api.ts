@@ -69,6 +69,20 @@ api.get = ((url: string, config = {}) => {
 // Response Interceptor
 // ============================================================================
 
+function navigateToErrorPage(path: string) {
+  if (typeof window === 'undefined') return
+  if (window.location.pathname === path) return
+  window.location.assign(path)
+}
+
+function navigateToSignIn() {
+  if (typeof window === 'undefined') return
+  const current = `${window.location.pathname}${window.location.search}`
+  const target = `/sign-in?redirect=${encodeURIComponent(current)}`
+  if (window.location.pathname === '/sign-in') return
+  window.location.assign(target)
+}
+
 // Handle business logic errors and HTTP errors globally
 api.interceptors.response.use(
   (response) => {
@@ -103,6 +117,15 @@ api.interceptors.response.use(
         } catch {
           /* empty */
         }
+        navigateToSignIn()
+      } else if (status === 403) {
+        toast.error(i18next.t("You don't have necessary permission"))
+        navigateToErrorPage('/403')
+      } else if (typeof status === 'number' && status >= 500) {
+        const msg =
+          error?.response?.data?.message || error?.message || 'Request error'
+        toast.error(msg)
+        navigateToErrorPage('/500')
       } else {
         // Other errors: show error message from response or default
         const msg =
