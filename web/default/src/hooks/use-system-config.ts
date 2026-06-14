@@ -24,8 +24,9 @@ import {
   type SystemConfig,
   DEFAULT_CURRENCY_CONFIG,
 } from '@/stores/system-config-store'
-import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import { DEFAULT_LOGO } from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
+import { normalizeSystemName } from '@/lib/branding'
 
 interface UseSystemConfigOptions {
   /** Automatically fetch config from backend (use only in root component) */
@@ -92,7 +93,7 @@ export function mapStatusDataToConfig(
   }
 
   return {
-    systemName: data.system_name || DEFAULT_SYSTEM_NAME,
+    systemName: normalizeSystemName(data.system_name),
     logo: data.logo || DEFAULT_LOGO,
     footerHtml: data.footer_html,
     demoSiteEnabled: data.demo_site_enabled,
@@ -197,6 +198,7 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
 
   return {
     ...config,
+    systemName: normalizeSystemName(config.systemName),
     loading,
     logoLoaded: config.logo === loadedLogoUrl && !!loadedLogoUrl,
   }

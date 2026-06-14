@@ -30,6 +30,7 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { getStatus } from '@/lib/api'
 import '@/lib/dayjs'
+import { normalizeSystemName } from '@/lib/branding'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import { handleServerError } from '@/lib/handle-server-error'
 import { DirectionProvider } from './context/direction-provider'
@@ -125,7 +126,7 @@ const rootElement = document.getElementById('root')!
       const saved = localStorage.getItem('status')
       if (saved) {
         const s = JSON.parse(saved)
-        if (s?.system_name) apply(s.system_name)
+        if (s?.system_name) apply(normalizeSystemName(s.system_name as string))
         if (s?.logo) applyFaviconToDom(s.logo)
       }
     } catch {
@@ -135,7 +136,7 @@ const rootElement = document.getElementById('root')!
     getStatus()
       .then((s) => {
         if (s?.system_name) {
-          apply(s.system_name as string)
+          apply(normalizeSystemName(s.system_name as string))
           try {
             localStorage.setItem('status', JSON.stringify(s))
           } catch {

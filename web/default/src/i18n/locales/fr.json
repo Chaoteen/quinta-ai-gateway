@@ -4516,5 +4516,22 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Centre de documentation Quinta AI Gateway",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "Documentation de la plateforme Enterprise AI Gateway & MaaS pour le demarrage, l'acces API, la facturation, les abonnements, les coupons, les factures et les operations administrateur.",
+  "Quick Start": "Demarrage rapide",
+  "Set up Quinta AI Gateway and complete the first request.": "Configurez Quinta AI Gateway et envoyez la premiere requete.",
+  "API Access Guide": "Guide d'acces API",
+  "Connect applications through the unified gateway API.": "Connectez les applications via l'API de passerelle unifiee.",
+  "Account and API Key": "Compte et cle API",
+  "Manage accounts, API keys, permissions, and key safety.": "Gerez les comptes, les cles API, les autorisations et la securite des cles.",
+  "Quota and Billing": "Quotas et facturation",
+  "Understand quota balance, usage metering, and billing records.": "Comprenez le solde de quota, la mesure d'usage et les releves de facturation.",
+  "Use plans and subscriptions to manage recurring service rights.": "Utilisez les offres et abonnements pour gerer les droits recurrents.",
+  "Issue, redeem, and audit quota or subscription vouchers.": "Emettez, utilisez et auditez les coupons de quota ou d'abonnement.",
+  "Track invoice applications, statuses, and billing alignment.": "Suivez les demandes de facture, les statuts et le rapprochement de facturation.",
+  "Admin Console": "Console administrateur",
+  "Operate tenant users, channels, billing, usage, and settings.": "Administrez les utilisateurs locataires, canaux, facturation, usage et parametres.",
+  "Review common questions about access, billing, and operations.": "Consultez les questions frequentes sur l'acces, la facturation et les operations.",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "Plateforme Enterprise AI Gateway et MaaS pour l'acces modele unifie, la gestion des quotas, la facturation et les droits locataires."
 }

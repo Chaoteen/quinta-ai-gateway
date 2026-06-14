@@ -4516,5 +4516,22 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Quinta AI Gateway Documentation Center",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.",
+  "Quick Start": "Quick Start",
+  "Set up Quinta AI Gateway and complete the first request.": "Set up Quinta AI Gateway and complete the first request.",
+  "API Access Guide": "API Access Guide",
+  "Connect applications through the unified gateway API.": "Connect applications through the unified gateway API.",
+  "Account and API Key": "Account and API Key",
+  "Manage accounts, API keys, permissions, and key safety.": "Manage accounts, API keys, permissions, and key safety.",
+  "Quota and Billing": "Quota and Billing",
+  "Understand quota balance, usage metering, and billing records.": "Understand quota balance, usage metering, and billing records.",
+  "Use plans and subscriptions to manage recurring service rights.": "Use plans and subscriptions to manage recurring service rights.",
+  "Issue, redeem, and audit quota or subscription vouchers.": "Issue, redeem, and audit quota or subscription vouchers.",
+  "Track invoice applications, statuses, and billing alignment.": "Track invoice applications, statuses, and billing alignment.",
+  "Admin Console": "Admin Console",
+  "Operate tenant users, channels, billing, usage, and settings.": "Operate tenant users, channels, billing, usage, and settings.",
+  "Review common questions about access, billing, and operations.": "Review common questions about access, billing, and operations.",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions."
 }

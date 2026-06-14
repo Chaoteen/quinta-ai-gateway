@@ -4516,5 +4516,22 @@
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
     "Zoom": "缩放"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Quinta AI Gateway 文档中心",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "面向入门、API 接入、计费、订阅、卡券、发票和管理员操作的企业级 AI Gateway 与 MaaS 平台文档。",
+  "Quick Start": "快速开始",
+  "Set up Quinta AI Gateway and complete the first request.": "设置 Quinta AI Gateway 并完成第一次请求。",
+  "API Access Guide": "API 接入说明",
+  "Connect applications through the unified gateway API.": "通过统一网关 API 接入应用。",
+  "Account and API Key": "账号与 API Key",
+  "Manage accounts, API keys, permissions, and key safety.": "管理账号、API Key、权限和密钥安全。",
+  "Quota and Billing": "额度与计费",
+  "Understand quota balance, usage metering, and billing records.": "了解额度余额、用量计量和账单记录。",
+  "Use plans and subscriptions to manage recurring service rights.": "使用计划和订阅管理周期性服务权益。",
+  "Issue, redeem, and audit quota or subscription vouchers.": "发放、兑换和审计额度或订阅卡券。",
+  "Track invoice applications, statuses, and billing alignment.": "跟踪发票申请、状态和账单对齐。",
+  "Admin Console": "管理员控制台",
+  "Operate tenant users, channels, billing, usage, and settings.": "运营租户用户、渠道、计费、用量和设置。",
+  "Review common questions about access, billing, and operations.": "查看关于接入、计费和运营的常见问题。",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "企业级 AI Gateway 与 MaaS 平台，统一接入模型、管理额度、计费与租户权限。"
 }

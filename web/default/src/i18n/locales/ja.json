@@ -4516,5 +4516,22 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
     "Zoom": "ズーム"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Quinta AI Gateway ドキュメントセンター",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "オンボーディング、API 接続、請求、サブスクリプション、クーポン、請求書、管理者操作向けの Enterprise AI Gateway & MaaS Platform ドキュメントです。",
+  "Quick Start": "クイックスタート",
+  "Set up Quinta AI Gateway and complete the first request.": "Quinta AI Gateway を設定し、最初のリクエストを完了します。",
+  "API Access Guide": "API 接続ガイド",
+  "Connect applications through the unified gateway API.": "統合ゲートウェイ API を通じてアプリケーションを接続します。",
+  "Account and API Key": "アカウントと API Key",
+  "Manage accounts, API keys, permissions, and key safety.": "アカウント、API Key、権限、キーの安全性を管理します。",
+  "Quota and Billing": "クォータと請求",
+  "Understand quota balance, usage metering, and billing records.": "クォータ残高、使用量計測、請求記録を確認します。",
+  "Use plans and subscriptions to manage recurring service rights.": "プランとサブスクリプションで継続的なサービス権益を管理します。",
+  "Issue, redeem, and audit quota or subscription vouchers.": "クォータまたはサブスクリプションのクーポンを発行、利用、監査します。",
+  "Track invoice applications, statuses, and billing alignment.": "請求書申請、ステータス、請求との整合を追跡します。",
+  "Admin Console": "管理者コンソール",
+  "Operate tenant users, channels, billing, usage, and settings.": "テナントユーザー、チャネル、請求、使用量、設定を運用します。",
+  "Review common questions about access, billing, and operations.": "接続、請求、運用に関するよくある質問を確認します。",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "モデル接続、クォータ管理、請求、テナント権限を統合する Enterprise AI Gateway と MaaS プラットフォーム。"
 }

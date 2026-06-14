@@ -4516,5 +4516,22 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Trung tam tai lieu Quinta AI Gateway",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "Tai lieu Enterprise AI Gateway & MaaS Platform cho khoi tao, truy cap API, tinh phi, goi dang ky, voucher, hoa don va van hanh quan tri.",
+  "Quick Start": "Bat dau nhanh",
+  "Set up Quinta AI Gateway and complete the first request.": "Thiet lap Quinta AI Gateway va hoan thanh yeu cau dau tien.",
+  "API Access Guide": "Huong dan truy cap API",
+  "Connect applications through the unified gateway API.": "Ket noi ung dung qua API gateway thong nhat.",
+  "Account and API Key": "Tai khoan va API Key",
+  "Manage accounts, API keys, permissions, and key safety.": "Quan ly tai khoan, API Key, quyen va an toan khoa.",
+  "Quota and Billing": "Han muc va tinh phi",
+  "Understand quota balance, usage metering, and billing records.": "Hieu so du han muc, do luong su dung va ban ghi tinh phi.",
+  "Use plans and subscriptions to manage recurring service rights.": "Dung goi va dang ky de quan ly quyen dich vu dinh ky.",
+  "Issue, redeem, and audit quota or subscription vouchers.": "Phat hanh, quy doi va kiem tra voucher han muc hoac dang ky.",
+  "Track invoice applications, statuses, and billing alignment.": "Theo doi yeu cau hoa don, trang thai va doi soat tinh phi.",
+  "Admin Console": "Bang dieu khien quan tri",
+  "Operate tenant users, channels, billing, usage, and settings.": "Van hanh nguoi dung tenant, kenh, tinh phi, su dung va cai dat.",
+  "Review common questions about access, billing, and operations.": "Xem cac cau hoi thuong gap ve truy cap, tinh phi va van hanh.",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "Nen tang Enterprise AI Gateway va MaaS de thong nhat truy cap mo hinh, quan ly han muc, tinh phi va quyen tenant."
 }

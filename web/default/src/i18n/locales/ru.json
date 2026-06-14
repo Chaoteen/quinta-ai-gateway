@@ -4516,5 +4516,22 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom"
-  }
+  },
+  "Quinta AI Gateway Documentation Center": "Центр документации Quinta AI Gateway",
+  "Enterprise AI Gateway & MaaS Platform documentation for onboarding, API access, billing, subscriptions, vouchers, invoices, and admin operations.": "Документация Enterprise AI Gateway & MaaS Platform для запуска, API-доступа, биллинга, подписок, ваучеров, счетов и администрирования.",
+  "Quick Start": "Быстрый старт",
+  "Set up Quinta AI Gateway and complete the first request.": "Настройте Quinta AI Gateway и выполните первый запрос.",
+  "API Access Guide": "Руководство по API-доступу",
+  "Connect applications through the unified gateway API.": "Подключайте приложения через единый API-шлюз.",
+  "Account and API Key": "Аккаунт и API Key",
+  "Manage accounts, API keys, permissions, and key safety.": "Управляйте аккаунтами, API Key, правами и безопасностью ключей.",
+  "Quota and Billing": "Квоты и биллинг",
+  "Understand quota balance, usage metering, and billing records.": "Разберитесь с балансом квот, учетом использования и платежными записями.",
+  "Use plans and subscriptions to manage recurring service rights.": "Используйте планы и подписки для управления регулярными правами на сервис.",
+  "Issue, redeem, and audit quota or subscription vouchers.": "Выпускайте, применяйте и проверяйте ваучеры квот или подписок.",
+  "Track invoice applications, statuses, and billing alignment.": "Отслеживайте заявки на счета, статусы и сверку с биллингом.",
+  "Admin Console": "Консоль администратора",
+  "Operate tenant users, channels, billing, usage, and settings.": "Управляйте пользователями арендатора, каналами, биллингом, использованием и настройками.",
+  "Review common questions about access, billing, and operations.": "Изучите частые вопросы по доступу, биллингу и операциям.",
+  "Enterprise AI Gateway and MaaS platform for unified model access, quota management, billing, and tenant permissions.": "Enterprise AI Gateway и MaaS-платформа для единого доступа к моделям, управления квотами, биллинга и прав арендаторов."
 }
