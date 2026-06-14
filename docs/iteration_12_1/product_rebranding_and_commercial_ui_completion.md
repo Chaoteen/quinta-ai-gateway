@@ -4,7 +4,7 @@
 
 完成 Quinta AI Gateway 默认前端的产品品牌收尾、tenant_admin 企业控制台菜单补齐、商业化页面最小可用内容、i18n 修复、错误处理确认和提交前测试。
 
-## New API 痕迹清理范围
+## Legacy Brand 痕迹清理范围
 
 本轮清理用户可见产品品牌位置：
 
@@ -23,8 +23,8 @@
 以下内容按项目约束保留：
 
 - Go module 路径：`github.com/Chaoteen/quinta-ai-gateway`。
-- GitHub 仓库/更新检查路径中的 `new-api` 技术来源标识。
-- Fluent Chat 集成中的 `new-api` 协议/平台 id。
+- GitHub 仓库/更新检查路径中的 legacy 技术来源标识。
+- Fluent Chat 集成中的 legacy 协议/平台 id。
 - OpenAI Chat、WeChat、Chat Completions 等第三方或协议术语。
 - 后端业务能力、数据库模型和支付 SDK 均未变更。
 
@@ -69,7 +69,7 @@ tenant_admin 菜单调整为企业租户管理员视角，包含：
 
 - 新增商业页面、菜单、品牌文案已补齐 `en / zh / fr / ja / ru / vi` locale。
 - 中文菜单中的 `Billing`、`Wallet`、`Invoice` 已有中文值。
-- 中文旧品牌可见值已清理，不再显示 `New API`。
+- 中文旧品牌可见值已清理，不再显示 legacy brand。
 - `npm run i18n:sync` 已执行，报告无 missing key。报告中的 untranslated 计数主要来自既有品牌名、协议词和历史未翻译项，不属于本轮新增 key。
 
 ## 错误处理确认
@@ -88,4 +88,4 @@ tenant_admin 菜单调整为企业租户管理员视角，包含：
 
 - Revenue share settlement、quota historical trend、daily billing breakdown 仍是 Foundation Preview，等待后续后端 API。
 - i18n sync report 仍存在历史 untranslated 计数，需要单独翻译清理，不影响本轮新增 key 完整性。
-- 技术集成中的 `new-api` 协议 id 和更新检查仓库路径按约束保留，不作为用户可见产品品牌处理。
+- 技术集成中的 legacy 协议 id 和更新检查仓库路径按约束保留，不作为用户可见产品品牌处理。

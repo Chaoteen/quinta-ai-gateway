@@ -29,6 +29,7 @@
   "example.com&#10;company.com": "example.com&#10;company.com",
   "Fallback tier": "Fallback tier",
   "FastGPT": "FastGPT",
+  "footer.columns.related.links.gateway": "Quinta AI Gateway",
   "footer.columns.related.links.midjourney": "Midjourney-Proxy",
   "footer.columns.related.links.neko": "neko-api-key-tool",
   "Gemini": "Gemini",

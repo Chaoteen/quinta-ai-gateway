@@ -1,6 +1,6 @@
 # Quinta AI Gateway
 
-Quinta AI Gateway 是基于 New API 二次开发的多租户 AI API 网关项目，面向企业级 AI API 中转、模型接入、渠道管理、计费结算和租户隔离场景。
+Quinta AI Gateway 是面向企业级 AI API 中转、模型接入、渠道管理、计费结算和租户隔离场景的多租户 AI API 网关项目。
 
 ## 项目定位
 
@@ -16,7 +16,7 @@ Quinta AI Gateway 是基于 New API 二次开发的多租户 AI API 网关项目
 
 ## 当前改造重点
 
-当前版本已在 New API 基础上完成第一阶段多租户改造：
+当前版本已完成第一阶段多租户改造：
 
 - 新增 tenant / organization / department / distribution channel 基础模型
 - 核心业务表增加 tenant_id、organization_id、department_id、distribution_channel_id
@@ -38,5 +38,4 @@ Quinta AI Gateway 是基于 New API 二次开发的多租户 AI API 网关项目
 
 ## 说明
 
-本项目基于开源项目 New API 进行二次开发。原项目版权和许可证信息请参考仓库中的 LICENSE、NOTICE 和 THIRD-PARTY-LICENSES.md。
-
+本项目的版权、许可证和第三方组件信息请参考仓库中的 LICENSE、NOTICE 和 THIRD-PARTY-LICENSES.md。

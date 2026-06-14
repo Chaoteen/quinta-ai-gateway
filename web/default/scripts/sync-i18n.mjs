@@ -24,8 +24,8 @@ const LOCALES_DIR = path.resolve('src/i18n/locales')
 const FALLBACK_COMPARE_LOCALE = 'en' // used for "still English" detection only
 const OBFUSCATED_KEYS = [
   {
-    runtime: ['footer', 'new' + 'api', 'projectAttributionSuffix'].join('.'),
-    serialized: 'footer.new\\u0061pi.projectAttributionSuffix',
+    runtime: ['footer', 'gateway', 'projectAttributionSuffix'].join('.'),
+    serialized: 'footer.gateway.projectAttributionSuffix',
   },
 ]
 
@@ -210,5 +210,4 @@ main().catch((err) => {
   console.error(err)
   process.exitCode = 1
 })
-
 

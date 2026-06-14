@@ -40,9 +40,9 @@ interface FooterProps {
   className?: string
 }
 
-const NEW_API_FOOTER_ATTRIBUTION_KEY = [
+const PROJECT_FOOTER_ATTRIBUTION_KEY = [
   'footer',
-  'new' + 'api',
+  'gateway',
   'projectAttributionSuffix',
 ].join('.')
 
@@ -89,7 +89,7 @@ function ProjectAttribution(props: { currentYear: number }) {
         >
           {t('Quinta AI Gateway')}
         </a>
-        . {t(NEW_API_FOOTER_ATTRIBUTION_KEY)}
+        . {t(PROJECT_FOOTER_ATTRIBUTION_KEY)}
       </span>
     </div>
   )
@@ -116,15 +116,15 @@ export function Footer(props: FooterProps) {
         links: [
           {
             text: t('footer.columns.about.links.aboutProject'),
-            href: 'https://docs.newapi.pro/wiki/project-introduction/',
+            href: '/about',
           },
           {
             text: t('footer.columns.about.links.contact'),
-            href: 'https://docs.newapi.pro/support/community-interaction/',
+            href: '/about',
           },
           {
             text: t('footer.columns.about.links.features'),
-            href: 'https://docs.newapi.pro/wiki/features-introduction/',
+            href: '/pricing',
           },
         ],
       },
@@ -133,15 +133,15 @@ export function Footer(props: FooterProps) {
         links: [
           {
             text: t('footer.columns.docs.links.quickStart'),
-            href: 'https://docs.newapi.pro/getting-started/',
+            href: '/pricing',
           },
           {
             text: t('footer.columns.docs.links.installation'),
-            href: 'https://docs.newapi.pro/installation/',
+            href: '/about',
           },
           {
             text: t('footer.columns.docs.links.apiDocs'),
-            href: 'https://docs.newapi.pro/api/',
+            href: '/pricing',
           },
         ],
       },
@@ -149,8 +149,8 @@ export function Footer(props: FooterProps) {
         title: t('footer.columns.related.title'),
         links: [
           {
-            text: t('footer.columns.related.links.oneApi'),
-            href: 'https://github.com/songquanpeng/one-api',
+            text: t('footer.columns.related.links.gateway'),
+            href: 'https://github.com/Chaoteen/quinta-ai-gateway',
           },
           {
             text: t('footer.columns.related.links.midjourney'),
