@@ -25,6 +25,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+} from '@/lib/commercial-display'
 import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 import {
@@ -49,11 +53,6 @@ const PAGE_SIZE = 10
 
 type AdminTab = 'batches' | 'vouchers' | 'redemptions'
 
-function formatDate(value?: number) {
-  if (!value) return '-'
-  return new Date(value * 1000).toLocaleString()
-}
-
 function statusVariant(
   status?: string
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -66,9 +65,10 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status?: string }) {
+  const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)} className='uppercase'>
-      {status || '-'}
+    <Badge variant={statusVariant(status)}>
+      {displayEnumLabel(status, t)}
     </Badge>
   )
 }
@@ -213,7 +213,7 @@ export function VoucherPortal() {
                     <div className='flex justify-between gap-3'>
                       <span>{t('Type')}</span>
                       <span className='text-foreground'>
-                        {lastRedemption.redemption_type}
+                        {displayEnumLabel(lastRedemption.redemption_type, t)}
                       </span>
                     </div>
                     <div className='flex justify-between gap-3'>
@@ -439,7 +439,7 @@ export function VoucherAdminPortal() {
   if (!canView) {
     return (
       <SectionPageLayout>
-        <SectionPageLayout.Title>{t('Voucher')}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>{t('Voucher Management')}</SectionPageLayout.Title>
         <SectionPageLayout.Content>
           <Card className='rounded-lg'>
             <CardContent className='py-8 text-center text-muted-foreground'>
@@ -453,7 +453,7 @@ export function VoucherAdminPortal() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Voucher')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>{t('Voucher Management')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <Button type='button' variant='outline' size='sm' onClick={refreshAll}>
           <RefreshCw className='size-4' />
@@ -669,10 +669,10 @@ export function VoucherAdminPortal() {
                       className='h-9 w-40 rounded-md border bg-background px-3 text-sm'
                     >
                       <option value=''>{t('All statuses')}</option>
-                      <option value='UNUSED'>UNUSED</option>
-                      <option value='REDEEMED'>REDEEMED</option>
-                      <option value='EXPIRED'>EXPIRED</option>
-                      <option value='DISABLED'>DISABLED</option>
+                      <option value='UNUSED'>{t('Unused')}</option>
+                      <option value='REDEEMED'>{t('Redeemed')}</option>
+                      <option value='EXPIRED'>{t('Expired')}</option>
+                      <option value='DISABLED'>{t('Disabled')}</option>
                     </select>
                     <TypeSelect
                       value={voucherTypeFilter}
@@ -782,12 +782,12 @@ function BatchTable({
             <TableCell>{item.id}</TableCell>
             <TableCell className='font-mono'>{item.batch_no}</TableCell>
             <TableCell>{item.name}</TableCell>
-            <TableCell>{item.voucher_type}</TableCell>
+            <TableCell>{displayEnumLabel(item.voucher_type, t)}</TableCell>
             <TableCell>{item.quantity}</TableCell>
             <TableCell>
               <StatusBadge status={item.status} />
             </TableCell>
-            <TableCell>{formatDate(item.created_at)}</TableCell>
+            <TableCell>{formatDisplayDateTime(item.created_at)}</TableCell>
             <TableCell>
               <Button
                 type='button'
@@ -838,14 +838,14 @@ function VoucherTable({
             <TableCell>{item.id}</TableCell>
             <TableCell className='font-mono'>{item.voucher_code}</TableCell>
             <TableCell>{item.batch_id}</TableCell>
-            <TableCell>{item.voucher_type}</TableCell>
+            <TableCell>{displayEnumLabel(item.voucher_type, t)}</TableCell>
             <TableCell>{item.quota_amount || '-'}</TableCell>
             <TableCell>{item.subscription_plan_id || '-'}</TableCell>
             <TableCell>
               <StatusBadge status={item.status} />
             </TableCell>
             <TableCell>{item.activated_by || '-'}</TableCell>
-            <TableCell>{formatDate(item.expired_at)}</TableCell>
+            <TableCell>{formatDisplayDateTime(item.expired_at)}</TableCell>
             <TableCell>
               <Button
                 type='button'
@@ -891,11 +891,11 @@ function RedemptionTable({
             <TableCell>{item.id}</TableCell>
             <TableCell className='font-mono'>{item.voucher_code}</TableCell>
             {showUser && <TableCell>{item.user_id}</TableCell>}
-            <TableCell>{item.redemption_type}</TableCell>
+            <TableCell>{displayEnumLabel(item.redemption_type, t)}</TableCell>
             <TableCell>
               <StatusBadge status={item.redemption_result} />
             </TableCell>
-            <TableCell>{formatDate(item.created_at)}</TableCell>
+            <TableCell>{formatDisplayDateTime(item.created_at)}</TableCell>
           </TableRow>
         ))
       )}
@@ -926,7 +926,7 @@ function StatusSelect({
       <option value=''>{t('All statuses')}</option>
       {options.map((option) => (
         <option key={option} value={option}>
-          {option}
+          {displayEnumLabel(option, t)}
         </option>
       ))}
     </select>

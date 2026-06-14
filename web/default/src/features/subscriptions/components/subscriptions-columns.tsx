@@ -21,6 +21,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
+import { formatDisplayMoney } from '@/lib/commercial-display'
 import type { PlanRecord } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 
@@ -77,8 +78,10 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         ),
         cell: ({ row }) => (
           <span className='font-semibold text-emerald-600'>
-            $
-            {Number(row.original.plan.monthly_price ?? 0).toFixed(2)}
+            {formatDisplayMoney(
+              row.original.plan.monthly_price,
+              row.original.plan.currency
+            )}
           </span>
         ),
         size: 100,
@@ -92,7 +95,10 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         ),
         cell: ({ row }) => (
           <span className='text-muted-foreground'>
-            ${Number(row.original.plan.yearly_price || 0).toFixed(2)}
+            {formatDisplayMoney(
+              row.original.plan.yearly_price,
+              row.original.plan.currency
+            )}
           </span>
         ),
         size: 100,

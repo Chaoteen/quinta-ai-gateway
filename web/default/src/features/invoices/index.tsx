@@ -18,6 +18,11 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+  formatDisplayMoney,
+} from '@/lib/commercial-display'
+import {
   createInvoiceApplication,
   createInvoiceProfile,
   disableInvoiceProfile,
@@ -43,19 +48,6 @@ const PAGE_SIZE = 10
 type UserTab = 'profiles' | 'applications' | 'files'
 type AdminTab = 'applications' | 'profiles' | 'files'
 
-function formatDate(value?: number) {
-  if (!value) return '-'
-  return new Date(value * 1000).toLocaleString()
-}
-
-function formatMoney(value?: number, currency = 'USD') {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0)
-}
-
 function statusVariant(
   status?: string
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -69,9 +61,10 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status?: string }) {
+  const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)} className='uppercase'>
-      {status || '-'}
+    <Badge variant={statusVariant(status)}>
+      {displayEnumLabel(status, t)}
     </Badge>
   )
 }
@@ -398,7 +391,7 @@ export function InvoicePortal() {
                         <option value=''>{t('Select payment order')}</option>
                         {(paymentsQuery.data?.data.items ?? []).map((order) => (
                           <option key={order.id} value={order.id}>
-                            {order.order_no} - {formatMoney(order.amount, order.currency)}
+                            {order.order_no} - {formatDisplayMoney(order.amount, order.currency)}
                           </option>
                         ))}
                       </select>
@@ -810,7 +803,7 @@ function ProfileTable({
           items.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.title}</TableCell>
-              <TableCell>{item.profile_type}</TableCell>
+              <TableCell>{displayEnumLabel(item.profile_type, t)}</TableCell>
               <TableCell>{item.tax_no || '-'}</TableCell>
               <TableCell>{item.is_default ? t('Yes') : t('No')}</TableCell>
               <TableCell>
@@ -870,13 +863,13 @@ function ApplicationTable({
                 {item.application_no}
               </TableCell>
               <TableCell>#{item.user_id}</TableCell>
-              <TableCell>{formatMoney(item.amount, item.currency)}</TableCell>
-              <TableCell>{item.invoice_type}</TableCell>
+              <TableCell>{formatDisplayMoney(item.amount, item.currency)}</TableCell>
+              <TableCell>{displayEnumLabel(item.invoice_type, t)}</TableCell>
               <TableCell>
                 <StatusBadge status={item.status} />
               </TableCell>
               <TableCell>{item.invoice_no || '-'}</TableCell>
-              <TableCell>{formatDate(item.created_at)}</TableCell>
+              <TableCell>{formatDisplayDateTime(item.created_at)}</TableCell>
               {actions && <TableCell>{actions(item)}</TableCell>}
             </TableRow>
           ))
@@ -918,7 +911,7 @@ function FileTable({ items }: { items: InvoiceFile[] }) {
                   {t('Open file')}
                 </a>
               </TableCell>
-              <TableCell>{formatDate(item.created_at)}</TableCell>
+              <TableCell>{formatDisplayDateTime(item.created_at)}</TableCell>
             </TableRow>
           ))
         ) : (

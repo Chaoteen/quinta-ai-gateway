@@ -58,6 +58,7 @@ import { formatTimestamp } from '../../lib'
 import type { PlanRecord, UserSubscriptionRecord } from '../../types'
 import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
+import { formatDisplayMoney } from '@/lib/commercial-display'
 
 interface Props {
   open: boolean
@@ -224,8 +225,11 @@ export function UserSubscriptionsDialog(props: Props) {
                     value: String(p.plan.id),
                     label: (
                       <>
-                        {p.plan.name}($
-                        {Number(p.plan.monthly_price ?? 0).toFixed(2)}
+                        {p.plan.name} (
+                        {formatDisplayMoney(
+                          p.plan.monthly_price,
+                          p.plan.currency
+                        )}
                         )
                       </>
                     ),
@@ -241,8 +245,11 @@ export function UserSubscriptionsDialog(props: Props) {
                   <SelectGroup>
                     {plans.map((p) => (
                       <SelectItem key={p.plan.id} value={String(p.plan.id)}>
-                        {p.plan.name} ($
-                        {Number(p.plan.monthly_price ?? 0).toFixed(2)}
+                        {p.plan.name} (
+                        {formatDisplayMoney(
+                          p.plan.monthly_price,
+                          p.plan.currency
+                        )}
                         )
                       </SelectItem>
                     ))}

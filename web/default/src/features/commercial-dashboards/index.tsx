@@ -40,21 +40,14 @@ import {
   getCommercialBillingSummary,
   getCommercialUsageRecords,
 } from './api'
+import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+  formatDisplayMoney,
+  formatDisplayNumber,
+} from '@/lib/commercial-display'
 
 const PAGE_SIZE = 8
-
-function formatNumber(value?: number): string {
-  return new Intl.NumberFormat().format(Number(value ?? 0))
-}
-
-function formatMoney(value?: number, currency?: string): string {
-  return `${formatNumber(value)} ${currency || 'USD'}`
-}
-
-function formatDate(value?: number): string {
-  if (!value) return '-'
-  return new Date(value * 1000).toLocaleString()
-}
 
 function statusVariant(
   status?: string
@@ -69,9 +62,10 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status?: string }) {
+  const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)} className='uppercase'>
-      {status || '-'}
+    <Badge variant={statusVariant(status)}>
+      {displayEnumLabel(status, t)}
     </Badge>
   )
 }
@@ -168,7 +162,7 @@ export function QuotaDashboard() {
         <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
           <MetricCard
             title={t('Total Quota')}
-            value={formatNumber(
+            value={formatDisplayNumber(
               (summary?.balance_quota ?? 0) + (summary?.total_consumption_amount ?? 0)
             )}
             description={t('Available quota plus billed consumption')}
@@ -176,7 +170,7 @@ export function QuotaDashboard() {
           />
           <MetricCard
             title={t('Available Quota')}
-            value={formatNumber(summary?.balance_quota)}
+            value={formatDisplayNumber(summary?.balance_quota)}
             description={t('Current quota available for requests')}
             icon={BadgeDollarSign}
           />
@@ -188,7 +182,7 @@ export function QuotaDashboard() {
           />
           <MetricCard
             title={t('Consumed Quota')}
-            value={formatNumber(summary?.total_consumption_amount)}
+            value={formatDisplayNumber(summary?.total_consumption_amount)}
             description={t('Cumulative billed consumption')}
             icon={ReceiptText}
           />
@@ -223,11 +217,11 @@ export function QuotaDashboard() {
                 ) : (
                   records.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell>{formatDate(record.created_at)}</TableCell>
+                      <TableCell>{formatDisplayDateTime(record.created_at)}</TableCell>
                       <TableCell>{record.provider_name || '-'}</TableCell>
                       <TableCell>{record.model_name || '-'}</TableCell>
                       <TableCell>
-                        -{formatNumber(record.quota_charged)}
+                        -{formatDisplayNumber(record.quota_charged)}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={record.billing_status} />
@@ -282,25 +276,25 @@ export function UsageAnalyticsDashboard() {
         <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
           <MetricCard
             title={t('Total Requests')}
-            value={formatNumber(summary?.total_requests)}
+            value={formatDisplayNumber(summary?.total_requests)}
             description={t('Cumulative request count')}
             icon={LineChart}
           />
           <MetricCard
             title={t('Input Tokens')}
-            value={formatNumber(tokenTotals.input)}
+            value={formatDisplayNumber(tokenTotals.input)}
             description={t('Input token total from recent usage records')}
             icon={Timer}
           />
           <MetricCard
             title={t('Output Tokens')}
-            value={formatNumber(tokenTotals.output)}
+            value={formatDisplayNumber(tokenTotals.output)}
             description={t('Output token total from recent usage records')}
             icon={Timer}
           />
           <MetricCard
             title={t('Total Tokens')}
-            value={formatNumber(summary?.total_tokens ?? tokenTotals.total)}
+            value={formatDisplayNumber(summary?.total_tokens ?? tokenTotals.total)}
             description={t('Cumulative token usage')}
             icon={Timer}
           />
@@ -308,7 +302,7 @@ export function UsageAnalyticsDashboard() {
         <div className='grid gap-4 md:grid-cols-2'>
           <MetricCard
             title={t('Recent 30d Tokens')}
-            value={formatNumber(summary?.recent_30d_tokens)}
+            value={formatDisplayNumber(summary?.recent_30d_tokens)}
             description={t('Token usage over the last 30 days')}
             icon={BarChart3}
           />
@@ -347,8 +341,8 @@ export function UsageAnalyticsDashboard() {
                     <TableRow key={row.id}>
                       <TableCell>{row.provider_name || '-'}</TableCell>
                       <TableCell>{row.model_name || '-'}</TableCell>
-                      <TableCell>{formatNumber(row.request_count)}</TableCell>
-                      <TableCell>{formatNumber(row.total_tokens)}</TableCell>
+                      <TableCell>{formatDisplayNumber(row.request_count)}</TableCell>
+                      <TableCell>{formatDisplayNumber(row.total_tokens)}</TableCell>
                       <TableCell>
                         <StatusBadge status={row.status} />
                       </TableCell>
@@ -392,11 +386,11 @@ function RankingCard({
                 <div className='min-w-0'>
                   <div className='truncate font-medium'>{row.name || '-'}</div>
                   <div className='text-muted-foreground text-xs'>
-                    {formatNumber(row.request_count)} {t('Requests')} ·{' '}
-                    {formatNumber(row.total_tokens)} tokens
+                    {formatDisplayNumber(row.request_count)} {t('Requests')} ·{' '}
+                    {formatDisplayNumber(row.total_tokens)} {t('Tokens')}
                   </div>
                 </div>
-                <Badge variant='outline'>{formatNumber(row.quota_charged)}</Badge>
+                <Badge variant='outline'>{formatDisplayNumber(row.quota_charged)}</Badge>
               </div>
             ))
           )}
@@ -437,7 +431,7 @@ export function BillingDashboard() {
           />
           <MetricCard
             title={t('This Month Consumption')}
-            value={formatMoney(
+            value={formatDisplayMoney(
               summary?.recent_30d_consumption,
               summary?.consumption_currency
             )}
@@ -446,7 +440,7 @@ export function BillingDashboard() {
           />
           <MetricCard
             title={t('Total Consumption')}
-            value={formatMoney(
+            value={formatDisplayMoney(
               summary?.total_consumption_amount,
               summary?.consumption_currency
             )}
@@ -481,8 +475,8 @@ export function BillingDashboard() {
                     <TableRow key={record.id}>
                       <TableCell>{record.provider_name || '-'}</TableCell>
                       <TableCell>{record.model_name || '-'}</TableCell>
-                      <TableCell>{formatNumber(record.total_tokens)}</TableCell>
-                      <TableCell>{formatNumber(record.quota_charged)}</TableCell>
+                      <TableCell>{formatDisplayNumber(record.total_tokens)}</TableCell>
+                      <TableCell>{formatDisplayNumber(record.quota_charged)}</TableCell>
                       <TableCell>
                         <StatusBadge status={record.billing_status} />
                       </TableCell>
@@ -543,11 +537,11 @@ export function PaymentCenter() {
                     <TableRow key={order.id}>
                       <TableCell>{order.order_no}</TableCell>
                       <TableCell>{order.provider}</TableCell>
-                      <TableCell>{formatMoney(order.amount, order.currency)}</TableCell>
+                      <TableCell>{formatDisplayMoney(order.amount, order.currency)}</TableCell>
                       <TableCell>
                         <StatusBadge status={order.status} />
                       </TableCell>
-                      <TableCell>{formatDate(order.created_at)}</TableCell>
+                      <TableCell>{formatDisplayDateTime(order.created_at)}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -577,11 +571,11 @@ export function PaymentCenter() {
                   transfers.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.bank_account_name || '-'}</TableCell>
-                      <TableCell>{formatNumber(record.transfer_amount)}</TableCell>
+                      <TableCell>{formatDisplayMoney(record.transfer_amount)}</TableCell>
                       <TableCell>
                         <StatusBadge status={record.review_status} />
                       </TableCell>
-                      <TableCell>{formatDate(record.transfer_time)}</TableCell>
+                      <TableCell>{formatDisplayDateTime(record.transfer_time)}</TableCell>
                       <TableCell>
                         {record.proof_url ? (
                           <Button
@@ -628,13 +622,13 @@ export function RevenueShareDashboard() {
         <div className='grid gap-4 md:grid-cols-4'>
           <MetricCard
             title={t('Channel Revenue')}
-            value={formatMoney(summary?.revenue_share.gross_amount, currency)}
+            value={formatDisplayMoney(summary?.revenue_share.gross_amount, currency)}
             description={t('Gross channel revenue')}
             icon={Landmark}
           />
           <MetricCard
             title={t('Distributor Revenue')}
-            value={formatMoney(summary?.revenue_share.distributor_amount, currency)}
+            value={formatDisplayMoney(summary?.revenue_share.distributor_amount, currency)}
             description={t('Distributor share foundation amount')}
             icon={BadgeDollarSign}
           />
@@ -673,11 +667,11 @@ export function RevenueShareDashboard() {
                         {channel.name || `#${channel.distribution_channel_id}`}
                       </div>
                       <div className='text-muted-foreground text-xs'>
-                        {formatNumber(channel.record_count)} {t('Records')}
+                        {formatDisplayNumber(channel.record_count)} {t('Records')}
                       </div>
                     </div>
                     <Badge variant='outline'>
-                      {formatMoney(channel.gross_amount, currency)}
+                      {formatDisplayMoney(channel.gross_amount, currency)}
                     </Badge>
                   </div>
                 ))

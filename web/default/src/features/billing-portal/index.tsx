@@ -41,6 +41,12 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+  formatDisplayMoney,
+  formatDisplayNumber,
+} from '@/lib/commercial-display'
+import {
   getBillingPayments,
   getBillingRecords,
   getBillingSubscriptions,
@@ -58,23 +64,6 @@ import type {
 type BillingTab = 'overview' | 'payments' | 'usage' | 'bills' | 'subscriptions'
 
 const PAGE_SIZE = 10
-
-function formatNumber(value?: number) {
-  return new Intl.NumberFormat().format(value ?? 0)
-}
-
-function formatMoney(value?: number, currency = 'USD') {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0)
-}
-
-function formatDate(value?: number) {
-  if (!value) return '-'
-  return new Date(value * 1000).toLocaleString()
-}
 
 function statusVariant(
   status?: string
@@ -191,40 +180,40 @@ export function BillingPortal() {
               <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
                 <MetricTile
                   label={t('Current balance')}
-                  value={formatNumber(summary?.balance_quota)}
+                  value={formatDisplayNumber(summary?.balance_quota)}
                 />
                 <MetricTile
                   label={t('Total payments')}
-                  value={formatMoney(
+                  value={formatDisplayMoney(
                     summary?.total_recharge_amount,
-                    summary?.total_recharge_currency || 'USD'
+                    summary?.total_recharge_currency
                   )}
                 />
                 <MetricTile
                   label={t('Total consumption')}
-                  value={formatNumber(summary?.total_consumption_amount)}
+                  value={formatDisplayNumber(summary?.total_consumption_amount)}
                   detail={summary?.consumption_currency || 'QUOTA'}
                 />
                 <MetricTile
                   label={t('Last 30 days')}
-                  value={formatNumber(summary?.recent_30d_consumption)}
+                  value={formatDisplayNumber(summary?.recent_30d_consumption)}
                   detail={t('quota charged')}
                 />
                 <MetricTile
                   label={t('Total tokens')}
-                  value={formatNumber(summary?.total_tokens)}
+                  value={formatDisplayNumber(summary?.total_tokens)}
                 />
                 <MetricTile
                   label={t('Total requests')}
-                  value={formatNumber(summary?.total_requests)}
+                  value={formatDisplayNumber(summary?.total_requests)}
                 />
                 <MetricTile
                   label={t('30-day tokens')}
-                  value={formatNumber(summary?.recent_30d_tokens)}
+                  value={formatDisplayNumber(summary?.recent_30d_tokens)}
                 />
                 <MetricTile
                   label={t('30-day requests')}
-                  value={formatNumber(summary?.recent_30d_requests)}
+                  value={formatDisplayNumber(summary?.recent_30d_requests)}
                 />
               </div>
 
@@ -318,8 +307,8 @@ function RankingTable(props: {
             props.rows.map((row) => (
               <TableRow key={row.name}>
                 <TableCell className='font-medium'>{row.name || '-'}</TableCell>
-                <TableCell>{formatNumber(row.quota_charged)}</TableCell>
-                <TableCell>{formatNumber(row.total_tokens)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.quota_charged)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.total_tokens)}</TableCell>
               </TableRow>
             ))
           )}
@@ -358,11 +347,11 @@ function PaymentsTable(props: {
                 </TableCell>
                 <TableCell>{row.provider}</TableCell>
                 <TableCell>{row.business_type}</TableCell>
-                <TableCell>{formatMoney(row.amount, row.currency)}</TableCell>
+                <TableCell>{formatDisplayMoney(row.amount, row.currency)}</TableCell>
                 <TableCell>
                   <StatusBadge status={row.status} />
                 </TableCell>
-                <TableCell>{formatDate(row.created_at)}</TableCell>
+                <TableCell>{formatDisplayDateTime(row.created_at)}</TableCell>
               </TableRow>
             ))
           )}
@@ -402,12 +391,12 @@ function UsageTable(props: {
                 <TableCell className='font-mono text-xs'>
                   {row.request_id || '-'}
                 </TableCell>
-                <TableCell>{formatNumber(row.total_tokens)}</TableCell>
-                <TableCell>{formatNumber(row.request_count)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.total_tokens)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.request_count)}</TableCell>
                 <TableCell>
                   <StatusBadge status={row.status} />
                 </TableCell>
-                <TableCell>{formatDate(row.occurred_at)}</TableCell>
+                <TableCell>{formatDisplayDateTime(row.occurred_at)}</TableCell>
               </TableRow>
             ))
           )}
@@ -447,12 +436,12 @@ function BillsTable(props: {
                 </TableCell>
                 <TableCell>{row.provider_name || '-'}</TableCell>
                 <TableCell>{row.model_name || '-'}</TableCell>
-                <TableCell>{formatNumber(row.quota_charged)}</TableCell>
-                <TableCell>{formatNumber(row.total_tokens)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.quota_charged)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.total_tokens)}</TableCell>
                 <TableCell>
                   <StatusBadge status={row.billing_status} />
                 </TableCell>
-                <TableCell>{formatDate(row.created_at)}</TableCell>
+                <TableCell>{formatDisplayDateTime(row.created_at)}</TableCell>
               </TableRow>
             ))
           )}
@@ -488,14 +477,14 @@ function SubscriptionsTable(props: {
               <TableRow key={row.id}>
                 <TableCell className='font-mono text-xs'>#{row.id}</TableCell>
                 <TableCell>#{row.plan_id}</TableCell>
-                <TableCell>{formatNumber(row.token_quota_snapshot)}</TableCell>
+                <TableCell>{formatDisplayNumber(row.token_quota_snapshot)}</TableCell>
                 <TableCell>
-                  {formatNumber(row.request_quota_snapshot)}
+                  {formatDisplayNumber(row.request_quota_snapshot)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={row.lifecycle_status || row.status} />
                 </TableCell>
-                <TableCell>{formatDate(row.end_time)}</TableCell>
+                <TableCell>{formatDisplayDateTime(row.end_time)}</TableCell>
               </TableRow>
             ))
           )}
@@ -520,7 +509,7 @@ function DataPanel<T>(props: {
       {props.children}
       <div className='flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm'>
         <div className='text-muted-foreground'>
-          {t('Total')}: {formatNumber(total)}
+          {t('Total')}: {formatDisplayNumber(total)}
         </div>
         <div className='flex items-center gap-2'>
           <Button
@@ -551,9 +540,10 @@ function DataPanel<T>(props: {
 }
 
 function StatusBadge(props: { status?: string }) {
+  const { t } = useTranslation()
   return (
     <Badge variant={statusVariant(props.status)}>
-      {(props.status || '-').toUpperCase()}
+      {displayEnumLabel(props.status, t)}
     </Badge>
   )
 }

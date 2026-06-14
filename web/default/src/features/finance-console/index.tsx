@@ -33,6 +33,12 @@ import {
   getFinanceTopProviders,
   getFinanceTopTenants,
 } from './api'
+import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+  formatDisplayMoney,
+  formatDisplayNumber,
+} from '@/lib/commercial-display'
 import type {
   BillingRecord,
   FinanceMetricItem,
@@ -50,25 +56,8 @@ type FinanceTab = 'dashboard' | 'rankings' | 'activity'
 
 const PAGE_SIZE = 10
 
-function formatNumber(value?: number) {
-  return new Intl.NumberFormat().format(value ?? 0)
-}
-
-function formatMoney(value?: number, currency = 'USD') {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0)
-}
-
 function formatQuota(value?: number, currency = 'QUOTA') {
-  return `${formatNumber(value)} ${currency}`
-}
-
-function formatDate(value?: number) {
-  if (!value) return '-'
-  return new Date(value * 1000).toLocaleString()
+  return `${formatDisplayNumber(value)} ${currency}`
 }
 
 function statusVariant(
@@ -84,9 +73,10 @@ function statusVariant(
 }
 
 function StatusBadge({ status }: { status?: string }) {
+  const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)} className='uppercase'>
-      {status || '-'}
+    <Badge variant={statusVariant(status)}>
+      {displayEnumLabel(status, t)}
     </Badge>
   )
 }
@@ -320,31 +310,31 @@ export function FinanceConsole() {
               <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
                 <MetricTile
                   label={t('Total recharge')}
-                  value={formatMoney(
+                  value={formatDisplayMoney(
                     summary?.revenue.total_recharge_amount,
-                    summary?.revenue.currency || 'USD'
+                    summary?.revenue.currency
                   )}
                   detail={t('All paid payment orders')}
                   icon={<CreditCard className='size-4' />}
                 />
                 <MetricTile
                   label={t('This month recharge')}
-                  value={formatMoney(
+                  value={formatDisplayMoney(
                     summary?.revenue.month_recharge_amount,
-                    summary?.revenue.currency || 'USD'
+                    summary?.revenue.currency
                   )}
                 />
                 <MetricTile
                   label={t('Recent 30d recharge')}
-                  value={formatMoney(
+                  value={formatDisplayMoney(
                     summary?.revenue.recent_30d_recharge,
-                    summary?.revenue.currency || 'USD'
+                    summary?.revenue.currency
                   )}
                 />
                 <MetricTile
                   label={t('Payment success rate')}
-                  value={`${formatNumber(summary?.revenue.payment_success_rate)}%`}
-                  detail={`${formatNumber(summary?.revenue.paid_payment_order_count)} / ${formatNumber(summary?.revenue.payment_order_count)}`}
+                  value={`${formatDisplayNumber(summary?.revenue.payment_success_rate)}%`}
+                  detail={`${formatDisplayNumber(summary?.revenue.paid_payment_order_count)} / ${formatDisplayNumber(summary?.revenue.payment_order_count)}`}
                 />
                 <MetricTile
                   label={t('Total consumption')}
@@ -363,32 +353,32 @@ export function FinanceConsole() {
                 />
                 <MetricTile
                   label={t('Total requests')}
-                  value={formatNumber(summary?.consumption.total_requests)}
+                  value={formatDisplayNumber(summary?.consumption.total_requests)}
                 />
                 <MetricTile
                   label={t('Total tokens')}
-                  value={formatNumber(summary?.consumption.total_tokens)}
+                  value={formatDisplayNumber(summary?.consumption.total_tokens)}
                 />
               </div>
 
               <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
                 <MetricTile
                   label={t('Active tenants')}
-                  value={formatNumber(summary?.activity.active_tenant_count)}
+                  value={formatDisplayNumber(summary?.activity.active_tenant_count)}
                 />
                 <MetricTile
                   label={t('Active users')}
-                  value={formatNumber(summary?.activity.active_user_count)}
+                  value={formatDisplayNumber(summary?.activity.active_user_count)}
                 />
                 <MetricTile
                   label={t('Active subscriptions')}
-                  value={formatNumber(
+                  value={formatDisplayNumber(
                     summary?.activity.active_subscription_count
                   )}
                 />
                 <MetricTile
                   label={t('Active channels')}
-                  value={formatNumber(summary?.activity.active_channel_count)}
+                  value={formatDisplayNumber(summary?.activity.active_channel_count)}
                 />
               </div>
 
@@ -473,7 +463,7 @@ export function FinanceConsole() {
 function PaymentDashboardPanel({
   providers,
   trend,
-  currency = 'USD',
+  currency,
 }: {
   providers?: FinanceProviderPayment[]
   trend?: { date: string; amount: number; orders: number }[]
@@ -491,8 +481,8 @@ function PaymentDashboardPanel({
           emptyCols={3}
           rows={(providers || []).map((item) => [
             item.provider || '-',
-            formatMoney(item.amount, currency),
-            formatNumber(item.orders),
+            formatDisplayMoney(item.amount, currency),
+            formatDisplayNumber(item.orders),
           ])}
         />
         <CompactTable
@@ -500,8 +490,8 @@ function PaymentDashboardPanel({
           emptyCols={3}
           rows={(trend || []).map((item) => [
             item.date,
-            formatMoney(item.amount, currency),
-            formatNumber(item.orders),
+            formatDisplayMoney(item.amount, currency),
+            formatDisplayNumber(item.orders),
           ])}
         />
       </CardContent>
@@ -520,12 +510,12 @@ function VoucherRevenuePanel({ summary }: { summary?: FinanceSummary }) {
         <div className='grid gap-3 sm:grid-cols-2'>
           <SummaryStat
             label={t('Issued vouchers')}
-            value={formatNumber(summary?.voucher.total_issued)}
+            value={formatDisplayNumber(summary?.voucher.total_issued)}
           />
           <SummaryStat
             label={t('Redeemed vouchers')}
-            value={formatNumber(summary?.voucher.total_redeemed)}
-            detail={`${formatNumber(summary?.voucher.redemption_rate)}%`}
+            value={formatDisplayNumber(summary?.voucher.total_redeemed)}
+            detail={`${formatDisplayNumber(summary?.voucher.redemption_rate)}%`}
           />
           <SummaryStat
             label={t('Platform revenue share')}
@@ -626,7 +616,7 @@ function TenantRankingTable({
           rows={(rows || []).map((item) => [
             item.name || `#${item.tenant_id}`,
             formatQuota(item.amount),
-            formatNumber(item.count),
+            formatDisplayNumber(item.count),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -661,8 +651,8 @@ function MetricRankingTable({
           rows={(rows || []).map((item) => [
             item.name || '-',
             formatQuota(item.amount),
-            formatNumber(item.request_count),
-            formatNumber(item.total_tokens),
+            formatDisplayNumber(item.request_count),
+            formatDisplayNumber(item.total_tokens),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -698,7 +688,7 @@ function ChannelRankingTable({
             item.name || `#${item.distribution_channel_id}`,
             formatQuota(item.gross_amount),
             formatQuota(item.platform_amount),
-            formatNumber(item.record_count),
+            formatDisplayNumber(item.record_count),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -731,9 +721,9 @@ function RecentPaymentsTable({
           rows={(rows || []).map((item) => [
             <span className='font-mono text-xs'>{item.order_no}</span>,
             item.provider,
-            formatMoney(item.amount, item.currency),
+            formatDisplayMoney(item.amount, item.currency),
             <StatusBadge status={item.status} />,
-            formatDate(item.created_at),
+            formatDisplayDateTime(item.created_at),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -766,9 +756,9 @@ function RecentRedemptionsTable({
           rows={(rows || []).map((item) => [
             <span className='font-mono text-xs'>{item.voucher_code}</span>,
             `#${item.user_id}`,
-            item.redemption_type,
+            displayEnumLabel(item.redemption_type, t),
             <StatusBadge status={item.redemption_result} />,
-            formatDate(item.created_at),
+            formatDisplayDateTime(item.created_at),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -803,7 +793,7 @@ function RecentSubscriptionsTable({
             `#${item.plan_id}`,
             formatQuota(item.amount_total),
             <StatusBadge status={item.status} />,
-            formatDate(item.end_time),
+            formatDisplayDateTime(item.end_time),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
@@ -837,8 +827,8 @@ function RecentBillingTable({
             item.provider_name || '-',
             item.model_name || '-',
             formatQuota(item.quota_charged),
-            formatNumber(item.request_count),
-            formatDate(item.created_at),
+            formatDisplayNumber(item.request_count),
+            formatDisplayDateTime(item.created_at),
           ])}
         />
         <Pager page={page} pageData={pageData} onPageChange={onPageChange} />
