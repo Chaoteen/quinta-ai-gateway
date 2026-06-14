@@ -54,6 +54,11 @@ function EmptyAboutState() {
               'The administrator has not configured any about content yet. You can set it in the settings page, supporting HTML or URL.'
             )}
           </p>
+          <p className='text-muted-foreground'>
+            {t(
+              'Quinta AI Gateway is an Enterprise AI Gateway and MaaS Platform for unified model access, quota management, billing, and tenant permissions.'
+            )}
+          </p>
         </div>
         <div className='space-y-4 text-sm'>
           <p>
