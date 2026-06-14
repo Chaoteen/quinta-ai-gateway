@@ -57,6 +57,9 @@ type FinanceTab = 'dashboard' | 'rankings' | 'activity'
 const PAGE_SIZE = 10
 
 function formatQuota(value?: number, currency = 'QUOTA') {
+  if (currency && currency !== 'QUOTA') {
+    return formatDisplayMoney(value, currency)
+  }
   return `${formatDisplayNumber(value)} ${currency}`
 }
 
