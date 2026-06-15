@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import z from 'zod'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { requireRoot } from '@/lib/route-guards'
-import { Models } from '@/features/models'
 import {
   MODELS_SECTION_IDS,
   MODELS_DEFAULT_SECTION,
@@ -51,5 +50,4 @@ export const Route = createFileRoute('/_authenticated/models/$section')({
     }
   },
   validateSearch: modelsSearchSchema,
-  component: Models,
 })

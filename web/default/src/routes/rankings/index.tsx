@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import z from 'zod'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Rankings } from '@/features/rankings'
 import { getModuleAccess } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -43,5 +42,4 @@ export const Route = createFileRoute('/rankings/')({
       }
     }
   },
-  component: Rankings,
 })

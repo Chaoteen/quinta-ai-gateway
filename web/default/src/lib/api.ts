@@ -226,10 +226,83 @@ export async function getUserGroups(): Promise<{
 // System APIs
 // ----------------------------------------------------------------------------
 
+const STATUS_CACHE_KEY = 'status'
+const STATUS_CACHE_META_KEY = 'status_cache_meta'
+const STATUS_CACHE_TTL_MS = 5 * 60 * 1000
+const NOTICE_CACHE_KEY = 'notice_cache'
+const NOTICE_CACHE_META_KEY = 'notice_cache_meta'
+const NOTICE_CACHE_TTL_MS = 5 * 60 * 1000
+
+let statusRequest: Promise<Record<string, unknown>> | null = null
+let noticeRequest:
+  | Promise<{
+      success: boolean
+      message?: string
+      data?: string
+    }>
+  | null = null
+
+function getCachedJson<T>(key: string, metaKey: string, ttlMs: number): T | null {
+  try {
+    if (typeof window === 'undefined') return null
+    const meta = window.localStorage.getItem(metaKey)
+    const saved = window.localStorage.getItem(key)
+    if (!meta || !saved) return null
+    const timestamp = Number(meta)
+    if (!Number.isFinite(timestamp) || Date.now() - timestamp > ttlMs) {
+      return null
+    }
+    return JSON.parse(saved) as T
+  } catch {
+    return null
+  }
+}
+
+function setCachedJson(key: string, metaKey: string, value: unknown): void {
+  try {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(key, JSON.stringify(value))
+    window.localStorage.setItem(metaKey, String(Date.now()))
+  } catch {
+    /* empty */
+  }
+}
+
 // Get system status
 export async function getStatus() {
-  const res = await api.get('/api/status')
-  return res.data?.data as Record<string, unknown>
+  const cached = getCachedJson<Record<string, unknown>>(
+    STATUS_CACHE_KEY,
+    STATUS_CACHE_META_KEY,
+    STATUS_CACHE_TTL_MS
+  )
+  if (cached) return cached
+
+  if (!statusRequest) {
+    statusRequest = api
+      .get('/api/status', {
+        disableDuplicate: true,
+        skipErrorHandler: true,
+      } as Record<string, unknown>)
+      .then((res) => {
+        const status = res.data?.data as Record<string, unknown>
+        if (status) setCachedJson(STATUS_CACHE_KEY, STATUS_CACHE_META_KEY, status)
+        return status
+      })
+      .catch((error) => {
+        const fallback = getCachedJson<Record<string, unknown>>(
+          STATUS_CACHE_KEY,
+          STATUS_CACHE_META_KEY,
+          Number.POSITIVE_INFINITY
+        )
+        if (fallback) return fallback
+        throw error
+      })
+      .finally(() => {
+        statusRequest = null
+      })
+  }
+
+  return statusRequest
 }
 
 // Get system notice
@@ -238,8 +311,43 @@ export async function getNotice(): Promise<{
   message?: string
   data?: string
 }> {
-  const res = await api.get('/api/notice')
-  return res.data
+  const cached = getCachedJson<{
+    success: boolean
+    message?: string
+    data?: string
+  }>(NOTICE_CACHE_KEY, NOTICE_CACHE_META_KEY, NOTICE_CACHE_TTL_MS)
+  if (cached) return cached
+
+  if (!noticeRequest) {
+    noticeRequest = api
+      .get('/api/notice', {
+        disableDuplicate: true,
+        skipErrorHandler: true,
+      } as Record<string, unknown>)
+      .then((res) => {
+        const notice = res.data as {
+          success: boolean
+          message?: string
+          data?: string
+        }
+        setCachedJson(NOTICE_CACHE_KEY, NOTICE_CACHE_META_KEY, notice)
+        return notice
+      })
+      .catch((error) => {
+        const fallback = getCachedJson<{
+          success: boolean
+          message?: string
+          data?: string
+        }>(NOTICE_CACHE_KEY, NOTICE_CACHE_META_KEY, Number.POSITIVE_INFINITY)
+        if (fallback) return fallback
+        throw error
+      })
+      .finally(() => {
+        noticeRequest = null
+      })
+  }
+
+  return noticeRequest
 }
 
 // ----------------------------------------------------------------------------

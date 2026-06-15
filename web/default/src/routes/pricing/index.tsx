@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import z from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
-import { Pricing } from '@/features/pricing'
 
 const pricingSearchSchema = z.object({
   search: z.string().optional(),
@@ -35,5 +34,4 @@ const pricingSearchSchema = z.object({
 
 export const Route = createFileRoute('/pricing/')({
   validateSearch: pricingSearchSchema,
-  component: Pricing,
 })

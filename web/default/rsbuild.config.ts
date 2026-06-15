@@ -48,6 +48,27 @@ export default defineConfig(({ envMode }) => {
           priority: 0,
           enforce: true,
         },
+        'vendor-vchart': {
+          test: /node_modules[\\/]@visactor[\\/]/,
+          name: 'vendor-vchart',
+          chunks: 'all',
+          priority: 20,
+          enforce: true,
+        },
+        'vendor-lobehub-icons': {
+          test: /node_modules[\\/]@lobehub[\\/]icons[\\/]/,
+          name: 'vendor-lobehub-icons',
+          chunks: 'all',
+          priority: 20,
+          enforce: true,
+        },
+        'vendor-recharts': {
+          test: /node_modules[\\/]recharts[\\/]/,
+          name: 'vendor-recharts',
+          chunks: 'all',
+          priority: 20,
+          enforce: true,
+        },
       },
     },
     source: {
