@@ -20,7 +20,6 @@ import z from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 import { RBAC_PERMISSION } from '@/lib/rbac'
 import { requirePermission } from '@/lib/route-guards'
-import { Users } from '@/features/users'
 
 const usersSearchSchema = z.object({
   page: z.number().optional().catch(1),
@@ -42,5 +41,4 @@ export const Route = createFileRoute('/_authenticated/users/')({
     requirePermission(RBAC_PERMISSION.USERS)
   },
   validateSearch: usersSearchSchema,
-  component: Users,
 })

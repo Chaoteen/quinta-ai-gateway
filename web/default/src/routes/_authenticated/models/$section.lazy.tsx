@@ -16,24 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import z from 'zod'
-import { createFileRoute } from '@tanstack/react-router'
-import { RBAC_PERMISSION } from '@/lib/rbac'
-import { requirePermission } from '@/lib/route-guards'
+import { createLazyFileRoute } from '@tanstack/react-router'
+import { Models } from '@/features/models'
 
-const channelsSearchSchema = z.object({
-  page: z.number().optional().catch(1),
-  pageSize: z.number().optional().catch(10),
-  filter: z.string().optional().catch(''),
-  status: z.array(z.string()).optional().catch([]),
-  type: z.array(z.string()).optional().catch([]),
-  group: z.array(z.string()).optional().catch([]),
-  model: z.string().optional().catch(''),
-})
-
-export const Route = createFileRoute('/_authenticated/channels/')({
-  beforeLoad: () => {
-    requirePermission(RBAC_PERMISSION.CHANNELS)
-  },
-  validateSearch: channelsSearchSchema,
+export const Route = createLazyFileRoute('/_authenticated/models/$section')({
+  component: Models,
 })

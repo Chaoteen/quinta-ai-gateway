@@ -19,14 +19,40 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 import type { SetupFormValues, SetupResponse } from './types'
 
+const SETUP_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
+let setupStatusRequest: Promise<SetupResponse> | null = null
+let setupStatusCache:
+  | {
+      timestamp: number
+      value: SetupResponse
+    }
+  | null = null
+
 export async function getSetupStatus(): Promise<SetupResponse> {
-  const res = await api.get('/api/setup', {
-    // We want fresh status on every visit.
-    params: {
-      t: Date.now(),
-    },
-  })
-  return res.data
+  if (
+    setupStatusCache &&
+    Date.now() - setupStatusCache.timestamp < SETUP_STATUS_CACHE_TTL_MS
+  ) {
+    return setupStatusCache.value
+  }
+
+  if (!setupStatusRequest) {
+    setupStatusRequest = api
+      .get('/api/setup', {
+        disableDuplicate: true,
+        skipErrorHandler: true,
+      } as Record<string, unknown>)
+      .then((res) => {
+        const value = res.data as SetupResponse
+        setupStatusCache = { timestamp: Date.now(), value }
+        return value
+      })
+      .finally(() => {
+        setupStatusRequest = null
+      })
+  }
+
+  return setupStatusRequest
 }
 
 export async function submitSetup(
