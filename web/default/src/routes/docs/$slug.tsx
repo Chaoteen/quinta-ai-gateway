@@ -19,13 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { PublicLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
+import { Markdown } from '@/components/ui/markdown'
+import { PublicLayout } from '@/components/layout'
 import { getUserGuideDoc } from '@/features/docs/docs-content'
+import { getPublicContent } from '@/features/docs/public-content'
 
 function UserGuideDocPage() {
   const { slug } = Route.useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const doc = getUserGuideDoc(slug)
 
   if (!doc) {
@@ -61,19 +63,29 @@ function UserGuideDocPage() {
         </header>
 
         <div className='space-y-6'>
-          {doc.sections.map((section) => (
-            <section
-              key={section.headingKey}
-              className='border-border border-t pt-6'
-            >
-              <h2 className='text-xl font-semibold tracking-tight'>
-                {t(section.headingKey)}
-              </h2>
-              <p className='text-muted-foreground mt-3 leading-7'>
-                {t(section.bodyKey)}
-              </p>
-            </section>
-          ))}
+          {slug === 'api-access' || slug === 'quick-start' ? (
+            <Markdown className='[&_code]:text-xs [&_pre]:overflow-x-auto [&_pre]:p-4 [&_pre_code]:whitespace-pre'>
+              {getPublicContent(
+                'api',
+                i18n.resolvedLanguage || i18n.language,
+                window.location.origin
+              )}
+            </Markdown>
+          ) : (
+            doc.sections.map((section) => (
+              <section
+                key={section.headingKey}
+                className='border-border border-t pt-6'
+              >
+                <h2 className='text-xl font-semibold tracking-tight'>
+                  {t(section.headingKey)}
+                </h2>
+                <p className='text-muted-foreground mt-3 leading-7'>
+                  {t(section.bodyKey)}
+                </p>
+              </section>
+            ))
+          )}
         </div>
       </main>
     </PublicLayout>

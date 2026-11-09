@@ -17,11 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Construction } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Markdown } from '@/components/ui/markdown'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PublicLayout } from '@/components/layout'
+import { getPublicContent } from '@/features/docs/public-content'
 import { getAboutContent } from './api'
 
 function isValidUrl(value: string) {
@@ -38,28 +38,19 @@ function isLikelyHtml(value: string) {
 }
 
 function EmptyAboutState() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const currentYear = new Date().getFullYear()
 
   return (
-    <div className='flex min-h-[60vh] items-center justify-center p-8'>
-      <div className='max-w-2xl space-y-6 text-center'>
-        <div className='flex justify-center'>
-          <Construction className='text-muted-foreground h-24 w-24' />
-        </div>
-        <div className='space-y-2'>
-          <h2 className='text-2xl font-bold'>{t('No About Content Set')}</h2>
-          <p className='text-muted-foreground'>
-            {t(
-              'The administrator has not configured any about content yet. You can set it in the settings page, supporting HTML or URL.'
-            )}
-          </p>
-          <p className='text-muted-foreground'>
-            {t(
-              'Quinta AI Gateway is an Enterprise AI Gateway and MaaS Platform for unified model access, quota management, billing, and tenant permissions.'
-            )}
-          </p>
-        </div>
+    <div className='mx-auto w-full max-w-4xl px-4 py-24 md:py-28'>
+      <div className='space-y-8'>
+        <Markdown className='border-border border-l-2 pl-6 [&_h2]:mt-8'>
+          {getPublicContent(
+            'about',
+            i18n.resolvedLanguage || i18n.language,
+            window.location.origin
+          )}
+        </Markdown>
         <div className='space-y-4 text-sm'>
           <p>
             {t('Quinta AI Gateway Project Repository:')}{' '}
