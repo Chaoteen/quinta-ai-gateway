@@ -74,6 +74,12 @@ export default defineConfig(({ envMode }) => {
       },
     },
     source: {
+      // Custom VITE_ variables must be explicitly exposed by Rsbuild. Keep the
+      // browser router/API base aligned with the HTML and asset prefix.
+      define: {
+        ...env.publicVars,
+        'import.meta.env.VITE_BASE_PATH': JSON.stringify(basePath),
+      },
       entry: {
         index: './src/main.tsx',
       },
@@ -109,7 +115,7 @@ export default defineConfig(({ envMode }) => {
       // Speed up repeated `rsbuild build` (local + CI when node_modules/.cache is preserved).
       // @see https://v2.rsbuild.dev/config/performance/build-cache
       buildCache: {
-        cacheDigest: [process.env.VITE_REACT_APP_VERSION],
+        cacheDigest: [process.env.VITE_REACT_APP_VERSION, basePath],
       },
     },
     tools: {

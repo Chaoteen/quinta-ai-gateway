@@ -96,7 +96,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test scripts/commercial-money.test.mjs
-      - run: bun test scripts/base-path.test.mjs
+      - run: bun test scripts/base-path.test.mjs scripts/base-path-build.test.mjs
       - run: bun run build
       - run: bun audit --audit-level=high
   classic-frontend:
