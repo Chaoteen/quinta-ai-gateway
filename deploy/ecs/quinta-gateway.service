@@ -1,0 +1,28 @@
+[Unit]
+Description=Quinta AI Gateway isolated instance
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=quinta-gateway
+Group=quinta-gateway
+WorkingDirectory=/var/lib/quinta-ai-gateway
+EnvironmentFile=/etc/quinta-ai-gateway/runtime.env
+ExecStart=/opt/quinta-ai-gateway/current/quinta --log-dir /var/log/quinta-ai-gateway
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/quinta-ai-gateway /var/log/quinta-ai-gateway
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+MemoryMax=768M
+TasksMax=128
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

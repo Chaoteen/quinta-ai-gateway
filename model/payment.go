@@ -46,28 +46,38 @@ const (
 )
 
 type PaymentOrder struct {
-	Id                    int     `json:"id"`
-	OrderNo               string  `json:"order_no" gorm:"unique;type:varchar(64);index"`
-	TenantId              int     `json:"tenant_id" gorm:"index;default:1"`
-	OrganizationId        int     `json:"organization_id" gorm:"index;default:0"`
-	DepartmentId          int     `json:"department_id" gorm:"index;default:0"`
-	DistributionChannelId int     `json:"distribution_channel_id" gorm:"index;default:0"`
-	UserId                int     `json:"user_id" gorm:"index"`
-	Provider              string  `json:"provider" gorm:"type:varchar(32);index;not null"`
-	BusinessType          string  `json:"business_type" gorm:"type:varchar(64);index;not null"`
-	BusinessId            int     `json:"business_id" gorm:"index;default:0"`
-	Amount                float64 `json:"amount" gorm:"type:decimal(12,6);not null;default:0"`
-	Currency              string  `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
-	Status                string  `json:"status" gorm:"type:varchar(32);index;not null;default:'PENDING'"`
-	Subject               string  `json:"subject" gorm:"type:varchar(255);default:''"`
-	Description           string  `json:"description" gorm:"type:text"`
-	PaidAt                int64   `json:"paid_at" gorm:"type:bigint;default:0"`
-	ExpiredAt             int64   `json:"expired_at" gorm:"type:bigint;default:0;index"`
-	FulfillmentStatus     string  `json:"fulfillment_status" gorm:"type:varchar(32);index;default:'PENDING'"`
-	FulfillmentMessage    string  `json:"fulfillment_message" gorm:"type:text"`
-	FulfilledAt           int64   `json:"fulfilled_at" gorm:"type:bigint;default:0"`
-	CreatedAt             int64   `json:"created_at" gorm:"type:bigint"`
-	UpdatedAt             int64   `json:"updated_at" gorm:"type:bigint"`
+	Id                    int    `json:"id"`
+	OrderNo               string `json:"order_no" gorm:"unique;type:varchar(64);index"`
+	TenantId              int    `json:"tenant_id" gorm:"index;default:1"`
+	OrganizationId        int    `json:"organization_id" gorm:"index;default:0"`
+	DepartmentId          int    `json:"department_id" gorm:"index;default:0"`
+	DistributionChannelId int    `json:"distribution_channel_id" gorm:"index;default:0"`
+	UserId                int    `json:"user_id" gorm:"index"`
+	Provider              string `json:"provider" gorm:"type:varchar(32);index;not null"`
+	BusinessType          string `json:"business_type" gorm:"type:varchar(64);index;not null"`
+	BusinessId            int    `json:"business_id" gorm:"index;default:0"`
+	PaymentAccountId      int    `json:"payment_account_id" gorm:"index;default:0"`
+	MerchantIdSnapshot    string `json:"-" gorm:"type:varchar(128)"`
+	AppIdSnapshot         string `json:"-" gorm:"type:varchar(128)"`
+	AmountMinor           int64  `json:"amount_minor" gorm:"type:bigint;default:0"`
+	FundingPolicyId       int    `json:"funding_policy_id" gorm:"index;default:0"`
+	FundingPolicySnapshot string `json:"-" gorm:"type:text"`
+	// Server-owned quote. Legacy unpaid orders must be re-created, never backfilled from client data.
+	PricingVersion     string  `json:"pricing_version" gorm:"type:varchar(32);default:''"`
+	QuotaGranted       int64   `json:"quota_granted" gorm:"type:bigint;default:0"`
+	PlanSnapshot       string  `json:"-" gorm:"type:text"`
+	Amount             float64 `json:"amount" gorm:"type:decimal(12,6);not null;default:0"`
+	Currency           string  `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
+	Status             string  `json:"status" gorm:"type:varchar(32);index;not null;default:'PENDING'"`
+	Subject            string  `json:"subject" gorm:"type:varchar(255);default:''"`
+	Description        string  `json:"description" gorm:"type:text"`
+	PaidAt             int64   `json:"paid_at" gorm:"type:bigint;default:0"`
+	ExpiredAt          int64   `json:"expired_at" gorm:"type:bigint;default:0;index"`
+	FulfillmentStatus  string  `json:"fulfillment_status" gorm:"type:varchar(32);index;default:'PENDING'"`
+	FulfillmentMessage string  `json:"fulfillment_message" gorm:"type:text"`
+	FulfilledAt        int64   `json:"fulfilled_at" gorm:"type:bigint;default:0"`
+	CreatedAt          int64   `json:"created_at" gorm:"type:bigint"`
+	UpdatedAt          int64   `json:"updated_at" gorm:"type:bigint"`
 }
 
 func (o *PaymentOrder) BeforeCreate(tx *gorm.DB) error {
@@ -126,21 +136,23 @@ func (l *PaymentCallbackLog) BeforeCreate(tx *gorm.DB) error {
 }
 
 type BankTransferRecord struct {
-	Id                  int     `json:"id"`
-	PaymentOrderId      int     `json:"payment_order_id" gorm:"index"`
-	TenantId            int     `json:"tenant_id" gorm:"index;default:1"`
-	UserId              int     `json:"user_id" gorm:"index"`
-	BankAccountName     string  `json:"bank_account_name" gorm:"type:varchar(128);not null"`
-	BankAccountNoMasked string  `json:"bank_account_no_masked" gorm:"type:varchar(64);default:''"`
-	TransferAmount      float64 `json:"transfer_amount" gorm:"type:decimal(12,6);not null;default:0"`
-	TransferTime        int64   `json:"transfer_time" gorm:"type:bigint;default:0"`
-	ProofUrl            string  `json:"proof_url" gorm:"type:text"`
-	ReviewStatus        string  `json:"review_status" gorm:"type:varchar(32);index;default:'PENDING'"`
-	ReviewedBy          int     `json:"reviewed_by" gorm:"index;default:0"`
-	ReviewedAt          int64   `json:"reviewed_at" gorm:"type:bigint;default:0"`
-	ReviewNote          string  `json:"review_note" gorm:"type:text"`
-	CreatedAt           int64   `json:"created_at" gorm:"type:bigint"`
-	UpdatedAt           int64   `json:"updated_at" gorm:"type:bigint"`
+	Id                       int     `json:"id"`
+	PaymentOrderId           int     `json:"payment_order_id" gorm:"index"`
+	PaymentAccountId         int     `json:"payment_account_id" gorm:"default:0;uniqueIndex:uq_bank_statement_reference"`
+	BankTransactionReference *string `json:"bank_transaction_reference,omitempty" gorm:"type:varchar(128);uniqueIndex:uq_bank_statement_reference"`
+	TenantId                 int     `json:"tenant_id" gorm:"index;default:1"`
+	UserId                   int     `json:"user_id" gorm:"index"`
+	BankAccountName          string  `json:"bank_account_name" gorm:"type:varchar(128);not null"`
+	BankAccountNoMasked      string  `json:"bank_account_no_masked" gorm:"type:varchar(64);default:''"`
+	TransferAmount           float64 `json:"transfer_amount" gorm:"type:decimal(12,6);not null;default:0"`
+	TransferTime             int64   `json:"transfer_time" gorm:"type:bigint;default:0"`
+	ProofUrl                 string  `json:"proof_url" gorm:"type:text"`
+	ReviewStatus             string  `json:"review_status" gorm:"type:varchar(32);index;default:'PENDING'"`
+	ReviewedBy               int     `json:"reviewed_by" gorm:"index;default:0"`
+	ReviewedAt               int64   `json:"reviewed_at" gorm:"type:bigint;default:0"`
+	ReviewNote               string  `json:"review_note" gorm:"type:text"`
+	CreatedAt                int64   `json:"created_at" gorm:"type:bigint"`
+	UpdatedAt                int64   `json:"updated_at" gorm:"type:bigint"`
 }
 
 func (r *BankTransferRecord) BeforeCreate(tx *gorm.DB) error {

@@ -14,11 +14,29 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func TestMain(m *testing.M) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	var dialector gorm.Dialector = sqlite.Open(":memory:")
+	driver := os.Getenv("SECURITY_TEST_DB_DRIVER")
+	if driver != "" {
+		// This suite deletes fixture tables. Never point it at an existing database.
+		if os.Getenv("SECURITY_ALLOW_DISPOSABLE_DB") != "true" {
+			panic("external database tests require SECURITY_ALLOW_DISPOSABLE_DB=true")
+		}
+		switch driver {
+		case "postgres":
+			dialector = postgres.Open(os.Getenv("SECURITY_TEST_DB_DSN"))
+		case "mysql":
+			dialector = mysql.Open(os.Getenv("SECURITY_TEST_DB_DSN"))
+		default:
+			panic("unsupported security test database driver")
+		}
+	}
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
 		panic("failed to open test db: " + err.Error())
 	}
@@ -27,11 +45,16 @@ func TestMain(m *testing.M) {
 		panic("failed to get sql.DB: " + err.Error())
 	}
 	sqlDB.SetMaxOpenConns(1)
+	if driver != "" {
+		sqlDB.SetMaxOpenConns(16)
+	}
 
 	model.DB = db
 	model.LOG_DB = db
 
-	common.UsingSQLite = true
+	common.UsingSQLite = driver == ""
+	common.UsingPostgreSQL = driver == "postgres"
+	common.UsingMySQL = driver == "mysql"
 	common.RedisEnabled = false
 	common.BatchUpdateEnabled = false
 	common.LogConsumeEnabled = true
@@ -53,6 +76,9 @@ func TestMain(m *testing.M) {
 		&model.RevenueShareRule{},
 		&model.RevenueShareRecord{},
 		&model.PaymentOrder{},
+		&model.TenantPaymentAccount{},
+		&model.TenantFundingPolicy{},
+		&model.QuotaCreditLedgerEntry{},
 		&model.PaymentCallbackLog{},
 		&model.BankTransferRecord{},
 		&model.VoucherBatch{},
@@ -91,6 +117,9 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM revenue_share_rules")
 		model.DB.Exec("DELETE FROM revenue_share_records")
 		model.DB.Exec("DELETE FROM payment_orders")
+		model.DB.Exec("DELETE FROM tenant_payment_accounts")
+		model.DB.Exec("DELETE FROM tenant_funding_policies")
+		model.DB.Exec("DELETE FROM quota_credit_ledger_entries")
 		model.DB.Exec("DELETE FROM payment_callback_logs")
 		model.DB.Exec("DELETE FROM bank_transfer_records")
 		model.DB.Exec("DELETE FROM voucher_redemptions")

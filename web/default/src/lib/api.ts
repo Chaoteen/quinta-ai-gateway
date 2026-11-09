@@ -20,13 +20,14 @@ import axios from 'axios'
 import i18next from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import { APP_BASE_PATH, withBasePath } from '@/lib/base-path'
 
 // ============================================================================
 // Axios Instance Configuration
 // ============================================================================
 
 // Base URL: empty string for same-origin API requests
-const baseURL = ''
+const baseURL = APP_BASE_PATH
 
 // Create axios instance with default config
 export const api = axios.create({
@@ -71,15 +72,16 @@ api.get = ((url: string, config = {}) => {
 
 function navigateToErrorPage(path: string) {
   if (typeof window === 'undefined') return
-  if (window.location.pathname === path) return
-  window.location.assign(path)
+  const target = withBasePath(path)
+  if (window.location.pathname === target) return
+  window.location.assign(target)
 }
 
 function navigateToSignIn() {
   if (typeof window === 'undefined') return
   const current = `${window.location.pathname}${window.location.search}`
-  const target = `/sign-in?redirect=${encodeURIComponent(current)}`
-  if (window.location.pathname === '/sign-in') return
+  const target = `${withBasePath('/sign-in')}?redirect=${encodeURIComponent(current)}`
+  if (window.location.pathname === withBasePath('/sign-in')) return
   window.location.assign(target)
 }
 
@@ -234,15 +236,17 @@ const NOTICE_CACHE_META_KEY = 'notice_cache_meta'
 const NOTICE_CACHE_TTL_MS = 5 * 60 * 1000
 
 let statusRequest: Promise<Record<string, unknown>> | null = null
-let noticeRequest:
-  | Promise<{
-      success: boolean
-      message?: string
-      data?: string
-    }>
-  | null = null
+let noticeRequest: Promise<{
+  success: boolean
+  message?: string
+  data?: string
+}> | null = null
 
-function getCachedJson<T>(key: string, metaKey: string, ttlMs: number): T | null {
+function getCachedJson<T>(
+  key: string,
+  metaKey: string,
+  ttlMs: number
+): T | null {
   try {
     if (typeof window === 'undefined') return null
     const meta = window.localStorage.getItem(metaKey)
@@ -285,7 +289,8 @@ export async function getStatus() {
       } as Record<string, unknown>)
       .then((res) => {
         const status = res.data?.data as Record<string, unknown>
-        if (status) setCachedJson(STATUS_CACHE_KEY, STATUS_CACHE_META_KEY, status)
+        if (status)
+          setCachedJson(STATUS_CACHE_KEY, STATUS_CACHE_META_KEY, status)
         return status
       })
       .catch((error) => {

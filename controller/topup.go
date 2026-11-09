@@ -111,6 +111,14 @@ func GetTopUpInfo(c *gin.Context) {
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
 	}
+	if service.TenantIndependentCollectionEnabled() {
+		for _, key := range []string{"enable_online_topup", "enable_stripe_topup", "enable_creem_topup", "enable_waffo_topup", "enable_waffo_pancake_topup"} {
+			data[key] = false
+		}
+		data["pay_methods"] = []interface{}{}
+		data["creem_products"] = "[]"
+		data["topup_link"] = ""
+	}
 	common.ApiSuccess(c, data)
 }
 
@@ -178,6 +186,9 @@ func getMinTopup() int64 {
 }
 
 func RequestEpay(c *gin.Context) {
+	if rejectLegacyPlatformCollection(c) {
+		return
+	}
 	var req EpayRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {

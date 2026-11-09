@@ -4683,6 +4683,8 @@
     "Profiles": "Profiles",
     "Files": "Files",
     "Manual invoice registration": "Manual invoice registration",
+    "Register a genuine invoice already issued through the tax platform.": "Register a genuine invoice already issued through the tax platform.",
+    "Only authorized platform finance can review and register invoices.": "Only authorized platform finance can review and register invoices.",
     "Application ID": "Application ID",
     "Invoice number": "Invoice number",
     "File name": "File name",

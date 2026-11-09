@@ -2,6 +2,7 @@ import { api } from '@/lib/api'
 import type {
   ApiResponse,
   InvoiceApplication,
+  InvoiceCapabilities,
   InvoiceFile,
   InvoiceListParams,
   InvoicePage,
@@ -9,18 +10,33 @@ import type {
   PaymentOrder,
 } from './types'
 
+export async function getInvoiceCapabilities() {
+  const res = await api.get<ApiResponse<InvoiceCapabilities>>(
+    '/api/invoices/capabilities'
+  )
+  return res.data
+}
+
 export async function createInvoiceProfile(input: Partial<InvoiceProfile>) {
-  const res = await api.post<ApiResponse<InvoiceProfile>>('/api/invoices/profiles', input)
+  const res = await api.post<ApiResponse<InvoiceProfile>>(
+    '/api/invoices/profiles',
+    input
+  )
   return res.data
 }
 
 export async function getInvoiceProfiles(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceProfile>>>('/api/invoices/profiles', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceProfile>>>(
+    '/api/invoices/profiles',
+    { params }
+  )
   return res.data
 }
 
 export async function disableInvoiceProfile(profileId: number) {
-  const res = await api.post<ApiResponse<InvoiceProfile>>(`/api/invoices/profiles/${profileId}/disable`)
+  const res = await api.post<ApiResponse<InvoiceProfile>>(
+    `/api/invoices/profiles/${profileId}/disable`
+  )
   return res.data
 }
 
@@ -32,54 +48,87 @@ export async function createInvoiceApplication(input: {
   source_type: string
   source_id: number
 }) {
-  const res = await api.post<ApiResponse<InvoiceApplication>>('/api/invoices/applications', input)
+  const res = await api.post<ApiResponse<InvoiceApplication>>(
+    '/api/invoices/applications',
+    input
+  )
   return res.data
 }
 
 export async function getInvoiceApplications(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceApplication>>>('/api/invoices/applications', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceApplication>>>(
+    '/api/invoices/applications',
+    { params }
+  )
   return res.data
 }
 
 export async function getInvoiceFiles(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceFile>>>('/api/invoices/files', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceFile>>>(
+    '/api/invoices/files',
+    { params }
+  )
   return res.data
 }
 
 export async function getPaidPaymentOrders(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<PaymentOrder>>>('/api/payment/orders', {
-    params: { ...params, status: 'PAID' },
-  })
+  const res = await api.get<ApiResponse<InvoicePage<PaymentOrder>>>(
+    '/api/payment/orders',
+    {
+      params: { ...params, status: 'PAID' },
+    }
+  )
   return res.data
 }
 
 export async function getAdminInvoiceProfiles(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceProfile>>>('/api/admin/invoices/profiles', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceProfile>>>(
+    '/api/admin/invoices/profiles',
+    { params }
+  )
   return res.data
 }
 
 export async function getAdminInvoiceApplications(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceApplication>>>('/api/admin/invoices/applications', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceApplication>>>(
+    '/api/admin/invoices/applications',
+    { params }
+  )
   return res.data
 }
 
 export async function getAdminInvoiceFiles(params?: InvoiceListParams) {
-  const res = await api.get<ApiResponse<InvoicePage<InvoiceFile>>>('/api/admin/invoices/files', { params })
+  const res = await api.get<ApiResponse<InvoicePage<InvoiceFile>>>(
+    '/api/admin/invoices/files',
+    { params }
+  )
   return res.data
 }
 
-export async function reviewInvoiceApplication(applicationId: number, input: { approved: boolean; review_note?: string }) {
-  const res = await api.post<ApiResponse<InvoiceApplication>>(`/api/admin/invoices/applications/${applicationId}/review`, input)
+export async function reviewInvoiceApplication(
+  applicationId: number,
+  input: { approved: boolean; review_note?: string }
+) {
+  const res = await api.post<ApiResponse<InvoiceApplication>>(
+    `/api/admin/invoices/applications/${applicationId}/review`,
+    input
+  )
   return res.data
 }
 
-export async function issueInvoice(applicationId: number, input: {
-  invoice_no: string
-  invoice_date?: number
-  file_name: string
-  file_url: string
-  file_type: string
-}) {
-  const res = await api.post<ApiResponse<InvoiceApplication>>(`/api/admin/invoices/applications/${applicationId}/issue`, input)
+export async function issueInvoice(
+  applicationId: number,
+  input: {
+    invoice_no: string
+    invoice_date?: number
+    file_name: string
+    file_url: string
+    file_type: string
+  }
+) {
+  const res = await api.post<ApiResponse<InvoiceApplication>>(
+    `/api/admin/invoices/applications/${applicationId}/issue`,
+    input
+  )
   return res.data
 }

@@ -14,14 +14,15 @@ import (
 )
 
 type createPaymentOrderRequest struct {
-	Provider     string  `json:"provider"`
-	BusinessType string  `json:"business_type"`
-	BusinessId   int     `json:"business_id"`
-	Amount       float64 `json:"amount"`
-	Currency     string  `json:"currency"`
-	Subject      string  `json:"subject"`
-	Description  string  `json:"description"`
-	ExpiredAt    int64   `json:"expired_at"`
+	PaymentAccountId int     `json:"payment_account_id"`
+	Provider         string  `json:"provider"`
+	BusinessType     string  `json:"business_type"`
+	BusinessId       int     `json:"business_id"`
+	Amount           float64 `json:"amount"`
+	Currency         string  `json:"currency"`
+	Subject          string  `json:"subject"`
+	Description      string  `json:"description"`
+	ExpiredAt        int64   `json:"expired_at"`
 }
 
 type createBankTransferRequest struct {
@@ -34,9 +35,10 @@ type createBankTransferRequest struct {
 }
 
 type reviewBankTransferRequest struct {
-	Approved     bool   `json:"approved"`
-	ReviewNote   string `json:"review_note"`
-	FailedStatus bool   `json:"failed_status"`
+	BankTransactionReference string `json:"bank_transaction_reference"`
+	Approved                 bool   `json:"approved"`
+	ReviewNote               string `json:"review_note"`
+	FailedStatus             bool   `json:"failed_status"`
 }
 
 func CreatePaymentOrder(c *gin.Context) {
@@ -47,6 +49,7 @@ func CreatePaymentOrder(c *gin.Context) {
 	}
 	ownership := model.OwnershipFromContext(c)
 	order, err := service.NewPaymentGatewayService().CreatePaymentOrder(c.Request.Context(), service.CreatePaymentOrderInput{
+		PaymentAccountId:      req.PaymentAccountId,
 		UserId:                c.GetInt("id"),
 		TenantId:              ownership.TenantId,
 		OrganizationId:        ownership.OrganizationId,
@@ -223,12 +226,13 @@ func AdminReviewBankTransfer(c *gin.Context) {
 		rawPayload = string(payload)
 	}
 	record, err := service.NewPaymentGatewayService().ReviewBankTransfer(c.Request.Context(), id, service.ReviewBankTransferInput{
-		ReviewerId:   c.GetInt("id"),
-		Approved:     req.Approved,
-		ReviewNote:   req.ReviewNote,
-		FailedStatus: req.FailedStatus,
-		RawPayload:   rawPayload,
-		EventType:    "bank_transfer.review",
+		BankTransactionReference: req.BankTransactionReference,
+		ReviewerId:               c.GetInt("id"),
+		Approved:                 req.Approved,
+		ReviewNote:               req.ReviewNote,
+		FailedStatus:             req.FailedStatus,
+		RawPayload:               rawPayload,
+		EventType:                "bank_transfer.review",
 	})
 	if err != nil {
 		common.ApiError(c, err)

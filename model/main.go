@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -69,8 +70,14 @@ func createRootAccountIfNeed() error {
 	var user User
 	//if user.Status != common.UserStatusEnabled {
 	if err := DB.First(&user).Error; err != nil {
-		common.SysLog("no user exists, create a root user for you: username is root, password is 123456")
-		hashedPassword, err := common.Password2Hash("123456")
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		password := os.Getenv("BOOTSTRAP_ROOT_PASSWORD")
+		if len(password) < 16 {
+			return fmt.Errorf("root bootstrap requires BOOTSTRAP_ROOT_PASSWORD of at least 16 bytes")
+		}
+		hashedPassword, err := common.Password2Hash(password)
 		if err != nil {
 			return err
 		}
@@ -83,7 +90,7 @@ func createRootAccountIfNeed() error {
 			AccessToken: nil,
 			Quota:       100000000,
 		}
-		DB.Create(&rootUser)
+		return DB.Create(&rootUser).Error
 	}
 	return nil
 }
@@ -288,6 +295,9 @@ func migrateDB() error {
 		&RevenueShareRule{},
 		&RevenueShareRecord{},
 		&PaymentOrder{},
+		&TenantPaymentAccount{},
+		&TenantFundingPolicy{},
+		&QuotaCreditLedgerEntry{},
 		&PaymentCallbackLog{},
 		&BankTransferRecord{},
 		&VoucherBatch{},
@@ -358,6 +368,9 @@ func migrateDBFast() error {
 		{&RevenueShareRule{}, "RevenueShareRule"},
 		{&RevenueShareRecord{}, "RevenueShareRecord"},
 		{&PaymentOrder{}, "PaymentOrder"},
+		{&TenantPaymentAccount{}, "TenantPaymentAccount"},
+		{&TenantFundingPolicy{}, "TenantFundingPolicy"},
+		{&QuotaCreditLedgerEntry{}, "QuotaCreditLedgerEntry"},
 		{&PaymentCallbackLog{}, "PaymentCallbackLog"},
 		{&BankTransferRecord{}, "BankTransferRecord"},
 		{&VoucherBatch{}, "VoucherBatch"},

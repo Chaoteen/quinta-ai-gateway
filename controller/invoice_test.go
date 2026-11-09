@@ -51,7 +51,7 @@ func newInvoiceControllerContext(method string, target string, body string, user
 func TestInvoiceControllerCreateProfileAndApplication(t *testing.T) {
 	db := setupInvoiceControllerTestDB(t)
 	require.NoError(t, db.Create(&model.User{Id: 12001, TenantId: 121, Username: "invoice-controller-user", Status: common.UserStatusEnabled}).Error)
-	require.NoError(t, db.Create(&model.PaymentOrder{Id: 12101, OrderNo: "INV-CTRL-PAY", TenantId: 121, UserId: 12001, Provider: model.PaymentProviderMock, BusinessType: model.PaymentBusinessTokenRecharge, Amount: 60, Currency: "USD", Status: model.PaymentOrderStatusPaid, Subject: "paid"}).Error)
+	require.NoError(t, db.Create(&model.PaymentOrder{Id: 12101, OrderNo: "INV-CTRL-PAY", TenantId: 121, UserId: 12001, Provider: model.PaymentProviderMock, BusinessType: model.PaymentBusinessTokenRecharge, Amount: 60, Currency: "CNY", Status: model.PaymentOrderStatusPaid, Subject: "paid"}).Error)
 
 	ctx, recorder := newInvoiceControllerContext(http.MethodPost, "/api/invoices/profiles", `{"profile_type":"COMPANY","title":"Company","tax_no":"TAX","is_default":true}`, 12001, 121, common.RoleKeyUser)
 	CreateInvoiceProfile(ctx)
@@ -72,4 +72,34 @@ func TestInvoiceControllerCreateProfileAndApplication(t *testing.T) {
 	require.NoError(t, common.Unmarshal(appRecorder.Body.Bytes(), &appResp))
 	require.True(t, appResp.Success, appRecorder.Body.String())
 	require.Equal(t, model.InvoiceStatusPending, appResp.Data.Status)
+}
+
+func TestInvoiceCapabilitiesMatchSellerPermissions(t *testing.T) {
+	t.Setenv("PLATFORM_TENANT_ID", "900")
+	for _, item := range []struct {
+		role    string
+		tenant  int
+		allowed bool
+	}{
+		{common.RoleKeyUser, 900, false},
+		{common.RoleKeyTenantAdmin, 121, false},
+		{common.RoleKeyAuditor, 900, false},
+		{common.RoleKeyFinance, 121, false},
+		{common.RoleKeyFinance, 900, true},
+		{common.RoleKeyRoot, 900, true},
+	} {
+		ctx, recorder := newInvoiceControllerContext(http.MethodGet, "/api/invoices/capabilities", "", 12001, item.tenant, item.role)
+		GetInvoiceCapabilities(ctx)
+		var response struct {
+			Success bool `json:"success"`
+			Data    struct {
+				CanReview   bool `json:"can_review"`
+				CanRegister bool `json:"can_register"`
+			} `json:"data"`
+		}
+		require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
+		require.True(t, response.Success)
+		require.Equal(t, item.allowed, response.Data.CanReview, item.role)
+		require.Equal(t, item.allowed, response.Data.CanRegister, item.role)
+	}
 }

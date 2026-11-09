@@ -9,8 +9,8 @@ import (
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -31,6 +31,7 @@ func NewPaymentGatewayService() *PaymentGatewayService {
 }
 
 type CreatePaymentOrderInput struct {
+	PaymentAccountId      int
 	UserId                int
 	TenantId              int
 	OrganizationId        int
@@ -47,12 +48,18 @@ type CreatePaymentOrderInput struct {
 }
 
 type ConfirmPaymentInput struct {
-	OrderNo        string
-	Provider       string
-	EventType      string
-	RawPayload     string
-	SignatureValid bool
-	ProcessMessage string
+	PaymentAccountId int
+	TenantId         int
+	MerchantId       string
+	AppId            string
+	Currency         string
+	AmountMinor      int64
+	OrderNo          string
+	Provider         string
+	EventType        string
+	RawPayload       string
+	SignatureValid   bool
+	ProcessMessage   string
 }
 
 type CreateBankTransferRecordInput struct {
@@ -66,20 +73,24 @@ type CreateBankTransferRecordInput struct {
 }
 
 type ReviewBankTransferInput struct {
-	ReviewerId   int
-	Approved     bool
-	ReviewNote   string
-	RawPayload   string
-	EventType    string
-	FailedStatus bool
+	BankTransactionReference string
+	ReviewerId               int
+	Approved                 bool
+	ReviewNote               string
+	RawPayload               string
+	EventType                string
+	FailedStatus             bool
 }
 
 func (s *PaymentGatewayService) CreatePaymentOrder(ctx context.Context, input CreatePaymentOrderInput) (*model.PaymentOrder, error) {
-	provider := model.NormalizePaymentProvider(input.Provider)
+	provider := strings.ToUpper(strings.TrimSpace(input.Provider))
+	if provider == model.PaymentProviderMock && !common.GetEnvOrDefaultBool("ENABLE_MOCK_PAYMENTS", false) {
+		return nil, ErrPaymentInvalidProvider
+	}
 	if provider != model.PaymentProviderMock && provider != model.PaymentProviderBankTransfer {
 		return nil, ErrPaymentInvalidProvider
 	}
-	businessType := model.NormalizePaymentBusinessType(input.BusinessType)
+	businessType := strings.ToUpper(strings.TrimSpace(input.BusinessType))
 	if err := validatePaymentBusiness(businessType, input.BusinessId); err != nil {
 		return nil, err
 	}
@@ -89,25 +100,21 @@ func (s *PaymentGatewayService) CreatePaymentOrder(ctx context.Context, input Cr
 	if input.Amount <= 0 {
 		return nil, ErrPaymentInvalidAmount
 	}
-	ownership := model.NormalizeOwnership(model.OwnershipSnapshot{
-		TenantId:              input.TenantId,
-		OrganizationId:        input.OrganizationId,
-		DepartmentId:          input.DepartmentId,
-		DistributionChannelId: input.DistributionChannelId,
-	})
-	if input.TenantId == 0 {
-		var err error
-		ownership, err = model.RequiredOwnershipByUserId(input.UserId)
-		if err != nil {
-			return nil, err
-		}
+	ownership, err := model.RequiredOwnershipByUserId(input.UserId)
+	if err != nil {
+		return nil, err
+	}
+	if (input.TenantId != 0 && input.TenantId != ownership.TenantId) ||
+		(input.OrganizationId != 0 && input.OrganizationId != ownership.OrganizationId) ||
+		(input.DepartmentId != 0 && input.DepartmentId != ownership.DepartmentId) ||
+		(input.DistributionChannelId != 0 && input.DistributionChannelId != ownership.DistributionChannelId) {
+		return nil, ErrPaymentOwnership
 	}
 	if err := model.ValidateOwnershipHierarchy(ownership); err != nil {
 		return nil, err
 	}
-	if input.ExpiredAt == 0 {
-		input.ExpiredAt = common.GetTimestamp() + 30*24*60*60
-	}
+	// Expiry is controlled by the server, not by the customer.
+	input.ExpiredAt = common.GetTimestamp() + 30*60
 	order := &model.PaymentOrder{
 		OrderNo:           generatePaymentOrderNo(input.UserId),
 		UserId:            input.UserId,
@@ -123,86 +130,102 @@ func (s *PaymentGatewayService) CreatePaymentOrder(ctx context.Context, input Cr
 		FulfillmentStatus: model.PaymentFulfillmentPending,
 	}
 	ownership.ApplyTo(order)
-	if err := model.DB.WithContext(ctx).Create(order).Error; err != nil {
+	if err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := bindTenantPaymentAccount(ctx, tx, order, input.PaymentAccountId); err != nil {
+			return err
+		}
+		if err := quotePayment(ctx, tx, input, order); err != nil {
+			return err
+		}
+		return tx.Create(order).Error
+	}); err != nil {
 		return nil, err
 	}
 	return order, nil
 }
 
 func (s *PaymentGatewayService) ConfirmPayment(ctx context.Context, input ConfirmPaymentInput) (*model.PaymentOrder, error) {
-	if strings.TrimSpace(input.OrderNo) == "" {
-		return nil, ErrPaymentOrderNotFound
-	}
-	provider := model.NormalizePaymentProvider(input.Provider)
-	if input.EventType == "" {
-		input.EventType = "payment.confirmed"
-	}
-	var out model.PaymentOrder
-	var processErr error
+	var out *model.PaymentOrder
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var order model.PaymentOrder
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("order_no = ?", strings.TrimSpace(input.OrderNo)).First(&order).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrPaymentOrderNotFound
-			}
-			return err
-		}
-		if provider != "" && provider != order.Provider {
-			processErr = ErrPaymentInvalidProvider
-			return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessFailed, processErr.Error())
-		}
-		if order.Status == model.PaymentOrderStatusPaid {
-			out = order
-			return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessIgnored, "payment order already paid")
-		}
-		if order.Status != model.PaymentOrderStatusPending {
-			processErr = ErrPaymentOrderStatusInvalid
-			return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessFailed, processErr.Error())
-		}
-		if order.ExpiredAt > 0 && order.ExpiredAt < common.GetTimestamp() {
-			order.Status = model.PaymentOrderStatusExpired
-			if err := tx.Save(&order).Error; err != nil {
-				return err
-			}
-			processErr = ErrPaymentOrderStatusInvalid
-			return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessFailed, "payment order expired")
-		}
-		if err := s.fulfillPaymentOrderTx(ctx, tx, &order); err != nil {
-			order.FulfillmentStatus = model.PaymentFulfillmentFailed
-			order.FulfillmentMessage = err.Error()
-			if saveErr := tx.Save(&order).Error; saveErr != nil {
-				return saveErr
-			}
-			processErr = err
-			return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessFailed, err.Error())
-		}
-		now := common.GetTimestamp()
-		order.Status = model.PaymentOrderStatusPaid
-		order.PaidAt = now
-		order.FulfillmentStatus = model.PaymentFulfillmentSuccess
-		order.FulfilledAt = now
-		order.FulfillmentMessage = "fulfilled"
-		if err := tx.Save(&order).Error; err != nil {
-			return err
-		}
-		out = order
-		return createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessSuccess, "payment fulfilled")
+		var err error
+		out, err = s.confirmPaymentTx(ctx, tx, input)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	if processErr != nil {
-		return &out, processErr
+	if err := model.InvalidateUserCache(out.UserId); err != nil {
+		common.SysError(fmt.Sprintf("payment cache invalidation failed for user %d", out.UserId))
 	}
-	return &out, nil
+	return out, nil
+}
+
+// The verified adapter and manual bank review share a single transaction boundary.
+func (s *PaymentGatewayService) confirmPaymentTx(ctx context.Context, tx *gorm.DB, input ConfirmPaymentInput) (*model.PaymentOrder, error) {
+	if !input.SignatureValid {
+		return nil, ErrPaymentInvalidSignature
+	}
+	provider := strings.ToUpper(strings.TrimSpace(input.Provider))
+	if provider != model.PaymentProviderBankTransfer && provider != model.PaymentProviderMock {
+		return nil, ErrPaymentInvalidProvider
+	}
+	if provider == model.PaymentProviderMock && !common.GetEnvOrDefaultBool("ENABLE_MOCK_PAYMENTS", false) {
+		return nil, ErrPaymentInvalidProvider
+	}
+	var order model.PaymentOrder
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("order_no = ?", strings.TrimSpace(input.OrderNo)).First(&order).Error; err != nil {
+		return nil, err
+	}
+	if provider != order.Provider {
+		return nil, ErrPaymentInvalidProvider
+	}
+	if err := validateTenantPaymentEventTx(tx, &order, input); err != nil {
+		return nil, err
+	}
+	if order.Status == model.PaymentOrderStatusPaid && order.FulfillmentStatus == model.PaymentFulfillmentSuccess {
+		return &order, createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessIgnored, "payment order already paid")
+	}
+	if order.Status != model.PaymentOrderStatusPending || (order.ExpiredAt > 0 && order.ExpiredAt <= common.GetTimestamp()) {
+		return nil, ErrPaymentOrderStatusInvalid
+	}
+	if order.PricingVersion != paymentPricingVersion {
+		return nil, ErrPaymentUntrustedQuote
+	}
+	// Claim the transition before touching balances, including on SQLite where
+	// row-level SELECT FOR UPDATE is unavailable.
+	claim := tx.Model(&model.PaymentOrder{}).
+		Where("id = ? AND status = ? AND fulfillment_status <> ?", order.Id, model.PaymentOrderStatusPending, model.PaymentFulfillmentSuccess).
+		Update("status", model.PaymentOrderStatusPaid)
+	if claim.Error != nil {
+		return nil, claim.Error
+	}
+	if claim.RowsAffected != 1 {
+		return nil, ErrPaymentOrderStatusInvalid
+	}
+	order.Status = model.PaymentOrderStatusPaid
+	if err := s.fulfillPaymentOrderTx(ctx, tx, &order); err != nil {
+		return nil, err
+	}
+	now := common.GetTimestamp()
+	order.PaidAt = now
+	order.FulfillmentStatus = model.PaymentFulfillmentSuccess
+	order.FulfilledAt = now
+	order.FulfillmentMessage = "fulfilled"
+	if err := tx.Save(&order).Error; err != nil {
+		return nil, err
+	}
+	return &order, createPaymentCallbackLogTx(tx, &order, input, model.PaymentCallbackProcessSuccess, "payment fulfilled")
 }
 
 func (s *PaymentGatewayService) FulfillPaymentOrder(ctx context.Context, orderId int) (*model.PaymentOrder, error) {
 	var out model.PaymentOrder
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var order model.PaymentOrder
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", orderId).First(&order).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", orderId).First(&order).Error; err != nil {
 			return err
+		}
+		if order.Status != model.PaymentOrderStatusPaid {
+			return ErrPaymentOrderStatusInvalid
 		}
 		if order.FulfillmentStatus == model.PaymentFulfillmentSuccess {
 			out = order
@@ -234,17 +257,21 @@ func (s *PaymentGatewayService) CreateBankTransferRecord(ctx context.Context, in
 	if strings.TrimSpace(input.BankAccountName) == "" {
 		return nil, errors.New("bank account name is required")
 	}
-	if input.TransferAmount <= 0 {
+	if !validPaymentTransferAmount(input.TransferAmount) {
 		return nil, ErrPaymentInvalidAmount
 	}
 	var order model.PaymentOrder
 	if err := model.DB.WithContext(ctx).Where("id = ? AND user_id = ?", input.PaymentOrderId, input.UserId).First(&order).Error; err != nil {
 		return nil, err
 	}
+	if order.Status != model.PaymentOrderStatusPending || order.ExpiredAt <= common.GetTimestamp() || input.TransferAmount != order.Amount {
+		return nil, ErrPaymentOrderStatusInvalid
+	}
 	if order.Provider != model.PaymentProviderBankTransfer {
 		return nil, ErrPaymentInvalidProvider
 	}
 	record := &model.BankTransferRecord{
+		PaymentAccountId:    order.PaymentAccountId,
 		PaymentOrderId:      order.Id,
 		UserId:              input.UserId,
 		BankAccountName:     input.BankAccountName,
@@ -262,66 +289,66 @@ func (s *PaymentGatewayService) CreateBankTransferRecord(ctx context.Context, in
 }
 
 func (s *PaymentGatewayService) ReviewBankTransfer(ctx context.Context, recordId int, input ReviewBankTransferInput) (*model.BankTransferRecord, error) {
+	if input.ReviewerId <= 0 {
+		return nil, ErrBankTransferStatusInvalid
+	}
 	var record model.BankTransferRecord
-	var orderNo string
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", recordId).First(&record).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrBankTransferNotFound
-			}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", recordId).First(&record).Error; err != nil {
 			return err
 		}
 		if record.ReviewStatus != model.BankTransferReviewPending {
 			return ErrBankTransferStatusInvalid
 		}
-		record.ReviewedBy = input.ReviewerId
-		record.ReviewedAt = common.GetTimestamp()
-		record.ReviewNote = input.ReviewNote
-		if input.Approved {
-			record.ReviewStatus = model.BankTransferReviewApproved
-		} else {
-			record.ReviewStatus = model.BankTransferReviewRejected
+		var order model.PaymentOrder
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", record.PaymentOrderId).First(&order).Error; err != nil {
+			return err
 		}
-		if err := tx.Save(&record).Error; err != nil {
+		if record.PaymentAccountId != order.PaymentAccountId {
+			return ErrTenantPaymentBinding
+		}
+		if err := validateTenantBankReviewerTx(tx, &order, input); err != nil {
 			return err
 		}
 		if input.Approved {
-			var order model.PaymentOrder
-			if err := tx.Where("id = ?", record.PaymentOrderId).First(&order).Error; err != nil {
+			if record.UserId != order.UserId || record.TenantId != order.TenantId || record.TransferAmount != order.Amount {
+				return ErrPaymentInvalidAmount
+			}
+			if order.PaymentAccountId > 0 {
+				reference := strings.TrimSpace(input.BankTransactionReference)
+				record.BankTransactionReference = &reference
+			}
+			if _, err := s.confirmPaymentTx(ctx, tx, ConfirmPaymentInput{
+				PaymentAccountId: order.PaymentAccountId, TenantId: order.TenantId,
+				MerchantId: order.MerchantIdSnapshot, AppId: order.AppIdSnapshot,
+				Currency: order.Currency, AmountMinor: order.AmountMinor,
+				OrderNo: order.OrderNo, Provider: model.PaymentProviderBankTransfer,
+				EventType: "bank_transfer.approved", SignatureValid: true,
+			}); err != nil {
 				return err
 			}
-			orderNo = order.OrderNo
-			return nil
-		}
-		if input.FailedStatus {
-			if err := tx.Model(&model.PaymentOrder{}).
-				Where("id = ? AND status = ?", record.PaymentOrderId, model.PaymentOrderStatusPending).
-				Update("status", model.PaymentOrderStatusFailed).Error; err != nil {
-				return err
+			record.ReviewStatus = model.BankTransferReviewApproved
+		} else {
+			record.ReviewStatus = model.BankTransferReviewRejected
+			if input.FailedStatus {
+				if err := tx.Model(&model.PaymentOrder{}).
+					Where("id = ? AND status = ?", record.PaymentOrderId, model.PaymentOrderStatusPending).
+					Update("status", model.PaymentOrderStatusFailed).Error; err != nil {
+					return err
+				}
 			}
 		}
-		return nil
+		record.ReviewedBy = input.ReviewerId
+		record.ReviewedAt = common.GetTimestamp()
+		record.ReviewNote = input.ReviewNote
+		return tx.Save(&record).Error
 	})
 	if err != nil {
 		return nil, err
 	}
 	if input.Approved {
-		eventType := input.EventType
-		if eventType == "" {
-			eventType = "bank_transfer.approved"
-		}
-		_, err = s.ConfirmPayment(ctx, ConfirmPaymentInput{
-			OrderNo:        orderNo,
-			Provider:       model.PaymentProviderBankTransfer,
-			EventType:      eventType,
-			RawPayload:     input.RawPayload,
-			SignatureValid: true,
-		})
-		if err != nil {
-			return nil, err
-		}
-		if err := model.DB.WithContext(ctx).Where("id = ?", recordId).First(&record).Error; err != nil {
-			return nil, err
+		if err := model.InvalidateUserCache(record.UserId); err != nil {
+			common.SysError(fmt.Sprintf("bank transfer cache invalidation failed for user %d", record.UserId))
 		}
 	}
 	return &record, nil
@@ -334,43 +361,21 @@ func (s *PaymentGatewayService) fulfillPaymentOrderTx(ctx context.Context, tx *g
 	if order.FulfillmentStatus == model.PaymentFulfillmentSuccess {
 		return nil
 	}
+	if order.Status != model.PaymentOrderStatusPaid || order.PricingVersion != paymentPricingVersion {
+		return ErrPaymentUntrustedQuote
+	}
 	switch order.BusinessType {
 	case model.PaymentBusinessTokenRecharge:
-		quotaToAdd := order.BusinessId
-		if quotaToAdd <= 0 {
-			quotaToAdd = int(decimal.NewFromFloat(order.Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)).IntPart())
+		return grantQuotedQuotaTx(tx.WithContext(ctx), order)
+	case model.PaymentBusinessSubscriptionPurchase, model.PaymentBusinessSubscriptionRenewal:
+		var plan model.SubscriptionPlan
+		if order.PlanSnapshot == "" {
+			return ErrPaymentUntrustedQuote
 		}
-		if quotaToAdd <= 0 {
-			return ErrPaymentInvalidBusinessId
+		if err := common.UnmarshalJsonStr(order.PlanSnapshot, &plan); err != nil {
+			return ErrPaymentUntrustedQuote
 		}
-		if err := tx.WithContext(ctx).Model(&model.User{}).Where("id = ?", order.UserId).
-			Update("quota", gorm.Expr("quota + ?", quotaToAdd)).Error; err != nil {
-			return err
-		}
-		return nil
-	case model.PaymentBusinessSubscriptionPurchase:
-		if order.BusinessId <= 0 {
-			return ErrPaymentInvalidBusinessId
-		}
-		plan, err := getPaymentSubscriptionPlanTx(tx, order.BusinessId)
-		if err != nil {
-			return err
-		}
-		_, err = model.CreateUserSubscriptionFromPlanWithOwnershipTx(tx, order.UserId, plan, "payment_order", ownershipFromPaymentOrder(order))
-		return err
-	case model.PaymentBusinessSubscriptionRenewal:
-		if order.BusinessId <= 0 {
-			return ErrPaymentInvalidBusinessId
-		}
-		var sub model.UserSubscription
-		if err := tx.WithContext(ctx).Where("id = ? AND user_id = ?", order.BusinessId, order.UserId).First(&sub).Error; err != nil {
-			return err
-		}
-		plan, err := getPaymentSubscriptionPlanTx(tx, sub.PlanId)
-		if err != nil {
-			return err
-		}
-		_, err = model.CreateUserSubscriptionFromPlanWithOwnershipTx(tx, sub.UserId, plan, "payment_renewal", ownershipFromPaymentOrder(order))
+		_, err := model.CreateUserSubscriptionFromPlanWithOwnershipTx(tx, order.UserId, &plan, "payment_order", ownershipFromPaymentOrder(order))
 		return err
 	default:
 		return ErrPaymentInvalidBusinessType

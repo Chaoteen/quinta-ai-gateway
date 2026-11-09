@@ -147,6 +147,29 @@ func TestRoleAuthTenantAdmin(t *testing.T) {
 	}
 }
 
+func TestSecurityStaleRootSessionDoesNotRetainPrivileges(t *testing.T) {
+	r := setupAuthRBACTestRouter(t, RootAuth())
+	if err := model.DB.Model(&model.User{}).Where("id = ?", 1).
+		Updates(map[string]interface{}{"role": common.RoleCommonUser, "role_key": common.RoleKeyUser}).Error; err != nil {
+		t.Fatal(err)
+	}
+	response := performAuthRBACTestRequest(r, 1, common.RoleRootUser)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("stale root session accepted: %d", response.Code)
+	}
+}
+
+func TestSecurityDisabledAccountRejectsLiveSession(t *testing.T) {
+	r := setupAuthRBACTestRouter(t, UserAuth())
+	if err := model.DB.Model(&model.User{}).Where("id = ?", 3).Update("status", common.UserStatusDisabled).Error; err != nil {
+		t.Fatal(err)
+	}
+	response := performAuthRBACTestRequest(r, 3, common.RoleCommonUser)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("disabled account session accepted: %d", response.Code)
+	}
+}
+
 func TestLegacyAuthMiddlewareBehaviorUnchanged(t *testing.T) {
 	tests := []struct {
 		name    string

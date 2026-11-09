@@ -115,3 +115,11 @@ func resetAccessScopeUsers(t *testing.T) {
 		_ = DB.Exec("DELETE FROM users").Error
 	})
 }
+
+func TestSecurityAccessScopeWithoutTenantFailsClosed(t *testing.T) {
+	scope := AccessScopeFromContext(nil)
+	require.False(t, AllowsOwnership(scope, 1, 0, 0))
+	var count int64
+	require.NoError(t, ApplyOwnershipScope(DB.Model(&User{}), "users", scope).Count(&count).Error)
+	require.Zero(t, count)
+}

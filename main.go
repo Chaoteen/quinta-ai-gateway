@@ -2,13 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -147,7 +152,7 @@ func main() {
 
 	if os.Getenv("ENABLE_PPROF") == "true" {
 		gopool.Go(func() {
-			log.Println(http.ListenAndServe("0.0.0.0:8005", nil))
+			log.Println(http.ListenAndServe("127.0.0.1:8005", nil))
 		})
 		go common.Monitor()
 		common.SysLog("pprof enabled")
@@ -160,11 +165,23 @@ func main() {
 
 	// Initialize HTTP server
 	server := gin.New()
+	// Forwarded client IPs affect rate limits and API-key IP restrictions.
+	// Trust only explicitly configured ingress proxy networks.
+	var trustedProxies []string
+	if value := strings.TrimSpace(os.Getenv("TRUSTED_PROXIES")); value != "" {
+		trustedProxies = strings.Split(value, ",")
+		for i := range trustedProxies {
+			trustedProxies[i] = strings.TrimSpace(trustedProxies[i])
+		}
+	}
+	if err := server.SetTrustedProxies(trustedProxies); err != nil {
+		common.FatalLog("invalid TRUSTED_PROXIES configuration")
+	}
 	server.Use(gin.CustomRecovery(func(c *gin.Context, err any) {
 		common.SysLog(fmt.Sprintf("panic detected: %v", err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
-				"message": fmt.Sprintf("Panic detected, error: %v. Please submit a issue here: https://github.com/Calcium-Ion/new-api", err),
+				"message": "Internal server error. Please submit an issue here: https://github.com/Calcium-Ion/new-api",
 				"type":    "new_api_panic",
 			},
 		})
@@ -181,7 +198,7 @@ func main() {
 		Path:     "/",
 		MaxAge:   2592000, // 30 days
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   common.GetEnvOrDefaultBool("SESSION_COOKIE_SECURE", false),
 		SameSite: http.SameSiteStrictMode,
 	})
 	server.Use(sessions.Sessions("session", store))
@@ -204,9 +221,31 @@ func main() {
 	// Log startup success message
 	common.LogStartupSuccess(startTime, port)
 
-	err = server.Run(":" + port)
-	if err != nil {
+	httpServer := &http.Server{
+		Addr: net.JoinHostPort(os.Getenv("LISTEN_ADDRESS"), port), Handler: server,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		// A global WriteTimeout would terminate legitimate SSE responses.
+	}
+	shutdownSignal, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	shutdownDone := make(chan struct{})
+	go func() {
+		<-shutdownSignal.Done()
+		defer close(shutdownDone)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(ctx); err != nil {
+			common.SysError("HTTP shutdown grace period expired")
+		}
+	}()
+	err = httpServer.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		common.FatalLog("failed to start HTTP server: " + err.Error())
+	}
+	if shutdownSignal.Err() != nil {
+		<-shutdownDone
 	}
 }
 

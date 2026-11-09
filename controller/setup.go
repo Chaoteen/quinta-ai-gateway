@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"crypto/subtle"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -52,6 +55,15 @@ func GetSetup(c *gin.Context) {
 }
 
 func PostSetup(c *gin.Context) {
+	// Before the first account exists, the public setup endpoint is privileged.
+	// Production provisioning must prove possession of a separately supplied token.
+	if strings.EqualFold(os.Getenv("APP_ENV"), "production") {
+		expected := os.Getenv("BOOTSTRAP_TOKEN")
+		if len(expected) < 32 || subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Bootstrap-Token")), []byte(expected)) != 1 {
+			c.AbortWithStatus(403)
+			return
+		}
+	}
 	// Check if setup is already completed
 	if constant.Setup {
 		c.JSON(200, gin.H{

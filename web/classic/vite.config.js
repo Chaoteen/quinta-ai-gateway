@@ -29,6 +29,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Semi still ships this bundle, but newer releases omit its export map entry.
+      '@douyinfe/semi-ui/dist/css/semi.css': path.resolve(
+        __dirname,
+        './node_modules/@douyinfe/semi-ui/dist/css/semi.css',
+      ),
     },
   },
   plugins: [

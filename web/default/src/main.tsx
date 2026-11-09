@@ -29,8 +29,9 @@ import i18next from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { getStatus } from '@/lib/api'
-import '@/lib/dayjs'
+import { APP_BASE_PATH } from '@/lib/base-path'
 import { normalizeSystemName } from '@/lib/branding'
+import '@/lib/dayjs'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import { handleServerError } from '@/lib/handle-server-error'
 import { DirectionProvider } from './context/direction-provider'
@@ -95,6 +96,7 @@ const queryClient = new QueryClient({
 
 // Create a new router instance
 const router = createRouter({
+  basepath: APP_BASE_PATH || '/',
   routeTree,
   context: { queryClient },
   defaultPreload: 'intent',

@@ -10,6 +10,7 @@ import (
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -183,21 +184,34 @@ func (s *VoucherService) RedeemVoucher(ctx context.Context, userId int, code str
 	var out model.VoucherRedemption
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var voucher model.Voucher
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("voucher_code = ?", code).First(&voucher).Error; err != nil {
+		if err := tx.Where("voucher_code = ?", code).First(&voucher).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrVoucherNotFound
 			}
 			return err
 		}
 		var batch model.VoucherBatch
-		if err := tx.Where("id = ?", voucher.BatchId).First(&batch).Error; err != nil {
+		// Lock batch before voucher, matching batch disable/generation lock order.
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", voucher.BatchId).First(&batch).Error; err != nil {
 			return err
 		}
-		if batch.Status == model.VoucherBatchStatusDisabled || voucher.Status == model.VoucherStatusDisabled {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", voucher.Id).First(&voucher).Error; err != nil {
+			return err
+		}
+		ownership, err := getVoucherUserOwnershipTx(tx, userId)
+		if err != nil {
+			return err
+		}
+		if batch.TenantId <= 0 || ownership.TenantId != batch.TenantId ||
+			(batch.OrganizationId > 0 && ownership.OrganizationId != batch.OrganizationId) ||
+			(batch.DepartmentId > 0 && ownership.DepartmentId != batch.DepartmentId) {
+			return ErrVoucherOutOfScope
+		}
+		if batch.Status != model.VoucherBatchStatusActive || voucher.Status == model.VoucherStatusDisabled {
 			return ErrVoucherDisabled
 		}
 		now := common.GetTimestamp()
-		if voucher.ExpiredAt > 0 && voucher.ExpiredAt < now {
+		if voucher.ExpiredAt > 0 && voucher.ExpiredAt <= now {
 			if voucher.Status == model.VoucherStatusUnused {
 				_ = tx.Model(&model.Voucher{}).Where("id = ?", voucher.Id).Update("status", model.VoucherStatusExpired).Error
 			}
@@ -216,17 +230,21 @@ func (s *VoucherService) RedeemVoucher(ctx context.Context, userId int, code str
 		if voucher.Status != model.VoucherStatusUnused {
 			return ErrVoucherAlreadyRedeemed
 		}
-		ownership, err := getVoucherUserOwnershipTx(tx, userId)
-		if err != nil {
-			return err
+		claim := tx.Model(&model.Voucher{}).
+			Where("id = ? AND status = ?", voucher.Id, model.VoucherStatusUnused).
+			Update("status", model.VoucherStatusRedeemed)
+		if claim.Error != nil {
+			return claim.Error
+		}
+		if claim.RowsAffected != 1 {
+			return ErrVoucherAlreadyRedeemed
 		}
 		switch voucher.VoucherType {
 		case model.VoucherTypeToken:
 			if voucher.QuotaAmount <= 0 {
 				return ErrVoucherInvalidFulfillment
 			}
-			if err := tx.Model(&model.User{}).Where("id = ?", userId).
-				Update("quota", gorm.Expr("quota + ?", voucher.QuotaAmount)).Error; err != nil {
+			if err := grantQuotaTx(tx, userId, ownership.TenantId, voucher.QuotaAmount, model.QuotaCreditSourceVoucher, voucher.Id); err != nil {
 				return err
 			}
 		case model.VoucherTypeSubscription:
@@ -266,19 +284,25 @@ func (s *VoucherService) RedeemVoucher(ctx context.Context, userId int, code str
 	if err != nil {
 		return nil, err
 	}
+	if err := model.InvalidateUserCache(userId); err != nil {
+		common.SysError(fmt.Sprintf("voucher cache invalidation failed for user %d", userId))
+	}
 	return &out, nil
 }
 
 func (s *VoucherService) DisableVoucher(ctx context.Context, actor VoucherActor, voucherId int) (*model.Voucher, error) {
 	var voucher model.Voucher
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", voucherId).First(&voucher).Error; err != nil {
+		if err := tx.Where("id = ?", voucherId).First(&voucher).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return ErrVoucherNotFound
 			}
 			return err
 		}
 		if _, err := s.getBatchForUpdateTx(tx, voucher.BatchId, actor.Scope); err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", voucherId).First(&voucher).Error; err != nil {
 			return err
 		}
 		if voucher.Status == model.VoucherStatusRedeemed {
@@ -416,7 +440,7 @@ func (s *VoucherService) ListRedemptions(ctx context.Context, actor VoucherActor
 
 func (s *VoucherService) getBatchForUpdateTx(tx *gorm.DB, batchId int, scope model.AccessScope) (*model.VoucherBatch, error) {
 	var batch model.VoucherBatch
-	if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", batchId).First(&batch).Error; err != nil {
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", batchId).First(&batch).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrVoucherInvalidBatch
 		}

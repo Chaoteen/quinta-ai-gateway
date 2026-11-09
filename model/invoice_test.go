@@ -13,7 +13,7 @@ func TestInvoiceModelsAreMigrated(t *testing.T) {
 	for _, column := range []string{"tenant_id", "user_id", "profile_type", "title", "tax_no", "is_default", "status"} {
 		require.True(t, DB.Migrator().HasColumn(&InvoiceProfile{}, column), "missing invoice_profiles.%s", column)
 	}
-	for _, column := range []string{"application_no", "source_type", "source_id", "invoice_no", "invoice_date", "issued_at"} {
+	for _, column := range []string{"application_no", "source_type", "source_id", "invoice_no", "invoice_date", "issued_at", "amount_minor", "snapshot_version", "buyer_snapshot", "issued_identity"} {
 		require.True(t, DB.Migrator().HasColumn(&InvoiceApplication{}, column), "missing invoice_applications.%s", column)
 	}
 }

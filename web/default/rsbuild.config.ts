@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/rspack'
+import { normalizeBasePath } from './src/lib/deployment-path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -14,6 +15,7 @@ export default defineConfig(({ envMode }) => {
     'http://localhost:3000'
 
   const isProd = envMode === 'production'
+  const basePath = normalizeBasePath(process.env.VITE_BASE_PATH || env.rawPublicVars.VITE_BASE_PATH || '')
   const devProxy = Object.fromEntries(
     (['/api', '/mj', '/pg'] as const).map((key) => [
       key,
@@ -83,12 +85,14 @@ export default defineConfig(({ envMode }) => {
     },
     html: {
       template: './index.html',
+      templateParameters: { appBasePath: basePath },
     },
     server: {
       host: '0.0.0.0',
       proxy: devProxy,
     },
     output: {
+      assetPrefix: `${basePath}/`,
       // Production optimizations
       minify: isProd,
       target: 'web',

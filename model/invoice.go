@@ -102,19 +102,24 @@ type InvoiceApplication struct {
 	UserId                int     `json:"user_id" gorm:"index"`
 	InvoiceProfileId      int     `json:"invoice_profile_id" gorm:"index"`
 	Amount                float64 `json:"amount" gorm:"type:decimal(12,6);not null;default:0"`
-	Currency              string  `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
-	InvoiceType           string  `json:"invoice_type" gorm:"type:varchar(32);index;not null"`
-	Status                string  `json:"status" gorm:"type:varchar(32);index;not null;default:'PENDING'"`
-	SourceType            string  `json:"source_type" gorm:"type:varchar(32);index;not null"`
-	SourceId              int     `json:"source_id" gorm:"index;default:0"`
-	ReviewerId            int     `json:"reviewer_id" gorm:"index;default:0"`
-	ReviewedAt            int64   `json:"reviewed_at" gorm:"type:bigint;default:0"`
-	ReviewNote            string  `json:"review_note" gorm:"type:text"`
-	InvoiceNo             string  `json:"invoice_no" gorm:"type:varchar(128);index;default:''"`
-	InvoiceDate           int64   `json:"invoice_date" gorm:"type:bigint;default:0"`
-	IssuedAt              int64   `json:"issued_at" gorm:"type:bigint;default:0"`
-	CreatedAt             int64   `json:"created_at" gorm:"type:bigint"`
-	UpdatedAt             int64   `json:"updated_at" gorm:"type:bigint"`
+	// Nullable fields preserve legacy rows without inventing trusted snapshots.
+	AmountMinor     *int64  `json:"amount_minor" gorm:"type:bigint"`
+	SnapshotVersion int     `json:"snapshot_version" gorm:"not null;default:0"`
+	BuyerSnapshot   string  `json:"buyer_snapshot" gorm:"type:text"`
+	IssuedIdentity  *string `json:"-" gorm:"type:varchar(128);uniqueIndex:uq_invoice_issued_identity"`
+	Currency        string  `json:"currency" gorm:"type:varchar(8);not null;default:'USD'"`
+	InvoiceType     string  `json:"invoice_type" gorm:"type:varchar(32);index;not null"`
+	Status          string  `json:"status" gorm:"type:varchar(32);index;not null;default:'PENDING'"`
+	SourceType      string  `json:"source_type" gorm:"type:varchar(32);index;not null"`
+	SourceId        int     `json:"source_id" gorm:"index;default:0"`
+	ReviewerId      int     `json:"reviewer_id" gorm:"index;default:0"`
+	ReviewedAt      int64   `json:"reviewed_at" gorm:"type:bigint;default:0"`
+	ReviewNote      string  `json:"review_note" gorm:"type:text"`
+	InvoiceNo       string  `json:"invoice_no" gorm:"type:varchar(128);index;default:''"`
+	InvoiceDate     int64   `json:"invoice_date" gorm:"type:bigint;default:0"`
+	IssuedAt        int64   `json:"issued_at" gorm:"type:bigint;default:0"`
+	CreatedAt       int64   `json:"created_at" gorm:"type:bigint"`
+	UpdatedAt       int64   `json:"updated_at" gorm:"type:bigint"`
 }
 
 func (a *InvoiceApplication) BeforeCreate(tx *gorm.DB) error {

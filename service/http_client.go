@@ -35,6 +35,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 
 func InitHttpClient() {
 	transport := &http.Transport{
+		DialContext:         dialOutbound,
 		MaxIdleConns:        common.RelayMaxIdleConns,
 		MaxIdleConnsPerHost: common.RelayMaxIdleConnsPerHost,
 		ForceAttemptHTTP2:   true,
@@ -89,6 +90,11 @@ func NewProxyHttpClient(proxyURL string) (*http.Client, error) {
 			return client, nil
 		}
 		return http.DefaultClient, nil
+	}
+	if productionOutboundSecurity() {
+		// A proxy can resolve/connect to a different private IP after validation.
+		// Production requires a separately reviewed egress connector design.
+		return nil, fmt.Errorf("per-channel proxies are disabled in production")
 	}
 
 	proxyClientLock.Lock()

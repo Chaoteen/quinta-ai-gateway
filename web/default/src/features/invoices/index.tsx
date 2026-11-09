@@ -1,9 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { FileText, ReceiptText, RefreshCw, Send, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { FileText, ReceiptText, RefreshCw, Send, Upload } from 'lucide-react'
-import { SectionPageLayout } from '@/components/layout'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+  formatDisplayMoney,
+} from '@/lib/commercial-display'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,11 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  displayEnumLabel,
-  formatDisplayDateTime,
-  formatDisplayMoney,
-} from '@/lib/commercial-display'
+import { SectionPageLayout } from '@/components/layout'
 import {
   createInvoiceApplication,
   createInvoiceProfile,
@@ -30,6 +31,7 @@ import {
   getAdminInvoiceFiles,
   getAdminInvoiceProfiles,
   getInvoiceApplications,
+  getInvoiceCapabilities,
   getInvoiceFiles,
   getInvoiceProfiles,
   getPaidPaymentOrders,
@@ -63,9 +65,7 @@ function statusVariant(
 function StatusBadge({ status }: { status?: string }) {
   const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)}>
-      {displayEnumLabel(status, t)}
-    </Badge>
+    <Badge variant={statusVariant(status)}>{displayEnumLabel(status, t)}</Badge>
   )
 }
 
@@ -73,7 +73,10 @@ function EmptyRows({ colSpan }: { colSpan: number }) {
   const { t } = useTranslation()
   return (
     <TableRow>
-      <TableCell colSpan={colSpan} className='h-24 text-center text-muted-foreground'>
+      <TableCell
+        colSpan={colSpan}
+        className='text-muted-foreground h-24 text-center'
+      >
         {t('No data')}
       </TableCell>
     </TableRow>
@@ -92,7 +95,7 @@ function Pager({
   const { t } = useTranslation()
   const maxPage = Math.max(1, Math.ceil((pageData?.total ?? 0) / PAGE_SIZE))
   return (
-    <div className='flex items-center justify-end gap-2 pt-3 text-sm text-muted-foreground'>
+    <div className='text-muted-foreground flex items-center justify-end gap-2 pt-3 text-sm'>
       <span>
         {t('Page')} {page} / {maxPage}
       </span>
@@ -151,7 +154,8 @@ export function InvoicePortal() {
 
   const profilesQuery = useQuery({
     queryKey: ['invoices', 'profiles', pages.profiles],
-    queryFn: () => getInvoiceProfiles({ p: pages.profiles, page_size: PAGE_SIZE }),
+    queryFn: () =>
+      getInvoiceProfiles({ p: pages.profiles, page_size: PAGE_SIZE }),
   })
   const applicationsQuery = useQuery({
     queryKey: ['invoices', 'applications', pages.applications],
@@ -270,7 +274,9 @@ export function InvoicePortal() {
             <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Create invoice profile')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Create invoice profile')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form
@@ -282,7 +288,7 @@ export function InvoicePortal() {
                   >
                     <Field label={t('Profile Type')}>
                       <select
-                        className='h-9 rounded-md border bg-background px-3 text-sm'
+                        className='bg-background h-9 rounded-md border px-3 text-sm'
                         value={profileForm.profile_type}
                         onChange={(event) =>
                           setProfileForm((current) => ({
@@ -346,7 +352,9 @@ export function InvoicePortal() {
               </Card>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Invoice Profiles')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Invoice Profiles')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ProfileTable
@@ -367,7 +375,9 @@ export function InvoicePortal() {
             <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Submit invoice application')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Submit invoice application')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form
@@ -379,7 +389,7 @@ export function InvoicePortal() {
                   >
                     <Field label={t('Payment Order')}>
                       <select
-                        className='h-9 rounded-md border bg-background px-3 text-sm'
+                        className='bg-background h-9 rounded-md border px-3 text-sm'
                         value={applicationForm.source_id}
                         onChange={(event) =>
                           setApplicationForm((current) => ({
@@ -389,16 +399,19 @@ export function InvoicePortal() {
                         }
                       >
                         <option value=''>{t('Select payment order')}</option>
-                        {(paymentsQuery.data?.data.items ?? []).map((order) => (
-                          <option key={order.id} value={order.id}>
-                            {order.order_no} - {formatDisplayMoney(order.amount, order.currency)}
-                          </option>
-                        ))}
+                        {(paymentsQuery.data?.data.items ?? [])
+                          .filter((order) => order.currency === 'CNY')
+                          .map((order) => (
+                            <option key={order.id} value={order.id}>
+                              {order.order_no} -{' '}
+                              {formatDisplayMoney(order.amount, order.currency)}
+                            </option>
+                          ))}
                       </select>
                     </Field>
                     <Field label={t('Invoice Profile')}>
                       <select
-                        className='h-9 rounded-md border bg-background px-3 text-sm'
+                        className='bg-background h-9 rounded-md border px-3 text-sm'
                         value={applicationForm.invoice_profile_id}
                         onChange={(event) =>
                           setApplicationForm((current) => ({
@@ -408,11 +421,13 @@ export function InvoicePortal() {
                         }
                       >
                         <option value=''>{t('Select invoice profile')}</option>
-                        {(profilesQuery.data?.data.items ?? []).map((profile) => (
-                          <option key={profile.id} value={profile.id}>
-                            {profile.title}
-                          </option>
-                        ))}
+                        {(profilesQuery.data?.data.items ?? []).map(
+                          (profile) => (
+                            <option key={profile.id} value={profile.id}>
+                              {profile.title}
+                            </option>
+                          )
+                        )}
                       </select>
                     </Field>
                     <Input
@@ -430,7 +445,7 @@ export function InvoicePortal() {
                     />
                     <Field label={t('Invoice Type')}>
                       <select
-                        className='h-9 rounded-md border bg-background px-3 text-sm'
+                        className='bg-background h-9 rounded-md border px-3 text-sm'
                         value={applicationForm.invoice_type}
                         onChange={(event) =>
                           setApplicationForm((current) => ({
@@ -451,10 +466,14 @@ export function InvoicePortal() {
               </Card>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Invoice Applications')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Invoice Applications')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ApplicationTable items={applicationsQuery.data?.data.items ?? []} />
+                  <ApplicationTable
+                    items={applicationsQuery.data?.data.items ?? []}
+                  />
                   <Pager
                     page={pages.applications}
                     pageData={applicationsQuery.data?.data}
@@ -468,7 +487,9 @@ export function InvoicePortal() {
           <TabsContent value='files'>
             <Card className='rounded-lg'>
               <CardHeader>
-                <CardTitle className='text-base'>{t('Invoice Files')}</CardTitle>
+                <CardTitle className='text-base'>
+                  {t('Invoice Files')}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <FileTable items={filesQuery.data?.data.items ?? []} />
@@ -488,6 +509,21 @@ export function InvoicePortal() {
 
 export function InvoiceAdminPortal() {
   const { t } = useTranslation()
+  const user = useAuthStore((state) => state.auth.user)
+  const capabilitiesQuery = useQuery({
+    queryKey: [
+      'invoice-capabilities',
+      user?.id,
+      user?.tenant_id,
+      user?.role_key,
+    ],
+    queryFn: getInvoiceCapabilities,
+  })
+  const capabilities = capabilitiesQuery.data?.success
+    ? capabilitiesQuery.data.data
+    : undefined
+  const canReview = capabilities?.can_review === true
+  const canRegister = capabilities?.can_register === true
   const [activeTab, setActiveTab] = useState<AdminTab>('applications')
   const [pages, setPages] = useState<Record<AdminTab, number>>({
     applications: 1,
@@ -521,7 +557,8 @@ export function InvoiceAdminPortal() {
   })
   const filesQuery = useQuery({
     queryKey: ['admin-invoices', 'files', pages.files],
-    queryFn: () => getAdminInvoiceFiles({ p: pages.files, page_size: PAGE_SIZE }),
+    queryFn: () =>
+      getAdminInvoiceFiles({ p: pages.files, page_size: PAGE_SIZE }),
   })
 
   const refreshAll = () => {
@@ -581,7 +618,9 @@ export function InvoiceAdminPortal() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Invoice Management')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        {t('Invoice Management')}
+      </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <Button type='button' variant='outline' size='sm' onClick={refreshAll}>
           <RefreshCw className='size-4' />
@@ -613,82 +652,112 @@ export function InvoiceAdminPortal() {
             <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Manual invoice registration')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Manual invoice registration')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form
                     className='space-y-3'
                     onSubmit={(event) => {
                       event.preventDefault()
-                      issueMutation.mutate()
+                      if (canRegister && !issueMutation.isPending)
+                        issueMutation.mutate()
                     }}
                   >
-                    <Input
-                      value={issueForm.application_id}
-                      onChange={(event) =>
-                        setIssueForm((current) => ({
-                          ...current,
-                          application_id: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Application ID')}
-                    />
-                    <Input
-                      value={issueForm.invoice_no}
-                      onChange={(event) =>
-                        setIssueForm((current) => ({
-                          ...current,
-                          invoice_no: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Invoice number')}
-                    />
-                    <Input
-                      type='date'
-                      value={issueForm.invoice_date}
-                      onChange={(event) =>
-                        setIssueForm((current) => ({
-                          ...current,
-                          invoice_date: event.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      value={issueForm.file_name}
-                      onChange={(event) =>
-                        setIssueForm((current) => ({
-                          ...current,
-                          file_name: event.target.value,
-                        }))
-                      }
-                      placeholder={t('File name')}
-                    />
-                    <Input
-                      value={issueForm.file_url}
-                      onChange={(event) =>
-                        setIssueForm((current) => ({
-                          ...current,
-                          file_url: event.target.value,
-                        }))
-                      }
-                      placeholder={t('File URL')}
-                    />
-                    <Button type='submit' className='w-full'>
-                      {t('Register issued invoice')}
-                    </Button>
+                    <p className='text-muted-foreground text-sm' role='status'>
+                      {t(
+                        'Register a genuine invoice already issued through the tax platform.'
+                      )}
+                    </p>
+                    {!canRegister && (
+                      <p
+                        className='text-muted-foreground text-sm'
+                        role='status'
+                      >
+                        {t(
+                          'Only authorized platform finance can review and register invoices.'
+                        )}
+                      </p>
+                    )}
+                    <fieldset
+                      disabled={!canRegister || issueMutation.isPending}
+                      className='space-y-3'
+                    >
+                      <Input
+                        aria-label={t('Application ID')}
+                        value={issueForm.application_id}
+                        onChange={(event) =>
+                          setIssueForm((current) => ({
+                            ...current,
+                            application_id: event.target.value,
+                          }))
+                        }
+                        placeholder={t('Application ID')}
+                      />
+                      <Input
+                        aria-label={t('Invoice number')}
+                        value={issueForm.invoice_no}
+                        onChange={(event) =>
+                          setIssueForm((current) => ({
+                            ...current,
+                            invoice_no: event.target.value,
+                          }))
+                        }
+                        placeholder={t('Invoice number')}
+                      />
+                      <Input
+                        type='date'
+                        aria-label={t('Date')}
+                        value={issueForm.invoice_date}
+                        onChange={(event) =>
+                          setIssueForm((current) => ({
+                            ...current,
+                            invoice_date: event.target.value,
+                          }))
+                        }
+                      />
+                      <Input
+                        aria-label={t('File name')}
+                        value={issueForm.file_name}
+                        onChange={(event) =>
+                          setIssueForm((current) => ({
+                            ...current,
+                            file_name: event.target.value,
+                          }))
+                        }
+                        placeholder={t('File name')}
+                      />
+                      <Input
+                        aria-label={t('File URL')}
+                        value={issueForm.file_url}
+                        onChange={(event) =>
+                          setIssueForm((current) => ({
+                            ...current,
+                            file_url: event.target.value,
+                          }))
+                        }
+                        placeholder={t('File URL')}
+                      />
+                      <Button type='submit' className='w-full'>
+                        {t('Register issued invoice')}
+                      </Button>
+                    </fieldset>
                   </form>
                 </CardContent>
               </Card>
               <Card className='rounded-lg'>
                 <CardHeader>
-                  <CardTitle className='text-base'>{t('Applications')}</CardTitle>
+                  <CardTitle className='text-base'>
+                    {t('Applications')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className='mb-3 flex flex-wrap gap-2'>
                     <select
                       value={status}
                       onChange={(event) => setStatus(event.target.value)}
-                      className='h-9 rounded-md border bg-background px-3 text-sm'
+                      className='bg-background h-9 rounded-md border px-3 text-sm'
                     >
                       <option value=''>{t('All statuses')}</option>
                       <option value='PENDING'>{t('Pending')}</option>
@@ -697,6 +766,7 @@ export function InvoiceAdminPortal() {
                       <option value='ISSUED'>{t('Issued')}</option>
                     </select>
                     <Input
+                      disabled={!canReview || reviewMutation.isPending}
                       value={reviewNote}
                       onChange={(event) => setReviewNote(event.target.value)}
                       placeholder={t('Review note')}
@@ -706,23 +776,33 @@ export function InvoiceAdminPortal() {
                   <ApplicationTable
                     items={applicationsQuery.data?.data.items ?? []}
                     actions={(item) =>
+                      canReview &&
+                      item.user_id !== capabilities?.actor_user_id &&
                       item.status === 'PENDING' && (
                         <div className='flex gap-2'>
                           <Button
                             type='button'
+                            disabled={reviewMutation.isPending}
                             size='sm'
                             onClick={() =>
-                              reviewMutation.mutate({ id: item.id, approved: true })
+                              reviewMutation.mutate({
+                                id: item.id,
+                                approved: true,
+                              })
                             }
                           >
                             {t('Approve')}
                           </Button>
                           <Button
                             type='button'
+                            disabled={reviewMutation.isPending}
                             size='sm'
                             variant='destructive'
                             onClick={() =>
-                              reviewMutation.mutate({ id: item.id, approved: false })
+                              reviewMutation.mutate({
+                                id: item.id,
+                                approved: false,
+                              })
                             }
                           >
                             {t('Reject')}
@@ -863,7 +943,9 @@ function ApplicationTable({
                 {item.application_no}
               </TableCell>
               <TableCell>#{item.user_id}</TableCell>
-              <TableCell>{formatDisplayMoney(item.amount, item.currency)}</TableCell>
+              <TableCell>
+                {formatDisplayMoney(item.amount, item.currency)}
+              </TableCell>
               <TableCell>{displayEnumLabel(item.invoice_type, t)}</TableCell>
               <TableCell>
                 <StatusBadge status={item.status} />

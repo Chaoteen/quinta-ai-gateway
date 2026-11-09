@@ -14,6 +14,7 @@ import (
 
 func seedPaymentUser(t *testing.T, id int, tenantId int, quota int) model.User {
 	t.Helper()
+	t.Setenv("ENABLE_MOCK_PAYMENTS", "true")
 	user := model.User{
 		Id:       id,
 		TenantId: tenantId,
@@ -23,6 +24,7 @@ func seedPaymentUser(t *testing.T, id int, tenantId int, quota int) model.User {
 		RoleKey:  common.RoleKeyUser,
 		Status:   common.UserStatusEnabled,
 		Group:    "default",
+		AffCode:  fmt.Sprintf("payment-aff-%d", id),
 		Quota:    quota,
 	}
 	require.NoError(t, model.DB.Create(&user).Error)
@@ -98,7 +100,7 @@ func TestConfirmPaymentIsIdempotentAndDoesNotDoubleFulfill(t *testing.T) {
 
 	var reloaded model.User
 	require.NoError(t, model.DB.Select("quota").Where("id = ?", user.Id).First(&reloaded).Error)
-	require.Equal(t, 1234, reloaded.Quota)
+	require.Equal(t, int(order.QuotaGranted), reloaded.Quota)
 
 	var logCount int64
 	require.NoError(t, model.DB.Model(&model.PaymentCallbackLog{}).Where("payment_order_id = ?", order.Id).Count(&logCount).Error)
@@ -169,7 +171,7 @@ func TestBankTransferApprovalTriggersConfirmOnce(t *testing.T) {
 
 	var reloaded model.User
 	require.NoError(t, model.DB.Select("quota").Where("id = ?", user.Id).First(&reloaded).Error)
-	require.Equal(t, 2222, reloaded.Quota)
+	require.Equal(t, int(order.QuotaGranted), reloaded.Quota)
 
 	var paidOrder model.PaymentOrder
 	require.NoError(t, model.DB.Where("id = ?", order.Id).First(&paidOrder).Error)

@@ -53,7 +53,9 @@ export function formatDisplayMoney(
   currency?: string | null
 ): string {
   if (value == null || Number.isNaN(Number(value))) return '-'
-  const configuredSymbol = getConfiguredMoneySymbol()
+  // An order's explicit currency is authoritative. A display preference must
+  // never relabel a USD amount as CNY without an actual conversion.
+  const configuredSymbol = currency?.trim() ? null : getConfiguredMoneySymbol()
   if (configuredSymbol) {
     return `${configuredSymbol}${formatMoneyNumber(Number(value))}`
   }

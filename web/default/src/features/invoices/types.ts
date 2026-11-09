@@ -47,6 +47,9 @@ export type InvoiceApplication = {
   user_id: number
   invoice_profile_id: number
   amount: number
+  amount_minor?: number | null
+  snapshot_version?: number
+  buyer_snapshot?: string
   currency: string
   invoice_type: string
   status: string
@@ -59,6 +62,12 @@ export type InvoiceApplication = {
   invoice_date: number
   issued_at: number
   created_at: number
+}
+
+export type InvoiceCapabilities = {
+  actor_user_id: number
+  can_review: boolean
+  can_register: boolean
 }
 
 export type InvoiceFile = {

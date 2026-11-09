@@ -19,7 +19,7 @@ type AccessScope struct {
 
 func AccessScopeFromContext(c *gin.Context) AccessScope {
 	if c == nil {
-		return AccessScope{TenantId: normalizeTenantId(0), RoleKey: common.RoleKeyUser}
+		return AccessScope{RoleKey: common.RoleKeyUser}
 	}
 	roleKey := common.GetContextKeyString(c, constant.ContextKeyUserRoleKey)
 	if roleKey == "" && c != nil {
@@ -27,7 +27,7 @@ func AccessScopeFromContext(c *gin.Context) AccessScope {
 	}
 	roleKey = common.NormalizeRoleKey(roleKey)
 	scope := AccessScope{
-		TenantId: normalizeTenantId(common.GetContextKeyInt(c, constant.ContextKeyTenantId)),
+		TenantId: common.GetContextKeyInt(c, constant.ContextKeyTenantId),
 		RoleKey:  roleKey,
 		IsRoot:   common.IsRootRole(roleKey) || (c != nil && c.GetInt("role") == common.RoleRootUser),
 	}
@@ -44,6 +44,9 @@ func AccessScopeFromContext(c *gin.Context) AccessScope {
 func ApplyOwnershipScope(db *gorm.DB, tableAliasOrName string, scope AccessScope) *gorm.DB {
 	if scope.IsRoot {
 		return db
+	}
+	if scope.TenantId <= 0 {
+		return db.Where("1 = 0")
 	}
 	if common.IsOrganizationAdminRole(scope.RoleKey) && scope.OrganizationId <= 0 {
 		return db.Where("1 = 0")
@@ -62,6 +65,9 @@ func ApplyOwnershipScope(db *gorm.DB, tableAliasOrName string, scope AccessScope
 func AllowsOwnership(scope AccessScope, tenantId int, organizationId int, departmentId int) bool {
 	if scope.IsRoot {
 		return true
+	}
+	if scope.TenantId <= 0 || tenantId <= 0 {
+		return false
 	}
 	if common.IsOrganizationAdminRole(scope.RoleKey) && scope.OrganizationId <= 0 {
 		return false

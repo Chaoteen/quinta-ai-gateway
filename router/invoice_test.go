@@ -56,12 +56,12 @@ func decodeInvoicePageTotal(t *testing.T, body []byte) int64 {
 func TestInvoiceRouteRBAC(t *testing.T) {
 	r := setupRoleAdoptionRouter(t)
 
-	for _, roleName := range []string{"root", "finance", "tenant_admin"} {
+	for _, roleName := range []string{"root", "finance", "tenant_admin", "auditor"} {
 		recorder := performRoleAdoptionRequest(r, http.MethodGet, "/api/admin/invoices/applications", "", roleAdoptionUsers[roleName])
 		success, _ := decodeRoleAdoptionBasicResponse(t, recorder)
 		require.True(t, success, roleName)
 	}
-	for _, roleName := range []string{"user", "ops", "auditor"} {
+	for _, roleName := range []string{"user", "ops"} {
 		recorder := performRoleAdoptionRequest(r, http.MethodGet, "/api/admin/invoices/applications", "", roleAdoptionUsers[roleName])
 		success, _ := decodeRoleAdoptionBasicResponse(t, recorder)
 		require.False(t, success, roleName)
@@ -69,6 +69,7 @@ func TestInvoiceRouteRBAC(t *testing.T) {
 }
 
 func TestInvoiceRouteOwnershipScope(t *testing.T) {
+	t.Setenv("PLATFORM_TENANT_ID", "0")
 	r := setupRoleAdoptionRouter(t)
 	seedRoleAdoptionInvoiceApplication(t, model.DB, 11901, roleAdoptionUsers["user"], 100)
 	seedRoleAdoptionInvoiceApplication(t, model.DB, 11902, roleAdoptionUsers["tenant2_user"], 200)
@@ -80,5 +81,9 @@ func TestInvoiceRouteOwnershipScope(t *testing.T) {
 	require.Equal(t, int64(1), decodeInvoicePageTotal(t, tenantResp.Body.Bytes()))
 
 	financeResp := performRoleAdoptionRequest(r, http.MethodGet, "/api/admin/invoices/applications?p=1&page_size=10", "", roleAdoptionUsers["finance"])
-	require.Equal(t, int64(2), decodeInvoicePageTotal(t, financeResp.Body.Bytes()))
+	require.Equal(t, int64(1), decodeInvoicePageTotal(t, financeResp.Body.Bytes()))
+
+	t.Setenv("PLATFORM_TENANT_ID", fmt.Sprint(roleAdoptionUsers["finance"].tenant))
+	platformFinanceResp := performRoleAdoptionRequest(r, http.MethodGet, "/api/admin/invoices/applications?p=1&page_size=10", "", roleAdoptionUsers["finance"])
+	require.Equal(t, int64(2), decodeInvoicePageTotal(t, platformFinanceResp.Body.Bytes()))
 }

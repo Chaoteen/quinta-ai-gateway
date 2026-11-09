@@ -94,18 +94,17 @@ import {
   SiGitlab,
   SiGoogle,
   SiKeycloak,
-  SiLinkedin,
   SiNextcloud,
   SiNotion,
   SiOkta,
   SiOpenid,
   SiReddit,
-  SiSlack,
   SiTelegram,
   SiTwitch,
   SiWechat,
   SiX,
 } from 'react-icons/si';
+import { FaLinkedin as SiLinkedin, FaSlack as SiSlack } from 'react-icons/fa';
 
 // 获取侧边栏Lucide图标组件
 export function getLucideIcon(key, selected = false) {

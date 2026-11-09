@@ -1,11 +1,11 @@
 package model
 
 import (
+	"crypto/rand"
 	"errors"
-	"math/rand"
+	"math/big"
 	"time"
 
-	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/setting/operation_setting"
 	"gorm.io/gorm"
 )
@@ -69,8 +69,17 @@ func UserCheckin(userId int) (*Checkin, error) {
 
 	// 计算随机额度奖励
 	quotaAwarded := setting.MinQuota
+	if setting.MinQuota < 0 || setting.MaxQuota < setting.MinQuota {
+		return nil, errors.New("invalid check-in quota range")
+	}
 	if setting.MaxQuota > setting.MinQuota {
-		quotaAwarded = setting.MinQuota + rand.Intn(setting.MaxQuota-setting.MinQuota+1)
+		width := new(big.Int).Sub(big.NewInt(int64(setting.MaxQuota)), big.NewInt(int64(setting.MinQuota)))
+		width.Add(width, big.NewInt(1))
+		random, err := rand.Int(rand.Reader, width)
+		if err != nil {
+			return nil, errors.New("secure random source unavailable")
+		}
+		quotaAwarded = setting.MinQuota + int(random.Int64())
 	}
 
 	today := time.Now().Format("2006-01-02")
@@ -81,13 +90,8 @@ func UserCheckin(userId int) (*Checkin, error) {
 		CreatedAt:    time.Now().Unix(),
 	}
 
-	// 根据数据库类型选择不同的策略
-	if common.UsingSQLite {
-		// SQLite 不支持嵌套事务，使用顺序操作 + 手动回滚
-		return userCheckinWithoutTransaction(checkin, userId, quotaAwarded)
-	}
-
-	// MySQL 和 PostgreSQL 支持事务，使用事务保证原子性
+	// GORM transactions work on SQLite as well. Never commit the claim before
+	// the balance update: a crash must roll both writes back together.
 	return userCheckinWithTransaction(checkin, userId, quotaAwarded)
 }
 
@@ -101,8 +105,9 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, quotaAwarded int) 
 		}
 
 		// 步骤2: 在事务中增加用户额度
-		if err := tx.Model(&User{}).Where("id = ?", userId).
-			Update("quota", gorm.Expr("quota + ?", quotaAwarded)).Error; err != nil {
+		result := tx.Model(&User{}).Where("id = ? AND quota <= ?", userId, int(^uint(0)>>1)-quotaAwarded).
+			Update("quota", gorm.Expr("quota + ?", quotaAwarded))
+		if result.Error != nil || result.RowsAffected != 1 {
 			return errors.New("签到失败：更新额度出错")
 		}
 
@@ -123,21 +128,7 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, quotaAwarded int) 
 
 // userCheckinWithoutTransaction 不使用事务执行签到（适用于 SQLite）
 func userCheckinWithoutTransaction(checkin *Checkin, userId int, quotaAwarded int) (*Checkin, error) {
-	// 步骤1: 创建签到记录
-	// 数据库有唯一约束 (user_id, checkin_date)，可以防止并发重复签到
-	if err := DB.Create(checkin).Error; err != nil {
-		return nil, errors.New("签到失败，请稍后重试")
-	}
-
-	// 步骤2: 增加用户额度
-	// 使用 db=true 强制直接写入数据库，不使用批量更新
-	if err := IncreaseUserQuota(userId, quotaAwarded, true); err != nil {
-		// 如果增加额度失败，需要回滚签到记录
-		DB.Delete(checkin)
-		return nil, errors.New("签到失败：更新额度出错")
-	}
-
-	return checkin, nil
+	return userCheckinWithTransaction(checkin, userId, quotaAwarded)
 }
 
 // GetUserCheckinStats 获取用户签到统计信息

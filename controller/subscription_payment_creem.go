@@ -21,6 +21,9 @@ type SubscriptionCreemPayRequest struct {
 }
 
 func SubscriptionRequestCreemPay(c *gin.Context) {
+	if rejectLegacyPlatformCollection(c) {
+		return
+	}
 	var req SubscriptionCreemPayRequest
 
 	// Keep body for debugging consistency (like RequestCreemPay)

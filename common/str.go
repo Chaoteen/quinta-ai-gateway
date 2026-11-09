@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"net/url"
@@ -8,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"unsafe"
-
-	"github.com/samber/lo"
 )
 
 var (
@@ -31,7 +30,27 @@ func GetRandomString(length int) string {
 	if length <= 0 {
 		return ""
 	}
-	return lo.RandomString(length, lo.AlphanumericCharset)
+	// These strings are also used for redeemable vouchers and credentials.
+	// Rejection sampling avoids modulo bias while retaining the existing alphabet.
+	const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	out := make([]byte, length)
+	buf := make([]byte, length)
+	for i := 0; i < length; {
+		if _, err := rand.Read(buf); err != nil {
+			panic("secure random source unavailable")
+		}
+		for _, b := range buf {
+			if b >= 248 {
+				continue
+			}
+			out[i] = alphabet[int(b)%len(alphabet)]
+			i++
+			if i == length {
+				break
+			}
+		}
+	}
+	return string(out)
 }
 
 func MapToJsonStr(m map[string]interface{}) string {

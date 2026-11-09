@@ -4683,6 +4683,8 @@
     "Profiles": "抬头",
     "Files": "文件",
     "Manual invoice registration": "手动登记发票",
+    "Register a genuine invoice already issued through the tax platform.": "请登记已在税务平台真实开具的发票。",
+    "Only authorized platform finance can review and register invoices.": "仅获授权的平台财务人员可以审核并登记发票。",
     "Application ID": "申请 ID",
     "Invoice number": "发票编号",
     "File name": "文件名",

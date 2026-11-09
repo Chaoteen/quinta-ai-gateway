@@ -1,0 +1,38 @@
+# Standalone production-oriented template. Supply immutable image digests and
+# secrets via a deployment secret store. TLS ingress and backups are external.
+services:
+  gateway:
+    image: ${GATEWAY_IMAGE:?Set the image built from the reviewed Quinta commit, pinned by digest}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    command: ["--log-dir", "/app/logs"]
+    environment:
+      APP_ENV: production
+      TENANT_INDEPENDENT_PAYMENTS: "true"
+      GIN_MODE: release
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_SECRET: ${SESSION_SECRET:?Set an independent random secret of at least 32 bytes}
+      CRYPTO_SECRET: ${CRYPTO_SECRET:?Set a stable independent encryption secret of at least 32 bytes}
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:?Set a random initial provisioning token of at least 32 bytes}
+      SQL_DSN: ${SQL_DSN:?Set PostgreSQL connection string with sslmode=verify-full and a trusted CA for remote databases}
+      REDIS_CONN_STRING: ${REDIS_CONN_STRING:?Set authenticated TLS Redis connection string}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:?Set only your ingress proxy addresses or CIDRs}
+      RELAY_TIMEOUT: "300"
+      ENABLE_MOCK_PAYMENTS: "false"
+      ENABLE_PPROF: "false"
+      DEBUG: "false"
+      TLS_INSECURE_SKIP_VERIFY: "false"
+      BATCH_UPDATE_ENABLED: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/status | grep -q '\"success\":true'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

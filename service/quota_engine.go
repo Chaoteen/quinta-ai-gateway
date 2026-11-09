@@ -10,6 +10,7 @@ import (
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -208,7 +209,7 @@ func (e *FoundationQuotaEngine) CommitUsage(ctx context.Context, input QuotaComm
 	var usage model.QuotaUsageRecord
 	err := model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var reservation model.QuotaReservation
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("reservation_id = ?", input.ReservationId).
 			First(&reservation).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -252,7 +253,7 @@ func (e *FoundationQuotaEngine) RollbackReservation(ctx context.Context, input Q
 
 	return model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var reservation model.QuotaReservation
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("reservation_id = ?", input.ReservationId).
 			First(&reservation).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -288,7 +289,7 @@ func (e *FoundationQuotaEngine) ResetQuota(ctx context.Context, input QuotaReset
 
 	return model.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var sub model.UserSubscription
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ?", input.UserSubscriptionId).
 			First(&sub).Error; err != nil {
 			return err

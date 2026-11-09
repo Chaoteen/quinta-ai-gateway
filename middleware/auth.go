@@ -157,9 +157,16 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 	c.Set("user_group", session.Get("group"))
 	c.Set("use_access_token", useAccessToken)
 	if userCache, err := model.GetUserCache(id.(int)); err == nil {
+		// Sessions are identity hints; cached current account state controls access.
+		currentRole := common.RoleKeyToLegacyRole(userCache.RoleKey)
+		if userCache.Status != common.UserStatusEnabled || currentRole < minRole {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		c.Set("role", currentRole)
 		userCache.WriteContext(c)
 		if strings.TrimSpace(userCache.RoleKey) == "" {
-			c.Set(string(constant.ContextKeyUserRoleKey), common.LegacyRoleToRoleKey(role.(int)))
+			c.Set(string(constant.ContextKeyUserRoleKey), common.LegacyRoleToRoleKey(currentRole))
 		}
 	} else {
 		common.SysLog(fmt.Sprintf("authHelper GetUserCache error for user %d: %v", id.(int), err))
@@ -253,6 +260,11 @@ func TokenOrUserAuth() func(c *gin.Context) {
 					return
 				}
 				userCache.WriteContext(c)
+				if userCache.Status != common.UserStatusEnabled {
+					c.AbortWithStatus(http.StatusForbidden)
+					return
+				}
+				c.Set("role", common.RoleKeyToLegacyRole(userCache.RoleKey))
 				c.Next()
 				return
 			}

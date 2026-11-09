@@ -35,3 +35,8 @@ data/
 .test
 token_estimator_test.go
 skills-lock.json
+
+.audit-tools/
+web/default/node_modules/
+web/classic/node_modules/
+.env.production

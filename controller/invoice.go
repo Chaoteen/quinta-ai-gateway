@@ -48,6 +48,10 @@ type issueInvoiceRequest struct {
 	FileType    string `json:"file_type"`
 }
 
+func GetInvoiceCapabilities(c *gin.Context) {
+	common.ApiSuccess(c, service.NewInvoiceService().Capabilities(invoiceActorFromContext(c)))
+}
+
 func CreateInvoiceProfile(c *gin.Context) {
 	var req createInvoiceProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

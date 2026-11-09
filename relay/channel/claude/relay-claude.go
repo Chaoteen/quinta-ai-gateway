@@ -1,10 +1,12 @@
 package claude
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -377,6 +379,36 @@ func RequestOpenAI2ClaudeMessage(c *gin.Context, textRequest dto.GeneralOpenAIRe
 							})
 						}
 					default:
+						// The file content variant has filename-based semantics. Do not
+						// silently turn arbitrary binary/text attachments into images.
+						if mediaMessage.Type == dto.ContentTypeFile {
+							file := mediaMessage.GetFile()
+							if file == nil {
+								continue
+							}
+							ext := strings.ToLower(filepath.Ext(file.FileName))
+							if ext != ".pdf" && ext != ".txt" && ext != ".md" && ext != ".csv" && ext != ".json" {
+								continue
+							}
+							mimeType := service.GetMimeTypeByExtension(ext)
+							source := types.NewFileSourceFromData(file.FileData, mimeType)
+							data, _, err := service.GetBase64Data(c, source, "formatting file for Claude")
+							if err != nil {
+								return nil, err
+							}
+							if ext == ".pdf" {
+								claudeMediaMessages = append(claudeMediaMessages, dto.ClaudeMediaMessage{
+									Type: "document", Source: &dto.ClaudeMessageSource{Type: "base64", MediaType: "application/pdf", Data: data},
+								})
+							} else {
+								decoded, err := base64.StdEncoding.DecodeString(data)
+								if err != nil {
+									return nil, err
+								}
+								claudeMediaMessages = append(claudeMediaMessages, dto.ClaudeMediaMessage{Type: "text", Text: common.GetPointer(string(decoded))})
+							}
+							continue
+						}
 						source := mediaMessage.ToFileSource()
 						if source == nil {
 							continue

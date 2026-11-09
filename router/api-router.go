@@ -86,6 +86,8 @@ func SetApiRouter(router *gin.Engine) {
 		voucherRedemptionReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		financeConsoleAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
 		invoiceAdminAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance)
+		invoiceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
+		invoiceIssueAuth := middleware.RoleAuth(common.RoleKeyFinance)
 		userReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin)
 		operationalFinanceReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyFinance, common.RoleKeyAuditor)
 		operationalOpsReadAuth := middleware.RoleAuth(common.RoleKeyTenantAdmin, common.RoleKeyOrganizationAdmin, common.RoleKeyOps, common.RoleKeyAuditor)
@@ -238,6 +240,7 @@ func SetApiRouter(router *gin.Engine) {
 		invoiceRoute := apiRouter.Group("/invoices")
 		invoiceRoute.Use(middleware.UserAuth())
 		{
+			invoiceRoute.GET("/capabilities", controller.GetInvoiceCapabilities)
 			invoiceRoute.POST("/profiles", controller.CreateInvoiceProfile)
 			invoiceRoute.GET("/profiles", controller.ListInvoiceProfiles)
 			invoiceRoute.POST("/profiles/:id/disable", controller.DisableInvoiceProfile)
@@ -279,12 +282,12 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		adminInvoiceRoute := apiRouter.Group("/admin/invoices")
 		{
-			adminInvoiceRoute.GET("/applications", invoiceAdminAuth, controller.AdminListInvoiceApplications)
-			adminInvoiceRoute.POST("/applications/:id/review", invoiceAdminAuth, controller.AdminReviewInvoiceApplication)
-			adminInvoiceRoute.POST("/applications/:id/issue", invoiceAdminAuth, controller.AdminIssueInvoice)
-			adminInvoiceRoute.GET("/profiles", invoiceAdminAuth, controller.AdminListInvoiceProfiles)
+			adminInvoiceRoute.GET("/applications", invoiceReadAuth, controller.AdminListInvoiceApplications)
+			adminInvoiceRoute.POST("/applications/:id/review", invoiceIssueAuth, controller.AdminReviewInvoiceApplication)
+			adminInvoiceRoute.POST("/applications/:id/issue", invoiceIssueAuth, controller.AdminIssueInvoice)
+			adminInvoiceRoute.GET("/profiles", invoiceReadAuth, controller.AdminListInvoiceProfiles)
 			adminInvoiceRoute.POST("/profiles", invoiceAdminAuth, controller.AdminCreateInvoiceProfile)
-			adminInvoiceRoute.GET("/files", invoiceAdminAuth, controller.AdminListInvoiceFiles)
+			adminInvoiceRoute.GET("/files", invoiceReadAuth, controller.AdminListInvoiceFiles)
 		}
 		optionRoute := apiRouter.Group("/option")
 		optionRoute.Use(middleware.RootAuth())

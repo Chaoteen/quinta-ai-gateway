@@ -30,6 +30,9 @@ func printHelp() {
 
 func InitEnv() {
 	flag.Parse()
+	if err := ValidateProductionSecurity(); err != nil {
+		log.Fatal(err)
+	}
 
 	envVersion := os.Getenv("VERSION")
 	if envVersion != "" {

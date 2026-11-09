@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
+import { APP_BASE_PATH } from '@/lib/base-path'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
 import { Badge } from '@/components/ui/badge'
@@ -462,7 +463,8 @@ function CodeSamplesSection(props: {
     if (candidate && typeof candidate === 'string') {
       return candidate.replace(/\/$/, '')
     }
-    if (typeof window !== 'undefined') return window.location.origin
+    if (typeof window !== 'undefined')
+      return `${window.location.origin}${APP_BASE_PATH}`
     return 'https://api.example.com'
   }, [status])
 

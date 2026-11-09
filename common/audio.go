@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/abema/go-mp4"
 	"github.com/go-audio/aiff"
@@ -226,7 +227,16 @@ func getOpusDuration(r io.ReadSeeker) (float64, error) {
 		}
 
 		// 读取 granule position (字节 6-13, 小端序)
-		granulePos := int64(binary.LittleEndian.Uint64(buf[6:14]))
+		granule := binary.LittleEndian.Uint64(buf[6:14])
+		// Ogg uses all-ones for an unset granule position. Other values must
+		// fit the signed accumulator before conversion.
+		if granule != math.MaxUint64 && granule > math.MaxInt64 {
+			return 0, errors.New("invalid Ogg granule position")
+		}
+		var granulePos int64
+		if granule != math.MaxUint64 {
+			granulePos = int64(granule)
+		}
 		if granulePos > totalGranulePos {
 			totalGranulePos = granulePos
 		}

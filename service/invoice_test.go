@@ -50,7 +50,7 @@ func seedInvoicePayment(t *testing.T, id int, user model.User, amount float64, s
 		Provider:     model.PaymentProviderMock,
 		BusinessType: model.PaymentBusinessTokenRecharge,
 		Amount:       amount,
-		Currency:     "USD",
+		Currency:     "CNY",
 		Status:       status,
 		Subject:      "invoice payment",
 	}
@@ -132,8 +132,10 @@ func TestInvoiceApplicationPaymentValidationAndAmountLimit(t *testing.T) {
 
 func TestInvoiceReviewIssueAndFile(t *testing.T) {
 	resetInvoiceTables(t)
+	t.Setenv("PLATFORM_TENANT_ID", "113")
 	user := seedInvoiceUser(t, 11003, 113)
 	admin := seedInvoiceUser(t, 11004, 113)
+	finance := InvoiceActor{UserId: admin.Id, Scope: model.AccessScope{TenantId: admin.TenantId, RoleKey: common.RoleKeyFinance}}
 	order := seedInvoicePayment(t, 11201, user, 120, model.PaymentOrderStatusPaid)
 	svc := NewInvoiceService()
 	profile, err := svc.CreateInvoiceProfile(context.Background(), invoiceUserActor(user), CreateInvoiceProfileInput{Title: "Company", TaxNo: "TAX"})
@@ -147,11 +149,11 @@ func TestInvoiceReviewIssueAndFile(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	approved, err := svc.ReviewInvoiceApplication(context.Background(), invoiceAdminActor(admin), app.Id, ReviewInvoiceApplicationInput{ReviewerId: admin.Id, Approved: true, ReviewNote: "ok"})
+	approved, err := svc.ReviewInvoiceApplication(context.Background(), finance, app.Id, ReviewInvoiceApplicationInput{ReviewerId: admin.Id, Approved: true, ReviewNote: "ok"})
 	require.NoError(t, err)
 	require.Equal(t, model.InvoiceStatusApproved, approved.Status)
 
-	issued, err := svc.IssueInvoice(context.Background(), invoiceAdminActor(admin), app.Id, IssueInvoiceInput{
+	issued, err := svc.IssueInvoice(context.Background(), finance, app.Id, IssueInvoiceInput{
 		UploadedBy: admin.Id,
 		InvoiceNo:  "INV-001",
 		FileName:   "invoice.pdf",
