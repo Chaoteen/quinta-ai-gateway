@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 import { useNotifications } from '@/hooks/use-notifications'
+import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { Button } from '@/components/ui/button'
@@ -65,6 +66,10 @@ export function PublicHeader(props: PublicHeaderProps) {
   } = props
 
   const { t } = useTranslation()
+  const { status } = useStatus()
+  const canRegister =
+    status?.register_enabled === true &&
+    status?.password_register_enabled === true
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { auth } = useAuthStore()
@@ -195,13 +200,24 @@ export function PublicHeader(props: PublicHeaderProps) {
                   ) : isAuthenticated ? (
                     <ProfileDropdown />
                   ) : (
-                    <Button
-                      size='sm'
-                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
-                      render={<Link to='/sign-in' />}
-                    >
-                      {t('Sign in')}
-                    </Button>
+                    <>
+                      {canRegister && (
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          render={<Link to='/sign-up' />}
+                        >
+                          {t('Sign up')}
+                        </Button>
+                      )}
+                      <Button
+                        size='sm'
+                        className='h-8 rounded-lg px-3.5 text-xs font-medium'
+                        render={<Link to='/sign-in' />}
+                      >
+                        {t('Sign in')}
+                      </Button>
+                    </>
                   )}
                 </>
               )}
@@ -291,6 +307,15 @@ export function PublicHeader(props: PublicHeaderProps) {
             )}
             style={{ transitionDelay: mobileOpen ? '250ms' : '0ms' }}
           >
+            {showAuthButtons && !isAuthenticated && canRegister && (
+              <Link
+                to='/sign-up'
+                onClick={() => setMobileOpen(false)}
+                className='inline-flex h-10 items-center justify-center rounded-lg border text-sm font-medium'
+              >
+                {t('Sign up')}
+              </Link>
+            )}
             {showAuthButtons && (
               <Link
                 to={isAuthenticated ? '/dashboard' : '/sign-in'}

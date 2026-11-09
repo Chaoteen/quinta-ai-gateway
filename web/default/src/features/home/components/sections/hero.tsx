@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
 
 interface HeroProps {
@@ -28,6 +29,10 @@ interface HeroProps {
 
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
+  const { status } = useStatus()
+  const canRegister =
+    status?.register_enabled === true &&
+    status?.password_register_enabled === true
 
   return (
     <section className='relative z-10 flex flex-col items-center overflow-hidden px-6 pt-28 pb-14 md:pt-36 md:pb-20'>
@@ -43,9 +48,7 @@ export function Hero(props: HeroProps) {
         >
           {t('Unified API Gateway for')}
           <br />
-          <span className='text-foreground'>
-            {t('All Your AI Models')}
-          </span>
+          <span className='text-foreground'>{t('All Your AI Models')}</span>
         </h1>
         <p
           className='landing-animate-fade-up text-muted-foreground mt-6 max-w-2xl text-base leading-7 opacity-0 md:text-xl'
@@ -71,7 +74,7 @@ export function Hero(props: HeroProps) {
             <>
               <Button
                 className='group rounded-lg'
-                render={<Link to='/sign-up' />}
+                render={<Link to={canRegister ? '/sign-up' : '/sign-in'} />}
               >
                 {t('Start Using')}
                 <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
@@ -79,7 +82,7 @@ export function Hero(props: HeroProps) {
               <Button
                 variant='outline'
                 className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-                render={<Link to='/about' />}
+                render={<Link to='/pricing' />}
               >
                 {t('View Product')}
               </Button>

@@ -16,11 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ArrowDown, Building2, CreditCard, Layers3, Network } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import {
+  ArrowDown,
+  Building2,
+  CreditCard,
+  Layers3,
+  Network,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AnimateInView } from '@/components/animate-in-view'
 
-const modelProviders = ['OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Llama']
+const modelProviders = [
+  'OpenAI',
+  'Claude',
+  'Gemini',
+  'DeepSeek',
+  'Qwen',
+  'Llama',
+]
 const commerceCapabilities = [
   'Quota Engine',
   'Billing',
@@ -35,16 +49,42 @@ const enterpriseApps = [
   'Workflow',
 ]
 
-function NodePill(props: { label: string; emphasis?: boolean }) {
+const capabilityLinks: Record<string, string> = {
+  'Quota Engine': '/dashboard',
+  Billing: '/billing',
+  Subscription: '/subscriptions',
+  Voucher: '/vouchers',
+  Invoice: '/invoices',
+}
+
+function NodePill(props: {
+  label: string
+  emphasis?: boolean
+  href?: string
+  planned?: boolean
+}) {
+  const { t } = useTranslation()
+  const className = props.emphasis
+    ? 'bg-foreground text-background flex min-h-12 items-center justify-center rounded-lg px-5 text-sm font-semibold shadow-sm'
+    : 'bg-background text-foreground border-border flex min-h-11 flex-col items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium'
+  if (props.href)
+    return (
+      <Link
+        to={props.href}
+        className={`${className} hover:bg-muted focus-visible:outline-ring transition-colors focus-visible:outline-2`}
+      >
+        {t(props.label)}
+      </Link>
+    )
+
   return (
-    <div
-      className={
-        props.emphasis
-          ? 'bg-foreground text-background flex min-h-12 items-center justify-center rounded-lg px-5 text-sm font-semibold shadow-sm'
-          : 'bg-background text-foreground border-border flex min-h-11 items-center justify-center rounded-lg border px-4 text-sm font-medium'
-      }
-    >
-      {props.label}
+    <div className={className}>
+      {t(props.label)}
+      {props.planned && (
+        <span className='text-muted-foreground text-xs'>
+          {t('Coming Soon!')}
+        </span>
+      )}
     </div>
   )
 }
@@ -84,7 +124,7 @@ export function PlatformArchitecture() {
               </div>
               <div className='grid grid-cols-2 gap-2 md:grid-cols-6'>
                 {modelProviders.map((item) => (
-                  <NodePill key={item} label={item} />
+                  <NodePill key={item} label={item} href='/pricing' />
                 ))}
               </div>
             </div>
@@ -96,7 +136,7 @@ export function PlatformArchitecture() {
                 <Layers3 className='size-4' />
                 {t('Gateway Layer')}
               </div>
-              <NodePill label='Quinta AI Gateway' emphasis />
+              <NodePill label='Quinta AI Gateway' emphasis href='/dashboard' />
             </div>
 
             <DownConnector />
@@ -108,7 +148,11 @@ export function PlatformArchitecture() {
               </div>
               <div className='grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5'>
                 {commerceCapabilities.map((item) => (
-                  <NodePill key={item} label={item} />
+                  <NodePill
+                    key={item}
+                    label={item}
+                    href={capabilityLinks[item]}
+                  />
                 ))}
               </div>
             </div>
@@ -122,7 +166,7 @@ export function PlatformArchitecture() {
               </div>
               <div className='grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4'>
                 {enterpriseApps.map((item) => (
-                  <NodePill key={item} label={item} />
+                  <NodePill key={item} label={item} planned />
                 ))}
               </div>
             </div>
