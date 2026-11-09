@@ -219,7 +219,10 @@ func (s *VoucherService) RedeemVoucher(ctx context.Context, userId int, code str
 		}
 		if voucher.Status == model.VoucherStatusRedeemed {
 			var existing model.VoucherRedemption
-			err := tx.Where("voucher_id = ? AND redemption_result = ?", voucher.Id, model.VoucherRedemptionResultSuccess).
+			// Use a current read after acquiring the voucher lock. Under MySQL
+			// REPEATABLE READ, a plain SELECT can retain the pre-lock snapshot and
+			// miss the successful redemption committed by the previous holder.
+			err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("voucher_id = ? AND redemption_result = ?", voucher.Id, model.VoucherRedemptionResultSuccess).
 				Order("id desc").First(&existing).Error
 			if err == nil && existing.UserId == userId {
 				out = existing
