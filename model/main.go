@@ -262,7 +262,7 @@ func migrateDB() error {
 		return err
 	}
 
-	err := DB.AutoMigrate(
+	err := autoMigrateCompatible(DB,
 		&Tenant{},
 		&DistributionChannel{},
 		&Organization{},
@@ -390,7 +390,7 @@ func migrateDBFast() error {
 		wg.Add(1)
 		go func(model interface{}, name string) {
 			defer wg.Done()
-			if err := DB.AutoMigrate(model); err != nil {
+			if err := autoMigrateCompatible(DB, model); err != nil {
 				errChan <- fmt.Errorf("failed to migrate %s: %v", name, err)
 			}
 		}(m.model, m.name)
@@ -424,7 +424,7 @@ func migrateDBFast() error {
 
 func migrateLOGDB() error {
 	var err error
-	if err = LOG_DB.AutoMigrate(&Log{}); err != nil {
+	if err = autoMigrateCompatible(LOG_DB, &Log{}); err != nil {
 		return err
 	}
 	return nil
