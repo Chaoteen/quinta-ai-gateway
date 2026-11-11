@@ -319,7 +319,7 @@ func (s *PaymentGatewayService) ReviewBankTransfer(ctx context.Context, recordId
 				record.BankTransactionReference = &reference
 			}
 			if _, err := s.confirmPaymentTx(ctx, tx, ConfirmPaymentInput{
-				PaymentAccountId: order.PaymentAccountId, TenantId: order.TenantId,
+				PaymentAccountId: order.PaymentAccountId, TenantId: receivingTenant(&order),
 				MerchantId: order.MerchantIdSnapshot, AppId: order.AppIdSnapshot,
 				Currency: order.Currency, AmountMinor: order.AmountMinor,
 				OrderNo: order.OrderNo, Provider: model.PaymentProviderBankTransfer,

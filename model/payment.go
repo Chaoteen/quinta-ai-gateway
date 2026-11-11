@@ -46,6 +46,8 @@ const (
 )
 
 type PaymentOrder struct {
+	ReceivingTenantId     int    `json:"receiving_tenant_id" gorm:"index;default:0"`
+	CollectionMode        string `json:"collection_mode" gorm:"type:varchar(32);default:''"`
 	Id                    int    `json:"id"`
 	OrderNo               string `json:"order_no" gorm:"unique;type:varchar(64);index"`
 	TenantId              int    `json:"tenant_id" gorm:"index;default:1"`

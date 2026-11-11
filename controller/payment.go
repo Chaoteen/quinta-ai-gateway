@@ -135,7 +135,7 @@ func AdminListPaymentOrders(c *gin.Context) {
 	scope := paymentAdminAccessScope(c)
 	pageInfo := common.GetPageQuery(c)
 	query := model.DB.Model(&model.PaymentOrder{})
-	query = model.ApplyOwnershipScope(query, "payment_orders", scope)
+	query = paymentOrderReadQuery(c, query, scope)
 	query = applyPaymentOrderFilters(c, query)
 	if userId, _ := strconv.Atoi(c.Query("user_id")); userId > 0 {
 		query = query.Where("user_id = ?", userId)
@@ -160,7 +160,7 @@ func AdminListPaymentCallbackLogs(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	query := model.DB.Model(&model.PaymentCallbackLog{}).
 		Joins("JOIN payment_orders ON payment_orders.id = payment_callback_logs.payment_order_id")
-	query = model.ApplyOwnershipScope(query, "payment_orders", scope)
+	query = paymentOrderReadQuery(c, query, scope)
 	if provider := strings.TrimSpace(c.Query("provider")); provider != "" {
 		query = query.Where("payment_callback_logs.provider = ?", model.NormalizePaymentProvider(provider))
 	}
@@ -187,7 +187,7 @@ func AdminListBankTransfers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	query := model.DB.Model(&model.BankTransferRecord{}).
 		Joins("JOIN payment_orders ON payment_orders.id = bank_transfer_records.payment_order_id")
-	query = model.ApplyOwnershipScope(query, "payment_orders", scope)
+	query = paymentOrderReadQuery(c, query, scope)
 	if status := strings.TrimSpace(c.Query("review_status")); status != "" {
 		query = query.Where("bank_transfer_records.review_status = ?", model.NormalizeBankTransferReviewStatus(status))
 	}
@@ -257,6 +257,20 @@ func applyPaymentOrderFilters(c *gin.Context, query *gorm.DB) *gorm.DB {
 	return query
 }
 
+func platformPaymentReader(c *gin.Context) bool {
+	tenant := common.GetEnvOrDefault("PLATFORM_TENANT_ID", 0)
+	role := common.GetContextKeyString(c, constant.ContextKeyUserRoleKey)
+	return tenant > 0 && common.GetContextKeyInt(c, constant.ContextKeyTenantId) == tenant &&
+		(role == common.RoleKeyFinance || role == common.RoleKeyAuditor)
+}
+
+func paymentOrderReadQuery(c *gin.Context, query *gorm.DB, scope model.AccessScope) *gorm.DB {
+	if platformPaymentReader(c) {
+		return query.Where("payment_orders.receiving_tenant_id = ? AND payment_orders.collection_mode = ?", common.GetEnvOrDefault("PLATFORM_TENANT_ID", 0), "PLATFORM")
+	}
+	return model.ApplyOwnershipScope(query, "payment_orders", scope)
+}
+
 func paymentAdminAccessScope(c *gin.Context) model.AccessScope {
 	return model.AccessScopeFromContext(c)
 }
@@ -269,6 +283,12 @@ func ensureBankTransferInScope(c *gin.Context, id int, scope model.AccessScope) 
 	if err := model.DB.Where("id = ?", id).First(&record).Error; err != nil {
 		common.ApiErrorMsg(c, "转账记录不存在或无权访问")
 		return false
+	}
+	if platformPaymentReader(c) && common.GetContextKeyString(c, constant.ContextKeyUserRoleKey) == common.RoleKeyFinance {
+		var order model.PaymentOrder
+		if err := model.DB.Where("id = ? AND receiving_tenant_id = ? AND collection_mode = ?", record.PaymentOrderId, scope.TenantId, "PLATFORM").First(&order).Error; err == nil {
+			return true
+		}
 	}
 	if !model.AllowsOwnership(scope, record.TenantId, 0, 0) {
 		common.ApiErrorMsg(c, "转账记录不存在或无权访问")

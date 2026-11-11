@@ -32,6 +32,7 @@ import { Route as ConsoleLogRouteImport } from './routes/console/log'
 import { Route as ConsoleTopupRouteImport } from './routes/console/topup'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as LegalIndexRouteImport } from './routes/legal/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
@@ -198,6 +199,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
 const DocsSlugRoute = DocsSlugRouteImport.update({
   id: '/docs/$slug',
   path: '/docs/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalIndexRoute = LegalIndexRouteImport.update({
+  id: '/legal/',
+  path: '/legal/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OauthProviderRoute = OauthProviderRouteImport.update({
@@ -544,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/legal/': typeof LegalIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -619,6 +626,7 @@ export interface FileRoutesByTo {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/legal': typeof LegalIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
@@ -698,6 +706,7 @@ export interface FileRoutesById {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/legal/': typeof LegalIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -776,6 +785,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/docs/'
+    | '/legal/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -851,6 +861,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about'
     | '/docs'
+    | '/legal'
     | '/pricing'
     | '/rankings'
     | '/setup'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/docs/'
+    | '/legal/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -1000,6 +1012,7 @@ export interface RootRouteChildren {
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
+  LegalIndexRoute: typeof LegalIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
@@ -1167,6 +1180,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/$slug'
       fullPath: '/docs/$slug'
       preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/': {
+      id: '/legal/'
+      path: '/legal'
+      fullPath: '/legal/'
+      preLoaderRoute: typeof LegalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oauth/$provider': {
@@ -1722,6 +1742,7 @@ const rootRouteChildren: RootRouteChildren = {
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
+  LegalIndexRoute: LegalIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,

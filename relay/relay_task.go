@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -197,11 +198,20 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 		}
 	}
 
+	for name, ratio := range info.PriceData.OtherRatios {
+		if math.IsNaN(ratio) || math.IsInf(ratio, 0) || ratio < 0 {
+			return nil, service.TaskErrorWrapperLocal(fmt.Errorf("invalid billing ratio: %s", name), "invalid_billing_ratio", http.StatusBadRequest)
+		}
+		if (name == "seconds" || name == "duration" || name == "duration_seconds") && ratio > 3600 {
+			return nil, service.TaskErrorWrapperLocal(errors.New("task duration exceeds 3600 seconds"), "invalid_task_duration", http.StatusBadRequest)
+		}
+	}
+
 	// 6. 将 OtherRatios 应用到基础额度
 	if !common.StringsContains(constant.TaskPricePatches, modelName) {
 		for _, ra := range info.PriceData.OtherRatios {
 			if ra != 1.0 {
-				info.PriceData.Quota = int(float64(info.PriceData.Quota) * ra)
+				info.PriceData.Quota = common.QuotaFromFloat(float64(info.PriceData.Quota) * ra)
 			}
 		}
 	}
@@ -269,7 +279,7 @@ func recalcQuotaFromRatios(info *relaycommon.RelayInfo, ratios map[string]float6
 	// 先除掉原有的 OtherRatios 恢复基础额度
 	for _, ra := range info.PriceData.OtherRatios {
 		if ra != 1.0 && ra > 0 {
-			baseQuota = int(float64(baseQuota) / ra)
+			baseQuota = common.QuotaFromFloat(float64(baseQuota) / ra)
 		}
 	}
 	// 应用新的 ratios
@@ -279,7 +289,7 @@ func recalcQuotaFromRatios(info *relaycommon.RelayInfo, ratios map[string]float6
 			result *= ra
 		}
 	}
-	return int(result)
+	return common.QuotaFromFloat(result)
 }
 
 var fetchRespBuilders = map[int]func(c *gin.Context) (respBody []byte, taskResp *dto.TaskError){

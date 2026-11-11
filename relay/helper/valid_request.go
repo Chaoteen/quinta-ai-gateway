@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -49,6 +50,9 @@ func GetAndValidateRequest(c *gin.Context, format types.RelayFormat) (request dt
 		request = &dto.BaseRequest{}
 	default:
 		return nil, fmt.Errorf("unsupported relay format: %s", format)
+	}
+	if err == nil {
+		err = validateRelayBudget(request)
 	}
 	return request, err
 }
@@ -151,7 +155,13 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			formData := c.Request.PostForm
 			imageRequest.Prompt = formData.Get("prompt")
 			imageRequest.Model = formData.Get("model")
-			imageRequest.N = common.GetPointer(uint(common.String2Int(formData.Get("n"))))
+			if rawN := formData.Get("n"); rawN != "" {
+				n, err := strconv.ParseUint(rawN, 10, 32)
+				if err != nil || n > 128 {
+					return nil, errors.New("n must be an integer between 0 and 128")
+				}
+				imageRequest.N = common.GetPointer(uint(n))
+			}
 			imageRequest.Quality = formData.Get("quality")
 			imageRequest.Size = formData.Get("size")
 			if imageValue := formData.Get("image"); imageValue != "" {
@@ -163,7 +173,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 					imageRequest.Quality = "standard"
 				}
 			}
-			if imageRequest.N == nil || *imageRequest.N == 0 {
+			if imageRequest.N == nil {
 				imageRequest.N = common.GetPointer(uint(1))
 			}
 
@@ -218,11 +228,25 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 		//	return nil, errors.New("prompt is required")
 		//}
 
-		if imageRequest.N == nil || *imageRequest.N == 0 {
+		if imageRequest.N == nil {
 			imageRequest.N = common.GetPointer(uint(1))
 		}
 	}
 
+	if imageRequest.N != nil && (*imageRequest.N == 0 || *imageRequest.N > 128) {
+		return nil, errors.New("n must be between 1 and 128")
+	}
+	if raw, ok := imageRequest.Extra["parameters"]; ok {
+		var params struct {
+			N *uint `json:"n"`
+		}
+		if err := common.Unmarshal(raw, &params); err != nil {
+			return nil, errors.New("invalid image parameters")
+		}
+		if params.N != nil && (*params.N == 0 || *params.N > 128) {
+			return nil, errors.New("parameters.n must be between 1 and 128")
+		}
+	}
 	return imageRequest, nil
 }
 

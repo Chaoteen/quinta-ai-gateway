@@ -184,6 +184,20 @@ export function Footer(props: FooterProps) {
               dangerouslySetInnerHTML={{ __html: footerHtml }}
             />
             <div className='border-border/60 w-full border-t pt-4 sm:w-auto sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5'>
+              <Link
+                to='/legal'
+                className='text-muted-foreground text-xs underline'
+              >
+                AGPLv3 · Source / 源码
+              </Link>
+              <a
+                href='https://github.com/QuantumNous/new-api'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground text-xs'
+              >
+                Frontend design and development by New API contributors.
+              </a>
               <ProjectAttribution currentYear={currentYear} />
             </div>
           </div>
@@ -242,6 +256,17 @@ export function Footer(props: FooterProps) {
             &copy; {currentYear} {displayName}.{' '}
             {props.copyright ?? t('footer.defaultCopyright')}
           </p>
+          <Link to='/legal' className='text-muted-foreground text-xs underline'>
+            AGPLv3 · Source / 源码
+          </Link>
+          <a
+            href='https://github.com/QuantumNous/new-api'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-muted-foreground text-xs'
+          >
+            Frontend design and development by New API contributors.
+          </a>
           <ProjectAttribution currentYear={currentYear} />
         </div>
       </div>

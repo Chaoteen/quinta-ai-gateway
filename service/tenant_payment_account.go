@@ -21,8 +21,19 @@ var (
 	ErrBankReviewAuthority       = errors.New("bank approval requires an authorized different reviewer in the receiving tenant")
 )
 
+func platformCollection() bool {
+	return common.GetEnvOrDefaultString("PAYMENT_COLLECTION_MODE", "") == "platform"
+}
+
+func receivingTenant(order *model.PaymentOrder) int {
+	if order.ReceivingTenantId > 0 {
+		return order.ReceivingTenantId
+	}
+	return order.TenantId // Historical independently collected orders retain their original receiver.
+}
+
 func independentTenantPayments() bool {
-	return productionOutboundSecurity() || common.GetEnvOrDefaultBool("TENANT_INDEPENDENT_PAYMENTS", false)
+	return platformCollection() || productionOutboundSecurity() || common.GetEnvOrDefaultBool("TENANT_INDEPENDENT_PAYMENTS", false)
 }
 
 // TenantIndependentCollectionEnabled also guards legacy global-merchant entrypoints.
@@ -35,12 +46,25 @@ func bindTenantPaymentAccount(ctx context.Context, tx *gorm.DB, order *model.Pay
 	if accountId < 0 || order.TenantId <= 0 || order.Provider == model.PaymentProviderMock {
 		return ErrTenantPaymentAccount
 	}
+	receiverTenant := order.TenantId
+	if platformCollection() {
+		receiverTenant = common.GetEnvOrDefault("PLATFORM_TENANT_ID", 0)
+		if receiverTenant <= 0 {
+			return ErrTenantPaymentAccount
+		}
+		order.CollectionMode = "PLATFORM"
+		if order.Currency != "" && strings.ToUpper(order.Currency) != "CNY" {
+			return ErrPaymentInvalidAmount
+		}
+		order.Currency = "CNY"
+	}
+	order.ReceivingTenantId = receiverTenant
 	order.Currency = strings.ToUpper(strings.TrimSpace(order.Currency))
 	if order.Currency == "" {
 		order.Currency = "USD"
 	}
 	query := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("tenant_id = ? AND provider = ? AND currency = ? AND status = ?",
-		order.TenantId, order.Provider, order.Currency, model.TenantPaymentAccountActive)
+		receiverTenant, order.Provider, order.Currency, model.TenantPaymentAccountActive)
 	if accountId > 0 {
 		query = query.Where("id = ?", accountId)
 	}
@@ -98,13 +122,13 @@ func validateTenantPaymentEventTx(tx *gorm.DB, order *model.PaymentOrder, event 
 		return nil
 	}
 	var account model.TenantPaymentAccount
-	if err := tx.Where("id = ? AND tenant_id = ?", order.PaymentAccountId, order.TenantId).First(&account).Error; err != nil {
+	if err := tx.Where("id = ? AND tenant_id = ?", order.PaymentAccountId, receivingTenant(order)).First(&account).Error; err != nil {
 		return ErrTenantPaymentBinding
 	}
 	// Disabled accounts stop new orders; verified receipts for historical orders
 	// still use the original immutable identity, never another active account.
 	if account.Provider != order.Provider || account.Currency != order.Currency || account.MerchantId != order.MerchantIdSnapshot || account.AppId != order.AppIdSnapshot ||
-		event.TenantId != order.TenantId || event.PaymentAccountId != order.PaymentAccountId || event.MerchantId != order.MerchantIdSnapshot ||
+		event.TenantId != receivingTenant(order) || event.PaymentAccountId != order.PaymentAccountId || event.MerchantId != order.MerchantIdSnapshot ||
 		event.AppId != order.AppIdSnapshot || event.Currency != order.Currency || event.AmountMinor != order.AmountMinor || order.AmountMinor <= 0 {
 		return ErrTenantPaymentBinding
 	}
@@ -124,7 +148,9 @@ func validateTenantBankReviewerTx(tx *gorm.DB, order *model.PaymentOrder, input 
 	}
 	role := reviewer.NormalizedRoleKey()
 	if reviewer.Status != common.UserStatusEnabled || reviewer.Id == order.UserId ||
-		(role != common.RoleKeyRoot && (reviewer.TenantId != order.TenantId || (role != common.RoleKeyTenantAdmin && role != common.RoleKeyFinance))) {
+		(role != common.RoleKeyRoot && (reviewer.TenantId != receivingTenant(order) ||
+			(order.CollectionMode == "PLATFORM" && role != common.RoleKeyFinance) ||
+			(role != common.RoleKeyTenantAdmin && role != common.RoleKeyFinance))) {
 		return ErrBankReviewAuthority
 	}
 	reference := strings.TrimSpace(input.BankTransactionReference)

@@ -354,6 +354,13 @@ func AdminResetPasskey(c *gin.Context) {
 		return
 	}
 
+	// Peer/higher accounts and self-service credential changes require their
+	// own authenticated recovery flow, not the administrative reset endpoint.
+	if user.Id == c.GetInt("id") || user.Role >= c.GetInt("role") || common.IsRootRole(user.NormalizedRoleKey()) {
+		common.ApiErrorMsg(c, "无权重置该用户的 Passkey")
+		return
+	}
+
 	if _, err := model.GetPasskeyByUserID(user.Id); err != nil {
 		if errors.Is(err, model.ErrPasskeyNotFound) {
 			c.JSON(http.StatusOK, gin.H{
