@@ -131,7 +131,14 @@ function ChatRouteComponent() {
       <div className='flex h-full flex-col items-center justify-center p-6'>
         <Alert variant='destructive' className='max-w-xl'>
           <AlertTitle>{t('Unable to open chat')}</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
+          <AlertDescription>{t(message)}</AlertDescription>
+          <Button
+            variant='outline'
+            render={<Link to='/keys' />}
+            className='mt-3'
+          >
+            {t('API Keys')}
+          </Button>
         </Alert>
       </div>
     )

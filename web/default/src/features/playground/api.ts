@@ -40,12 +40,14 @@ export async function sendChatCompletion(
 /**
  * Get user available models
  */
-export async function getUserModels(): Promise<ModelOption[]> {
-  const res = await api.get(API_ENDPOINTS.USER_MODELS)
+export async function getUserModels(group?: string): Promise<ModelOption[]> {
+  const res = await api.get(API_ENDPOINTS.USER_MODELS, {
+    params: group ? { group } : undefined,
+  })
   const { data } = res
 
   if (!data.success || !Array.isArray(data.data)) {
-    return []
+    throw new Error(data.message || 'Failed to load models')
   }
 
   return data.data.map((model: string) => ({

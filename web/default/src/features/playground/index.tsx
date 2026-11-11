@@ -18,6 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
@@ -26,6 +29,8 @@ import { createUserMessage, createLoadingAssistantMessage } from './lib'
 import type { Message as MessageType } from './types'
 
 export function Playground() {
+  const { t } = useTranslation()
+  const userId = useAuthStore((state) => state.auth.user?.id)
   const {
     config,
     parameterEnabled,
@@ -50,14 +55,18 @@ export function Playground() {
   )
 
   // Load models
-  const { data: modelsData, isLoading: isLoadingModels } = useQuery({
-    queryKey: ['playground-models'],
-    queryFn: getUserModels,
+  const {
+    data: modelsData,
+    isFetching: isLoadingModels,
+    isError: isModelsError,
+  } = useQuery({
+    queryKey: ['playground-models', userId, config.group],
+    queryFn: () => getUserModels(config.group),
   })
 
   // Load groups
   const { data: groupsData } = useQuery({
-    queryKey: ['playground-groups'],
+    queryKey: ['playground-groups', userId],
     queryFn: getUserGroups,
   })
 
@@ -69,8 +78,8 @@ export function Playground() {
 
     // Set default model if current model is not available
     const isCurrentModelValid = modelsData.some((m) => m.value === config.model)
-    if (modelsData.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', modelsData[0].value)
+    if (!isCurrentModelValid) {
+      updateConfig('model', modelsData[0]?.value ?? '')
     }
   }, [modelsData, config.model, setModels, updateConfig])
 
@@ -89,7 +98,24 @@ export function Playground() {
     }
   }, [groupsData, setGroups, config.group, updateConfig])
 
+  const canSend =
+    !isLoadingModels &&
+    !isModelsError &&
+    Boolean(modelsData?.some((m) => m.value === config.model)) &&
+    groups.some((g) => g.value === config.group)
+  const checkReady = useCallback(() => {
+    if (canSend && !isGenerating) return true
+    if (!isGenerating)
+      toast.info(
+        t(
+          'No available model in this group. Contact the administrator to configure an upstream channel.'
+        )
+      )
+    return false
+  }, [canSend, isGenerating, t])
+
   const handleSendMessage = (text: string) => {
+    if (!checkReady()) return
     const userMessage = createUserMessage(text)
     const assistantMessage = createLoadingAssistantMessage()
 
@@ -107,6 +133,7 @@ export function Playground() {
   }
 
   const handleRegenerateMessage = (message: MessageType) => {
+    if (!checkReady()) return
     // Find the message index and regenerate from there
     const messageIndex = messages.findIndex((m) => m.key === message.key)
     if (messageIndex === -1) return
@@ -131,7 +158,7 @@ export function Playground() {
   // Apply edit and optionally re-submit from the edited user message
   const applyEdit = useCallback(
     (newContent: string, submit: boolean) => {
-      if (!editingMessageKey) return
+      if (!editingMessageKey || (submit && !checkReady())) return
       const index = messages.findIndex((m) => m.key === editingMessageKey)
       if (index === -1) return
 
@@ -155,7 +182,7 @@ export function Playground() {
       updateMessages(toSubmit)
       sendChat(toSubmit)
     },
-    [editingMessageKey, messages, updateMessages, sendChat]
+    [editingMessageKey, messages, updateMessages, sendChat, checkReady]
   )
 
   const handleDeleteMessage = (message: MessageType) => {
@@ -165,6 +192,17 @@ export function Playground() {
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
+      <p role='status' className='text-muted-foreground px-6 py-3 text-sm'>
+        {t(
+          isLoadingModels
+            ? 'Loading available models…'
+            : isModelsError
+              ? 'Failed to load models. Please refresh and try again.'
+              : !canSend && !isGenerating
+                ? 'No available model in this group. Contact the administrator to configure an upstream channel.'
+                : 'Test model responses and prompts here. Model calls consume your account quota.'
+        )}
+      </p>
       {/* Full-width scroll container: scrolling works even over side whitespace */}
       <div className='flex flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
@@ -185,6 +223,7 @@ export function Playground() {
       <div className='mx-auto w-full max-w-4xl'>
         <PlaygroundInput
           disabled={isGenerating}
+          canSubmit={canSend}
           groups={groups}
           groupValue={config.group}
           isGenerating={isGenerating}

@@ -22,23 +22,41 @@ import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
 
 export async function fetchActiveChatKey() {
-  const result = await getApiKeys({ p: 1, size: 50 })
-  if (!result.success) {
-    throw new Error(result.message || 'Failed to load API keys')
+  let activeId: number | undefined
+  const size = 50
+  for (let page = 1; ; page++) {
+    const result = await getApiKeys({ p: page, size })
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to load API keys')
+    }
+    const items = result.data?.items ?? []
+    const now = Math.floor(Date.now() / 1000)
+    const active = items.find(
+      (item) =>
+        item.status === API_KEY_STATUS.ENABLED &&
+        (item.expired_time === -1 || item.expired_time > now) &&
+        (item.unlimited_quota || item.remain_quota > 0)
+    )
+    if (active) {
+      activeId = active.id
+      break
+    }
+    if (items.length < size || page * size >= (result.data?.total ?? 0)) break
+  }
+  if (activeId === undefined) {
+    throw new Error(
+      'No usable API key found. Create a key, or check its status, expiry and quota in API Keys.'
+    )
   }
 
-  const items = result.data?.items ?? []
-  const active = items.find((item) => item.status === API_KEY_STATUS.ENABLED)
-  if (!active) {
-    throw new Error('No enabled API keys found. Create or enable one first.')
-  }
-
-  const keyResult = await fetchTokenKey(active.id)
+  const keyResult = await fetchTokenKey(activeId)
   if (!keyResult.success || !keyResult.data?.key) {
     throw new Error(keyResult.message || 'Failed to load API key')
   }
 
-  return `sk-${keyResult.data.key}`
+  return keyResult.data.key.startsWith('sk-')
+    ? keyResult.data.key
+    : `sk-${keyResult.data.key}`
 }
 
 /**
@@ -51,7 +69,7 @@ export function useActiveChatKey(enabled: boolean) {
     queryKey: ['chat-active-key', userId],
     queryFn: fetchActiveChatKey,
     enabled: enabled && Boolean(userId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
   })
 }

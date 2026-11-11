@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -562,15 +563,34 @@ func GetUserModels(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	scope, err := model.RelayTenantScopeFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error()})
+		return
+	}
 	groups := service.GetUserUsableGroups(user.Group)
-	var models []string
+	if requestedGroup := c.Query("group"); requestedGroup != "" {
+		if _, allowed := groups[requestedGroup]; !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "Group is not available to this user"})
+			return
+		}
+		groups = map[string]string{requestedGroup: groups[requestedGroup]}
+	}
+	models := make([]string, 0)
 	for group := range groups {
-		for _, g := range model.GetGroupEnabledModels(group) {
-			if !common.StringsContains(models, g) {
-				models = append(models, g)
+		lookupGroups := []string{group}
+		if group == "auto" {
+			lookupGroups = service.GetUserAutoGroup(user.Group)
+		}
+		for _, lookupGroup := range lookupGroups {
+			for _, name := range model.GetGroupEnabledModels(lookupGroup, scope) {
+				if !common.StringsContains(models, name) {
+					models = append(models, name)
+				}
 			}
 		}
 	}
+	sort.Strings(models)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

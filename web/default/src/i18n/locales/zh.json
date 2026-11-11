@@ -4740,6 +4740,16 @@
     "Commercial Center": "商业中心",
     "Operations Center": "运营中心",
     "Turn off unlimited quota to set a limit for this key. Account balance still applies.": "关闭“无限配额”后可设置此密钥限额，调用仍受账户余额限制。",
-    "Turn off this switch to edit the quota limit. Unlimited keys still require account balance.": "关闭此开关即可编辑额度。无限配额不代表免费或无限账户余额。"
+    "Turn off this switch to edit the quota limit. Unlimited keys still require account balance.": "关闭此开关即可编辑额度。无限配额不代表免费或无限账户余额。",
+    "No usable API key found. Create a key, or check its status, expiry and quota in API Keys.": "没有可用的 API 密钥。请前往“API 密钥”创建密钥，或检查已有密钥的启用状态、有效期和额度。",
+    "Failed to load API key": "加载 API 密钥失败",
+    "No available model in this group. Contact the administrator to configure an upstream channel.": "当前分组暂无可用模型，请联系管理员配置上游渠道。",
+    "Loading available models…": "正在加载可用模型…",
+    "Failed to load models. Please refresh and try again.": "加载模型失败，请刷新后重试。",
+    "Test model responses and prompts here. Model calls consume your account quota.": "在这里体验模型效果、调试提示词。调用模型会消耗账户额度。",
+    "Analyze data": "分析数据",
+    "Surprise me": "给我一些灵感",
+    "Summarize text": "总结文本",
+    "Get advice": "提供建议"
   }
 }

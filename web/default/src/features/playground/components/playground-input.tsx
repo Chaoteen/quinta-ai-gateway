@@ -49,13 +49,14 @@ import {
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
-import { ModelGroupSelector } from '@/components/model-group-selector'
+import { ModelSelector, GroupSelector } from '@/components/model-group-selector'
 import type { ModelOption, GroupOption } from '../types'
 
 interface PlaygroundInputProps {
   onSubmit: (text: string) => void
   onStop?: () => void
   disabled?: boolean
+  canSubmit?: boolean
   isGenerating?: boolean
   models: ModelOption[]
   modelValue: string
@@ -79,6 +80,7 @@ export function PlaygroundInput({
   onSubmit,
   onStop,
   disabled,
+  canSubmit = true,
   isGenerating,
   models,
   modelValue,
@@ -91,12 +93,13 @@ export function PlaygroundInput({
   const { t } = useTranslation()
   const [text, setText] = useState('')
 
+  const isInputDisabled = disabled || !canSubmit
   const isModelSelectDisabled =
     disabled || isModelLoading || models.length === 0
   const isGroupSelectDisabled = disabled || groups.length === 0
 
   const handleSubmit = (message: PromptInputMessage) => {
-    if (!message.text?.trim() || disabled) return
+    if (!message.text?.trim() || isInputDisabled) return
     onSubmit(message.text)
     setText('')
   }
@@ -108,7 +111,7 @@ export function PlaygroundInput({
   }
 
   const handleSuggestionClick = (suggestion: string) => {
-    onSubmit(suggestion)
+    if (!isInputDisabled) setText(t(suggestion))
   }
 
   return (
@@ -120,7 +123,7 @@ export function PlaygroundInput({
           autoCapitalize='off'
           spellCheck={false}
           className='px-5 md:text-base'
-          disabled={disabled}
+          disabled={isInputDisabled}
           onChange={(event) => setText(event.target.value)}
           placeholder={t('Ask anything')}
           value={text}
@@ -133,7 +136,7 @@ export function PlaygroundInput({
                 render={
                   <PromptInputButton
                     className='border font-medium'
-                    disabled={disabled}
+                    disabled={isInputDisabled}
                     variant='outline'
                   />
                 }
@@ -172,7 +175,7 @@ export function PlaygroundInput({
 
             <PromptInputButton
               className='border font-medium'
-              disabled={disabled}
+              disabled={isInputDisabled}
               onClick={() => toast.info(t('Search feature in development'))}
               variant='outline'
             >
@@ -183,14 +186,17 @@ export function PlaygroundInput({
           </PromptInputTools>
 
           <div className='flex items-center gap-1.5 md:gap-2'>
-            <ModelGroupSelector
-              selectedModel={modelValue}
-              models={models}
-              onModelChange={onModelChange}
+            <GroupSelector
               selectedGroup={groupValue}
               groups={groups}
               onGroupChange={onGroupChange}
-              disabled={isModelSelectDisabled || isGroupSelectDisabled}
+              disabled={isGroupSelectDisabled}
+            />
+            <ModelSelector
+              selectedModel={modelValue}
+              models={models}
+              onModelChange={onModelChange}
+              disabled={isModelSelectDisabled}
             />
 
             {isGenerating && onStop ? (
@@ -206,7 +212,7 @@ export function PlaygroundInput({
             ) : (
               <PromptInputButton
                 className='text-foreground font-medium'
-                disabled={disabled || !text.trim()}
+                disabled={isInputDisabled || !text.trim()}
                 type='submit'
                 variant='secondary'
               >
@@ -228,9 +234,10 @@ export function PlaygroundInput({
             key={text}
             onClick={() => handleSuggestionClick(text)}
             suggestion={text}
+            disabled={isInputDisabled}
           >
             {Icon && <Icon size={16} style={{ color }} />}
-            {text}
+            {t(text)}
           </Suggestion>
         ))}
       </Suggestions>

@@ -21,6 +21,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import { ExternalLink, Loader2, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { withBasePath } from '@/lib/base-path'
 import {
   Collapsible,
   CollapsibleContent,
@@ -70,6 +71,7 @@ function ChatMenuItem({
     return (
       <SidebarMenuSubItem>
         <SidebarMenuSubButton
+          className='h-9'
           isActive={active}
           render={
             <Link
@@ -79,7 +81,9 @@ function ChatMenuItem({
             />
           }
         >
-          <span>{preset.name}</span>
+          <span className='min-w-0 flex-1 truncate' title={preset.name}>
+            {preset.name}
+          </span>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
     )
@@ -93,9 +97,11 @@ function ChatMenuItem({
         }}
         aria-disabled={loading ? 'true' : undefined}
         isActive={false}
-        className='justify-between'
+        className='h-9 justify-between'
       >
-        <span>{preset.name}</span>
+        <span className='min-w-0 flex-1 truncate' title={preset.name}>
+          {preset.name}
+        </span>
         {loading ? (
           <Loader2 className='h-4 w-4 animate-spin' />
         ) : (
@@ -185,7 +191,14 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
               : t(
                   'Unable to prepare chat link. Please ensure you have an enabled API key.'
                 )
-          toast.error(message)
+          toast.error(t(message), {
+            action: {
+              label: t('API Keys'),
+              onClick: () => {
+                window.location.href = withBasePath('/keys')
+              },
+            },
+          })
           return
         } finally {
           loadingPresetIdRef.current = null
