@@ -167,7 +167,9 @@ export function ApiKeysMutateDrawer({
         }
       })
     } else if (open && !isUpdate) {
-      form.reset(getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto))
+      form.reset(
+        getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto)
+      )
     }
   }, [open, isUpdate, currentRow, form, defaultUseAutoGroup, backendHasAuto])
 
@@ -176,7 +178,10 @@ export function ApiKeysMutateDrawer({
     if (groups.length === 0) return
     const currentGroup = form.getValues('group')
     if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
-      const fallback = groups.find((g) => g.value === 'default')?.value ?? groups[0]?.value ?? ''
+      const fallback =
+        groups.find((g) => g.value === 'default')?.value ??
+        groups[0]?.value ??
+        ''
       form.setValue('group', fallback)
       if (currentGroup === 'auto') {
         form.setValue('cross_group_retry', false)
@@ -450,39 +455,41 @@ export function ApiKeysMutateDrawer({
 
             <ApiKeyFormSection
               title={t('Quota Settings')}
-              description={t('Set quota amount and limits')}
+              description={t(
+                'Turn off unlimited quota to set a limit for this key. Account balance still applies.'
+              )}
               icon={WalletCards}
             >
-              {!unlimitedQuota && (
-                <FormField
-                  control={form.control}
-                  name='remain_quota_dollars'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{quotaLabel}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type='number'
-                          step={tokensOnly ? 1 : 0.01}
-                          placeholder={quotaPlaceholder}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {tokensOnly
-                          ? t('Enter the quota amount in tokens')
-                          : t('Enter the quota amount in {{currency}}', {
-                              currency: currencyLabel,
-                            })}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name='remain_quota_dollars'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{quotaLabel}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type='number'
+                        disabled={unlimitedQuota}
+                        min={0}
+                        step={tokensOnly ? 1 : 0.01}
+                        placeholder={quotaPlaceholder}
+                        onChange={(e) =>
+                          field.onChange(parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {tokensOnly
+                        ? t('Enter the quota amount in tokens')
+                        : t('Enter the quota amount in {{currency}}', {
+                            currency: currencyLabel,
+                          })}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -494,7 +501,9 @@ export function ApiKeysMutateDrawer({
                         {t('Unlimited Quota')}
                       </FormLabel>
                       <FormDescription className='text-xs'>
-                        {t('Enable unlimited quota for this API key')}
+                        {t(
+                          'Turn off this switch to edit the quota limit. Unlimited keys still require account balance.'
+                        )}
                       </FormDescription>
                     </div>
                     <FormControl>

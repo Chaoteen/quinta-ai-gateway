@@ -4738,6 +4738,8 @@
     "Platform amount": "Platform amount",
     "Enterprise Management": "Enterprise Management",
     "Commercial Center": "Commercial Center",
-    "Operations Center": "Operations Center"
+    "Operations Center": "Operations Center",
+    "Turn off unlimited quota to set a limit for this key. Account balance still applies.": "Turn off unlimited quota to set a limit for this key. Account balance still applies.",
+    "Turn off this switch to edit the quota limit. Unlimited keys still require account balance.": "Turn off this switch to edit the quota limit. Unlimited keys still require account balance."
   }
 }

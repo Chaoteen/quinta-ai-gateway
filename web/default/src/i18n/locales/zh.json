@@ -4738,6 +4738,8 @@
     "Platform amount": "平台金额",
     "Enterprise Management": "企业管理",
     "Commercial Center": "商业中心",
-    "Operations Center": "运营中心"
+    "Operations Center": "运营中心",
+    "Turn off unlimited quota to set a limit for this key. Account balance still applies.": "关闭“无限配额”后可设置此密钥限额，调用仍受账户余额限制。",
+    "Turn off this switch to edit the quota limit. Unlimited keys still require account balance.": "关闭此开关即可编辑额度。无限配额不代表免费或无限账户余额。"
   }
 }
