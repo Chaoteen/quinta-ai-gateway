@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
       - name: Prepare compile-only embedded assets
         run: |
           python3 - <<'PY'
@@ -65,7 +65,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
       - name: PostgreSQL concurrent payment and voucher tests
         if: matrix.driver == 'postgres'
         env:
