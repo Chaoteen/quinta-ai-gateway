@@ -108,7 +108,6 @@ export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
   '/payment-center': RBAC_PERMISSION.FINANCE_CONSOLE,
   '/revenue-share': RBAC_PERMISSION.FINANCE_CONSOLE,
   '/usage-analytics': RBAC_PERMISSION.USAGE_LOGS,
-  '/usage-logs/common': RBAC_PERMISSION.USAGE_LOGS,
   '/dashboard/models': RBAC_PERMISSION.DASHBOARD_STATS,
   '/system-settings/site': RBAC_PERMISSION.SYSTEM_SETTINGS,
 }

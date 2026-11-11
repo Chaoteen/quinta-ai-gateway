@@ -18,8 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import z from 'zod'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { RBAC_PERMISSION } from '@/lib/rbac'
-import { requirePermission } from '@/lib/route-guards'
+import { requirePathAllowed } from '@/lib/route-guards'
 import { UsageLogs } from '@/features/usage-logs'
 import {
   isUsageLogsSectionId,
@@ -45,7 +44,9 @@ const usageLogsSearchSchema = z.object({
 
 export const Route = createFileRoute('/_authenticated/usage-logs/$section')({
   beforeLoad: ({ params, search }) => {
-    requirePermission(RBAC_PERMISSION.USAGE_LOGS)
+    // This shared page uses self-only APIs for ordinary users. Administrative
+    // log access is still checked separately by the API and data hooks.
+    requirePathAllowed(`/usage-logs/${params.section}`)
     if (!isUsageLogsSectionId(params.section)) {
       throw redirect({
         to: '/usage-logs/$section',
