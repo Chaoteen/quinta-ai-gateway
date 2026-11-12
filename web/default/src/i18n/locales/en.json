@@ -4755,6 +4755,16 @@
     "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.": "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.",
     "Current model: {{model}} · Group: {{group}}": "Current model: {{model}} · Group: {{group}}",
     "No model selected": "No model selected",
-    "Retry with current model": "Retry with current model"
+    "Retry with current model": "Retry with current model",
+    "Configure chat tools": "Configure chat tools",
+    "Chat tools": "Chat tools",
+    "Chat tool preferences saved": "Chat tool preferences saved",
+    "Only tools you enable appear in the chat menu. Your selection syncs with your account.": "Only tools you enable appear in the chat menu. Your selection syncs with your account.",
+    "Desktop tools require installation. Web tools are provided by third parties. Importing a connection shares your gateway API key with the selected tool.": "Desktop tools require installation. Web tools are provided by third parties. Importing a connection shares your gateway API key with the selected tool.",
+    "Create an enabled API key with available quota before activating a tool that needs one.": "Create an enabled API key with available quota before activating a tool that needs one.",
+    "Unable to check API keys. Refresh to try again.": "Unable to check API keys. Refresh to try again.",
+    "Third-party web app": "Third-party web app",
+    "Installed desktop app": "Installed desktop app",
+    "No supported chat tools configured.": "No supported chat tools configured."
   }
 }

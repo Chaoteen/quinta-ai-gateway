@@ -4755,6 +4755,16 @@
     "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.": "这是本机保存的对话记录，不是本次新请求的结果。请使用当前模型重试或发送新问题。",
     "Current model: {{model}} · Group: {{group}}": "当前模型：{{model}} · 分组：{{group}}",
     "No model selected": "尚未选择模型",
-    "Retry with current model": "使用当前模型重试"
+    "Retry with current model": "使用当前模型重试",
+    "Configure chat tools": "配置聊天工具",
+    "Chat tools": "聊天工具",
+    "Chat tool preferences saved": "聊天工具偏好已保存",
+    "Only tools you enable appear in the chat menu. Your selection syncs with your account.": "聊天菜单只显示你主动启用的工具，选择会随账号保存。",
+    "Desktop tools require installation. Web tools are provided by third parties. Importing a connection shares your gateway API key with the selected tool.": "桌面工具需要先在本机安装，网页工具由第三方提供。导入连接时，你的网关 API 密钥会交给所选工具。",
+    "Create an enabled API key with available quota before activating a tool that needs one.": "启用需要密钥的工具前，请先创建已启用、有效且有可用额度的 API 密钥。",
+    "Unable to check API keys. Refresh to try again.": "暂时无法检查 API 密钥，请刷新后重试。",
+    "Third-party web app": "第三方网页应用",
+    "Installed desktop app": "需安装的桌面应用",
+    "No supported chat tools configured.": "平台尚未配置可用的聊天工具。"
   }
 }

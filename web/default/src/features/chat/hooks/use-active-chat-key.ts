@@ -21,7 +21,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
 
-export async function fetchActiveChatKey() {
+export async function fetchUsableChatKeyId() {
   let activeId: number | undefined
   const size = 50
   for (let page = 1; ; page++) {
@@ -43,6 +43,11 @@ export async function fetchActiveChatKey() {
     }
     if (items.length < size || page * size >= (result.data?.total ?? 0)) break
   }
+  return activeId
+}
+
+export async function fetchActiveChatKey() {
+  const activeId = await fetchUsableChatKeyId()
   if (activeId === undefined) {
     throw new Error(
       'No usable API key found. Create a key, or check its status, expiry and quota in API Keys.'

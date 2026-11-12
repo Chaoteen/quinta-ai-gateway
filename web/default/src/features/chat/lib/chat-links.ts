@@ -86,11 +86,33 @@ export function detectChatLinkType(url: string): ChatLinkType {
 
 export function chatLinkRequiresApiKey(url: string): boolean {
   return (
+    url === 'ccswitch' ||
+    url.startsWith('ccswitch:') ||
     url.includes('{key}') ||
     url.includes('{cherryConfig}') ||
     url.includes('{aionuiConfig}') ||
     url.includes('{deepchatConfig}')
   )
+}
+
+export function isSupportedChatUrl(url: string): boolean {
+  if (url === 'ccswitch') return true
+  try {
+    const parsed = new URL(url)
+    return (
+      (parsed.protocol === 'https:' && Boolean(parsed.hostname)) ||
+      [
+        'cherrystudio:',
+        'aionui:',
+        'deepchat:',
+        'ama:',
+        'opencat:',
+        'ccswitch:',
+      ].includes(parsed.protocol)
+    )
+  } catch {
+    return false
+  }
 }
 
 export function parseChatConfig(raw: RawChatConfig): ChatPreset[] {
@@ -125,7 +147,7 @@ export function parseChatConfig(raw: RawChatConfig): ChatPreset[] {
       }
 
       const url = value.trim()
-      if (!url) {
+      if (!isSupportedChatUrl(url)) {
         return null
       }
 

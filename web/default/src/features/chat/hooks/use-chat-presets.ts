@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 import { APP_BASE_PATH } from '@/lib/base-path'
 import { useStatus } from '@/hooks/use-status'
 import type { SystemStatus } from '@/features/auth/types'
@@ -64,19 +65,34 @@ function extractChats(status: SystemStatus | null): RawChatConfig {
 }
 
 export function useChatPresets(): {
+  allChatPresets: ChatPreset[]
   chatPresets: ChatPreset[]
   serverAddress: string
 } {
   const { status } = useStatus()
+  const userSetting = useAuthStore((s) => s.auth.user?.setting)
 
   const serverAddress = useMemo(() => extractServerAddress(status), [status])
 
-  const chatPresets = useMemo(() => {
+  const allChatPresets = useMemo(() => {
     const raw = extractChats(status)
     return parseChatConfig(raw)
   }, [status])
 
+  const chatPresets = useMemo(() => {
+    try {
+      const preferences =
+        typeof userSetting === 'string' ? JSON.parse(userSetting) : userSetting
+      const enabled = preferences?.enabled_chat_apps
+      if (!Array.isArray(enabled)) return []
+      return allChatPresets.filter((preset) => enabled.includes(preset.name))
+    } catch {
+      return []
+    }
+  }, [allChatPresets, userSetting])
+
   return {
+    allChatPresets,
     chatPresets,
     serverAddress,
   }

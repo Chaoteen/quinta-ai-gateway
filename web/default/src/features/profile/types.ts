@@ -94,6 +94,7 @@ export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify'
  * Parsed user settings
  */
 export interface UserSettings {
+  enabled_chat_apps?: string[]
   /** Notification type */
   notify_type?: NotifyType
   /** Quota warning threshold */

@@ -23,6 +23,7 @@ import {
   CardStaggerContainer,
   CardStaggerItem,
 } from '@/components/page-transition'
+import { ChatToolsCard } from './components/chat-tools-card'
 import { CheckinCalendarCard } from './components/checkin-calendar-card'
 import { LanguagePreferencesCard } from './components/language-preferences-card'
 import { PasskeyCard } from './components/passkey-card'
@@ -65,6 +66,7 @@ export function Profile() {
                   profile={profile}
                   onProfileUpdate={refreshProfile}
                 />
+                <ChatToolsCard />
                 <ProfileSecurityCard profile={profile} loading={loading} />
               </div>
 

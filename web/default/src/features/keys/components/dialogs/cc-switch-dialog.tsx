@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { getUserModels } from '@/lib/api'
+import { APP_BASE_PATH } from '@/lib/base-path'
 import { Button } from '@/components/ui/button'
 import { ComboboxInput } from '@/components/ui/combobox-input'
 import {
@@ -68,7 +69,7 @@ function getServerAddress(): string {
   } catch {
     /* empty */
   }
-  return window.location.origin
+  return `${window.location.origin}${APP_BASE_PATH}`
 }
 
 function buildCCSwitchURL(
