@@ -4750,6 +4750,11 @@
     "Analyze data": "分析数据",
     "Surprise me": "给我一些灵感",
     "Summarize text": "总结文本",
-    "Get advice": "提供建议"
+    "Get advice": "提供建议",
+    "Saved error from a previous visit": "上次访问保存的历史错误",
+    "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.": "这是本机保存的对话记录，不是本次新请求的结果。请使用当前模型重试或发送新问题。",
+    "Current model: {{model}} · Group: {{group}}": "当前模型：{{model}} · 分组：{{group}}",
+    "No model selected": "尚未选择模型",
+    "Retry with current model": "使用当前模型重试"
   }
 }

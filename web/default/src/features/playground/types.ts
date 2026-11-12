@@ -28,6 +28,7 @@ export interface MessageVersion {
 
 export interface Message {
   key: string
+  restoredFromStorage?: boolean
   from: MessageRole
   versions: MessageVersion[]
   sources?: { href: string; title: string }[]

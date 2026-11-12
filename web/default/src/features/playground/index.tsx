@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import { Button } from '@/components/ui/button'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
@@ -190,8 +191,32 @@ export function Playground() {
     updateMessages(newMessages)
   }
 
+  const lastMessage = messages.at(-1)
+  const canRetrySavedError =
+    lastMessage?.restoredFromStorage &&
+    lastMessage.from === 'assistant' &&
+    lastMessage.status === 'error'
+
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
+      <div className='flex flex-wrap items-center justify-between gap-2 border-b px-6 py-3'>
+        <p className='text-sm font-medium'>
+          {t('Current model: {{model}} · Group: {{group}}', {
+            model: config.model || t('No model selected'),
+            group: config.group,
+          })}
+        </p>
+        {canRetrySavedError && (
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={!canSend || isGenerating}
+            onClick={() => handleRegenerateMessage(lastMessage)}
+          >
+            {t('Retry with current model')}
+          </Button>
+        )}
+      </div>
       <p role='status' className='text-muted-foreground px-6 py-3 text-sm'>
         {t(
           isLoadingModels

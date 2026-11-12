@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { AlertCircle, AlertTriangle, Settings } from 'lucide-react'
+import { AlertCircle, AlertTriangle, History, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { isAdminConsoleUser } from '@/lib/rbac'
@@ -45,6 +45,23 @@ export function MessageError({ message, className = '' }: MessageErrorProps) {
 
   const errorContent =
     message.versions[0]?.content || 'An unknown error occurred'
+
+  if (message.restoredFromStorage) {
+    return (
+      <Alert variant='default' className={className}>
+        <History />
+        <AlertTitle>{t('Saved error from a previous visit')}</AlertTitle>
+        <AlertDescription className='space-y-2'>
+          <p>
+            {t(
+              'This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.'
+            )}
+          </p>
+          <p className='text-xs break-words'>{errorContent}</p>
+        </AlertDescription>
+      </Alert>
+    )
+  }
 
   if (message.errorCode === 'model_price_error') {
     return (

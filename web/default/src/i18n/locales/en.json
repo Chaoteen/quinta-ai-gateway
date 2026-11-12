@@ -4750,6 +4750,11 @@
     "Analyze data": "Analyze data",
     "Surprise me": "Surprise me",
     "Summarize text": "Summarize text",
-    "Get advice": "Get advice"
+    "Get advice": "Get advice",
+    "Saved error from a previous visit": "Saved error from a previous visit",
+    "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.": "This is a saved conversation record, not the result of a new request. Retry or send a new message using the current model.",
+    "Current model: {{model}} · Group: {{group}}": "Current model: {{model}} · Group: {{group}}",
+    "No model selected": "No model selected",
+    "Retry with current model": "Retry with current model"
   }
 }

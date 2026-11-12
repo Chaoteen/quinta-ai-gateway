@@ -98,7 +98,10 @@ export function loadMessages(): Message[] | null {
       if (sanitized !== parsed) {
         saveMessages(sanitized)
       }
-      return sanitized
+      return sanitized.map((message) => ({
+        ...message,
+        restoredFromStorage: true,
+      }))
     }
   } catch (error) {
     // eslint-disable-next-line no-console

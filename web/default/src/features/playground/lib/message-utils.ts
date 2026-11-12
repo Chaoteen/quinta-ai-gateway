@@ -143,6 +143,9 @@ export function formatMessageForAPI(message: Message): ChatCompletionMessage {
  */
 export function isValidMessage(message: Message): boolean {
   if (!message || !message.from || !message.versions.length) return false
+  // Gateway errors are UI diagnostics, never assistant context for the model.
+  if (message.from === 'assistant' && message.status === MESSAGE_STATUS.ERROR)
+    return false
 
   const content = message.versions[0]?.content
   if (content === undefined) return false
