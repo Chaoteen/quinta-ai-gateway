@@ -40,7 +40,8 @@ function Chat2LinkPage() {
   )
 
   const { data: activeKey, error: keyError } = useActiveChatKey(
-    Boolean(firstWebPreset)
+    Boolean(firstWebPreset),
+    firstWebPreset?.name ?? ''
   )
 
   useEffect(() => {
@@ -58,8 +59,8 @@ function Chat2LinkPage() {
         keyError instanceof Error
           ? keyError.message
           : t('No enabled tokens available')
-      toast.error(message)
-      navigate({ to: '/keys' })
+      toast.error(t(message))
+      navigate({ to: '/profile', hash: 'chat-tools' })
       return
     }
 

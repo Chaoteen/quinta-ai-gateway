@@ -17,8 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -27,35 +25,36 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TitledCard } from '@/components/ui/titled-card'
-import { fetchUsableChatKeyId } from '@/features/chat/hooks/use-active-chat-key'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
-import { chatLinkRequiresApiKey } from '@/features/chat/lib/chat-links'
+import {
+  chatLinkRequiresApiKey,
+  type ChatPreset,
+} from '@/features/chat/lib/chat-links'
+import { ChatToolConnectionDialog } from './chat-tool-connection-dialog'
 
 export function ChatToolsCard() {
   const { t } = useTranslation()
   const { auth } = useAuthStore()
-  const { allChatPresets, chatPresets } = useChatPresets()
+  const { allChatPresets, chatPresets, keyBindings, serverAddress } =
+    useChatPresets()
   const [saving, setSaving] = useState(false)
-  const {
-    data: keyId,
-    isPending,
-    isError,
-  } = useQuery({
-    queryKey: ['chat-usable-key-id', auth.user?.id],
-    queryFn: async () => (await fetchUsableChatKeyId()) ?? null,
-    enabled: Boolean(auth.user?.id),
-    retry: false,
-    staleTime: 0,
-  })
-  const toggle = async (name: string, checked: boolean) => {
-    const selected = chatPresets.map((preset) => preset.name)
-    const next = checked
-      ? [...selected, name]
-      : selected.filter((item) => item !== name)
+  const [selected, setSelected] = useState<ChatPreset | null>(null)
+  const toggle = async (preset: ChatPreset, checked: boolean) => {
+    if (
+      checked &&
+      chatLinkRequiresApiKey(preset.url) &&
+      !keyBindings[preset.name]
+    ) {
+      setSelected(preset)
+      return
+    }
+    const enabled = chatPresets.map((p) => p.name)
     setSaving(true)
     try {
       const response = await api.put('/api/user/self/chat-preferences', {
-        enabled_chat_apps: next,
+        enabled_chat_apps: checked
+          ? [...enabled, preset.name]
+          : enabled.filter((name) => name !== preset.name),
       })
       if (!response.data.success) throw new Error('save failed')
       const current = useAuthStore.getState().auth.user
@@ -91,35 +90,23 @@ export function ChatToolsCard() {
         <div className='space-y-4'>
           <p className='text-muted-foreground text-sm'>
             {t(
+              'Configure each tool here: create or select a gateway key, bind it, then import the connection. Do not enter an upstream provider key.'
+            )}
+          </p>
+          <p className='text-muted-foreground text-sm'>
+            {t(
               'Desktop tools require installation. Web tools are provided by third parties. Importing a connection shares your gateway API key with the selected tool.'
             )}
           </p>
-          {(!keyId || isError) && !isPending && (
-            <div className='space-y-2 rounded-md border p-3 text-sm'>
-              <p>
-                {t(
-                  isError
-                    ? 'Unable to check API keys. Refresh to try again.'
-                    : 'Create an enabled API key with available quota before activating a tool that needs one.'
-                )}
-              </p>
-              <Button variant='outline' size='sm' render={<Link to='/keys' />}>
-                {t('API Keys')}
-              </Button>
-            </div>
-          )}
           <div className='divide-y'>
             {allChatPresets.map((preset) => {
-              const checked = chatPresets.some(
-                (item) => item.name === preset.name
-              )
-              const needsKey = chatLinkRequiresApiKey(preset.url)
+              const checked = chatPresets.some((p) => p.name === preset.name)
               return (
                 <div
                   key={preset.id}
-                  className='flex min-h-16 items-center justify-between gap-4 py-3'
+                  className='flex min-h-20 flex-wrap items-center justify-between gap-3 py-3'
                 >
-                  <div className='min-w-0'>
+                  <div className='min-w-0 flex-1'>
                     <label
                       htmlFor={`chat-tool-${preset.id}`}
                       className='block text-sm font-medium break-words'
@@ -128,32 +115,40 @@ export function ChatToolsCard() {
                     </label>
                     <p className='text-muted-foreground text-xs'>
                       {t(
-                        preset.type === 'web'
-                          ? 'Third-party web app'
-                          : 'Installed desktop app'
+                        keyBindings[preset.name]
+                          ? 'Gateway key bound'
+                          : 'Connection not configured'
                       )}
                     </p>
                   </div>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setSelected(preset)}
+                  >
+                    {t('Configure connection')}
+                  </Button>
                   <Switch
                     id={`chat-tool-${preset.id}`}
                     aria-label={preset.name}
                     checked={checked}
-                    disabled={
-                      saving || (!checked && needsKey && (isPending || !keyId))
-                    }
-                    onCheckedChange={(value) => void toggle(preset.name, value)}
+                    disabled={saving}
+                    onCheckedChange={(value) => void toggle(preset, value)}
                   />
                 </div>
               )
             })}
           </div>
-          {allChatPresets.length === 0 && (
-            <p className='text-muted-foreground text-sm'>
-              {t('No supported chat tools configured.')}
-            </p>
-          )}
         </div>
       </TitledCard>
+      {selected && (
+        <ChatToolConnectionDialog
+          preset={selected}
+          serverAddress={serverAddress}
+          boundKeyId={keyBindings[selected.name]}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </section>
   )
 }

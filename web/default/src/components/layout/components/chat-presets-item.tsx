@@ -197,7 +197,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
         loadingPresetIdRef.current = preset.id
         setLoadingPresetId(preset.id)
         try {
-          activeKey = await fetchActiveChatKey()
+          activeKey = await fetchActiveChatKey(preset.name)
         } catch (error) {
           const message =
             error instanceof Error
@@ -207,9 +207,9 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
                 )
           toast.error(t(message), {
             action: {
-              label: t('API Keys'),
+              label: t('Configure chat tools'),
               onClick: () => {
-                window.location.href = withBasePath('/keys')
+                window.location.href = withBasePath('/profile#chat-tools')
               },
             },
           })

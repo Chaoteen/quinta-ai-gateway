@@ -18,42 +18,31 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth-store'
-import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
+import { fetchTokenKey, getApiKey } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
 
-export async function fetchUsableChatKeyId() {
-  let activeId: number | undefined
-  const size = 50
-  for (let page = 1; ; page++) {
-    const result = await getApiKeys({ p: page, size })
-    if (!result.success) {
-      throw new Error(result.message || 'Failed to load API keys')
-    }
-    const items = result.data?.items ?? []
-    const now = Math.floor(Date.now() / 1000)
-    const active = items.find(
-      (item) =>
-        item.status === API_KEY_STATUS.ENABLED &&
-        (item.expired_time === -1 || item.expired_time > now) &&
-        (item.unlimited_quota || item.remain_quota > 0)
-    )
-    if (active) {
-      activeId = active.id
-      break
-    }
-    if (items.length < size || page * size >= (result.data?.total ?? 0)) break
-  }
-  return activeId
-}
-
-export async function fetchActiveChatKey() {
-  const activeId = await fetchUsableChatKeyId()
+export async function fetchActiveChatKey(app: string) {
+  const raw = useAuthStore.getState().auth.user?.setting
+  const settings = typeof raw === 'string' ? JSON.parse(raw || '{}') : raw
+  const activeId = settings?.chat_key_bindings?.[app] as number | undefined
   if (activeId === undefined) {
-    throw new Error(
-      'No usable API key found. Create a key, or check its status, expiry and quota in API Keys.'
-    )
+    throw new Error('Configure an API key for this tool first.')
   }
 
+  const metadata = await getApiKey(activeId)
+  const key = metadata.data
+  if (
+    !metadata.success ||
+    !key ||
+    key.status !== API_KEY_STATUS.ENABLED ||
+    (key.expired_time !== -1 &&
+      key.expired_time <= Math.floor(Date.now() / 1000)) ||
+    (!key.unlimited_quota && key.remain_quota <= 0)
+  ) {
+    throw new Error(
+      'The bound key is unavailable. Open this tool configuration to select or create a key.'
+    )
+  }
   const keyResult = await fetchTokenKey(activeId)
   if (!keyResult.success || !keyResult.data?.key) {
     throw new Error(keyResult.message || 'Failed to load API key')
@@ -67,14 +56,23 @@ export async function fetchActiveChatKey() {
 /**
  * Get the currently active API key for chat links
  */
-export function useActiveChatKey(enabled: boolean) {
+export function useActiveChatKey(enabled: boolean, app: string) {
   const userId = useAuthStore((state) => state.auth.user?.id)
 
+  const setting = useAuthStore((s) => s.auth.user?.setting)
+  let bindingId: number | undefined
+  try {
+    const parsed =
+      typeof setting === 'string' ? JSON.parse(setting || '{}') : setting
+    bindingId = parsed?.chat_key_bindings?.[app]
+  } catch {
+    /* Invalid settings require configuration. */
+  }
   return useQuery({
-    queryKey: ['chat-active-key', userId],
-    queryFn: fetchActiveChatKey,
+    queryKey: ['chat-active-key', userId, app, bindingId],
+    queryFn: () => fetchActiveChatKey(app),
     enabled: enabled && Boolean(userId),
     staleTime: 0,
-    gcTime: 10 * 60 * 1000,
+    gcTime: 0,
   })
 }

@@ -116,6 +116,7 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", controller.UpdateSelf)
 				selfRoute.PUT("/self/chat-preferences", controller.UpdateChatPreferences)
+				selfRoute.POST("/self/chat-key", middleware.CriticalRateLimit(), controller.ConfigureChatKey)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
 				selfRoute.GET("/token", controller.GenerateAccessToken)
 				selfRoute.GET("/passkey", controller.PasskeyStatus)

@@ -1305,6 +1305,7 @@ func UpdateUserSetting(c *gin.Context) {
 	// 构建设置
 	settings := dto.UserSetting{
 		EnabledChatApps:                  existingSettings.EnabledChatApps,
+		ChatKeyBindings:                  existingSettings.ChatKeyBindings,
 		NotifyType:                       req.QuotaWarningType,
 		QuotaWarningThreshold:            req.QuotaWarningThreshold,
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,

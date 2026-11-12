@@ -60,7 +60,7 @@ function ChatRouteComponent() {
     isPending,
     isError,
     error,
-  } = useActiveChatKey(Boolean(preset && requiresActiveKey))
+  } = useActiveChatKey(Boolean(preset && requiresActiveKey), preset?.name ?? '')
 
   const iframeSrc = useMemo(() => {
     if (!preset || !isWebLink) return ''

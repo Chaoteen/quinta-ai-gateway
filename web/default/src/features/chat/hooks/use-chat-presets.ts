@@ -23,6 +23,7 @@ import { useStatus } from '@/hooks/use-status'
 import type { SystemStatus } from '@/features/auth/types'
 import {
   type ChatPreset,
+  chatLinkRequiresApiKey,
   parseChatConfig,
   type RawChatConfig,
 } from '../lib/chat-links'
@@ -65,6 +66,7 @@ function extractChats(status: SystemStatus | null): RawChatConfig {
 }
 
 export function useChatPresets(): {
+  keyBindings: Record<string, number>
   allChatPresets: ChatPreset[]
   chatPresets: ChatPreset[]
   serverAddress: string
@@ -79,19 +81,33 @@ export function useChatPresets(): {
     return parseChatConfig(raw)
   }, [status])
 
+  const keyBindings = useMemo<Record<string, number>>(() => {
+    try {
+      const settings =
+        typeof userSetting === 'string' ? JSON.parse(userSetting) : userSetting
+      return settings?.chat_key_bindings ?? {}
+    } catch {
+      return {}
+    }
+  }, [userSetting])
   const chatPresets = useMemo(() => {
     try {
       const preferences =
         typeof userSetting === 'string' ? JSON.parse(userSetting) : userSetting
       const enabled = preferences?.enabled_chat_apps
       if (!Array.isArray(enabled)) return []
-      return allChatPresets.filter((preset) => enabled.includes(preset.name))
+      return allChatPresets.filter(
+        (preset) =>
+          enabled.includes(preset.name) &&
+          (!chatLinkRequiresApiKey(preset.url) || keyBindings[preset.name] > 0)
+      )
     } catch {
       return []
     }
-  }, [allChatPresets, userSetting])
+  }, [allChatPresets, userSetting, keyBindings])
 
   return {
+    keyBindings,
     allChatPresets,
     chatPresets,
     serverAddress,

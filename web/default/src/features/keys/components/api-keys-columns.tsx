@@ -32,6 +32,7 @@ import {
 import { DataTableColumnHeader } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
+import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
 import { API_KEY_STATUSES } from '../constants'
 import { type ApiKey } from '../types'
 import {
@@ -68,6 +69,7 @@ function useGroupRatios(): Record<string, number> {
 }
 
 export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
+  const { keyBindings } = useChatPresets()
   const { t } = useTranslation()
   const groupRatios = useGroupRatios()
   return [
@@ -99,11 +101,21 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('Name')} />
       ),
-      cell: ({ row }) => (
-        <div className='max-w-[200px] truncate font-medium'>
-          {row.getValue('name')}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const tools = Object.entries(keyBindings)
+          .filter(([, id]) => id === row.original.id)
+          .map(([name]) => name)
+        return (
+          <div className='max-w-[220px] space-y-1'>
+            <div className='truncate font-medium'>{row.getValue('name')}</div>
+            {tools.length > 0 && (
+              <p className='text-muted-foreground text-xs break-words'>
+                {t('Bound tools: {{tools}}', { tools: tools.join(', ') })}
+              </p>
+            )}
+          </div>
+        )
+      },
       meta: { label: t('Name'), mobileTitle: true },
     },
     {
