@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
@@ -30,14 +31,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fetchActiveChatKey } from '@/features/chat/hooks/use-active-chat-key'
 import { resolveChatUrl, type ChatPreset } from '@/features/chat/lib/chat-links'
 import { getApiKeys } from '@/features/keys/api'
 import { CCSwitchDialog } from '@/features/keys/components/dialogs/cc-switch-dialog'
 import type { ApiKey } from '@/features/keys/types'
-import { getUserModels } from '@/features/playground/api'
 
 async function ownedKeys() {
   const keys: ApiKey[] = []
@@ -84,21 +83,6 @@ export function ChatToolConnectionDialog({
   const selected = keys.find((key) => String(key.id) === keyId)
   const bound = keys.find((key) => key.id === boundKeyId)
   const ready = Boolean(bound && usable(bound))
-  const userGroup = useAuthStore((s) => s.auth.user?.group)
-  const group = bound?.group || userGroup || 'default'
-  const { data: availableModels = [] } = useQuery({
-    queryKey: ['chat-tool-models', userId, group],
-    queryFn: () => getUserModels(group),
-    enabled: Boolean(bound),
-  })
-  const models = availableModels
-    .filter(
-      (model) =>
-        !bound?.model_limits_enabled ||
-        (bound.model_limits ?? '').split(',').includes(model.value)
-    )
-    .map((model) => model.value)
-
   const save = async (create: boolean) => {
     setBusy(true)
     try {
@@ -138,15 +122,10 @@ export function ChatToolConnectionDialog({
       setBusy(false)
     }
   }
-  const useKey = async (copy: boolean) => {
+  const importConnection = async () => {
     setBusy(true)
     try {
       const key = await fetchActiveChatKey(preset.name)
-      if (copy) {
-        await navigator.clipboard.writeText(key)
-        toast.success(t('Copied'))
-        return
-      }
       if (preset.url === 'ccswitch' || preset.url.startsWith('ccswitch:')) {
         setCCKey(key)
         return
@@ -236,72 +215,35 @@ export function ChatToolConnectionDialog({
             </div>
             <div className='space-y-3 border-t pt-4'>
               <p className='text-sm font-medium'>
-                {t(ready ? 'Connection ready' : 'Complete key binding first')}
+                {t(
+                  ready
+                    ? 'Platform connection settings saved'
+                    : 'Complete key binding first'
+                )}
               </p>
-              <Label htmlFor='chat-bound-key'>{t('Bound gateway key')}</Label>
-              <Input
-                id='chat-bound-key'
-                value={bound ? `${bound.name} · ${bound.key}` : t('Not bound')}
-                readOnly
-              />
+              <p className='text-muted-foreground text-sm'>
+                {t('Selected key: {{name}}', {
+                  name: bound?.name ?? t('Not bound'),
+                })}
+              </p>
               <div className='flex flex-wrap gap-2'>
                 <Button
                   disabled={busy || !ready}
-                  onClick={() => void useKey(false)}
+                  onClick={() => void importConnection()}
                 >
-                  {t('Open tool and import connection')}
+                  {t('Import into {{tool}}', { tool: preset.name })}
                 </Button>
               </div>
-              <details className='rounded-md border p-3'>
-                <summary className='cursor-pointer text-sm font-medium'>
-                  {t('Manual setup (only if needed)')}
-                </summary>
-                <div className='mt-3 space-y-3'>
-                  <p className='text-muted-foreground text-sm'>
-                    {t(
-                      'Automatic import fills in the connection for you. Copy these details only when configuring another platform or when automatic import is unavailable.'
-                    )}
-                  </p>
-                  <Label htmlFor='chat-gateway-address'>
-                    {t('Gateway API address')}
-                  </Label>
-                  <Input
-                    id='chat-gateway-address'
-                    value={`${serverAddress.replace(/\/$/, '')}/v1`}
-                    readOnly
-                  />
-                  <Label htmlFor='chat-available-models'>
-                    {t('Available models')}
-                  </Label>
-                  <Input
-                    id='chat-available-models'
-                    value={models.join(', ')}
-                    readOnly
-                  />
-                  <div className='flex flex-wrap gap-2'>
-                    <Button
-                      variant='outline'
-                      disabled={busy || !ready}
-                      onClick={() => void useKey(true)}
-                    >
-                      {t('Copy gateway key')}
-                    </Button>
-                    <Button
-                      variant='outline'
-                      onClick={() =>
-                        void navigator.clipboard
-                          .writeText(`${serverAddress.replace(/\/$/, '')}/v1`)
-                          .then(() => toast.success(t('Copied')))
-                      }
-                    >
-                      {t('Copy API address')}
-                    </Button>
-                  </div>
-                </div>
-              </details>
+              <Button
+                variant='link'
+                className='h-auto p-0'
+                render={<Link to='/docs/$slug' params={{ slug: 'api-access' }} />}
+              >
+                {t('Manual API connection guide')}
+              </Button>
               <p className='text-muted-foreground text-xs'>
                 {t(
-                  'Install desktop clients first. Import only into tools you trust. You can also paste the copied address and key into the client manually.'
+                  'Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.'
                 )}
               </p>
             </div>
