@@ -4795,6 +4795,8 @@
     "API key limit reached": "API key limit reached",
     "Account is not enabled": "Account is not enabled",
     "Available models": "Available models",
-    "Bound tools: {{tools}}": "Bound tools: {{tools}}"
+    "Bound tools: {{tools}}": "Bound tools: {{tools}}",
+    "Manual setup (only if needed)": "Manual setup (only if needed)",
+    "Automatic import fills in the connection for you. Copy these details only when configuring another platform or when automatic import is unavailable.": "Automatic import fills in the connection for you. Copy these details only when configuring another platform or when automatic import is unavailable."
   }
 }

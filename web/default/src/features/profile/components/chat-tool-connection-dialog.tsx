@@ -238,22 +238,6 @@ export function ChatToolConnectionDialog({
               <p className='text-sm font-medium'>
                 {t(ready ? 'Connection ready' : 'Complete key binding first')}
               </p>
-              <Label htmlFor='chat-gateway-address'>
-                {t('Gateway API address')}
-              </Label>
-              <Input
-                id='chat-gateway-address'
-                value={`${serverAddress.replace(/\/$/, '')}/v1`}
-                readOnly
-              />
-              <Label htmlFor='chat-available-models'>
-                {t('Available models')}
-              </Label>
-              <Input
-                id='chat-available-models'
-                value={models.join(', ')}
-                readOnly
-              />
               <Label htmlFor='chat-bound-key'>{t('Bound gateway key')}</Label>
               <Input
                 id='chat-bound-key'
@@ -267,24 +251,54 @@ export function ChatToolConnectionDialog({
                 >
                   {t('Open tool and import connection')}
                 </Button>
-                <Button
-                  variant='outline'
-                  disabled={busy || !ready}
-                  onClick={() => void useKey(true)}
-                >
-                  {t('Copy gateway key')}
-                </Button>
-                <Button
-                  variant='outline'
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(`${serverAddress.replace(/\/$/, '')}/v1`)
-                      .then(() => toast.success(t('Copied')))
-                  }
-                >
-                  {t('Copy API address')}
-                </Button>
               </div>
+              <details className='rounded-md border p-3'>
+                <summary className='cursor-pointer text-sm font-medium'>
+                  {t('Manual setup (only if needed)')}
+                </summary>
+                <div className='mt-3 space-y-3'>
+                  <p className='text-muted-foreground text-sm'>
+                    {t(
+                      'Automatic import fills in the connection for you. Copy these details only when configuring another platform or when automatic import is unavailable.'
+                    )}
+                  </p>
+                  <Label htmlFor='chat-gateway-address'>
+                    {t('Gateway API address')}
+                  </Label>
+                  <Input
+                    id='chat-gateway-address'
+                    value={`${serverAddress.replace(/\/$/, '')}/v1`}
+                    readOnly
+                  />
+                  <Label htmlFor='chat-available-models'>
+                    {t('Available models')}
+                  </Label>
+                  <Input
+                    id='chat-available-models'
+                    value={models.join(', ')}
+                    readOnly
+                  />
+                  <div className='flex flex-wrap gap-2'>
+                    <Button
+                      variant='outline'
+                      disabled={busy || !ready}
+                      onClick={() => void useKey(true)}
+                    >
+                      {t('Copy gateway key')}
+                    </Button>
+                    <Button
+                      variant='outline'
+                      onClick={() =>
+                        void navigator.clipboard
+                          .writeText(`${serverAddress.replace(/\/$/, '')}/v1`)
+                          .then(() => toast.success(t('Copied')))
+                      }
+                    >
+                      {t('Copy API address')}
+                    </Button>
+                  </div>
+                </div>
+              </details>
               <p className='text-muted-foreground text-xs'>
                 {t(
                   'Install desktop clients first. Import only into tools you trust. You can also paste the copied address and key into the client manually.'

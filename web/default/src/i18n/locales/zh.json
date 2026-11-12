@@ -4795,6 +4795,8 @@
     "API key limit reached": "API密钥数量已达到上限",
     "Account is not enabled": "账户未启用",
     "Available models": "可用模型",
-    "Bound tools: {{tools}}": "关联工具：{{tools}}"
+    "Bound tools: {{tools}}": "关联工具：{{tools}}",
+    "Manual setup (only if needed)": "手动配置（按需展开）",
+    "Automatic import fills in the connection for you. Copy these details only when configuring another platform or when automatic import is unavailable.": "自动导入会填写连接信息，无需查看或修改地址。仅在对接其他平台或无法自动导入时，才需要复制以下信息。"
   }
 }
