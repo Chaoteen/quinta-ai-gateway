@@ -15,7 +15,7 @@ type assistantRoundTrip func(*http.Request) (*http.Response, error)
 func (f assistantRoundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func assistantTestClient(body string, status int) *http.Client {
 	return &http.Client{Transport: assistantRoundTrip(func(r *http.Request) (*http.Response, error) {
-		if r.URL.Host != "www.bing.com" || r.URL.Path != "/search" {
+		if r.URL.Host != "cn.bing.com" || r.URL.Path != "/search" {
 			return nil, errors.New("unexpected search destination")
 		}
 		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil

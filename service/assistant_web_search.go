@@ -33,7 +33,7 @@ func searchAssistantWeb(ctx context.Context, query string, client *http.Client) 
 	if runes := []rune(query); len(runes) > 256 {
 		query = string(runes[:256])
 	}
-	endpoint := "https://www.bing.com/search?" + url.Values{"q": {query}, "format": {"rss"}, "count": {"5"}}.Encode()
+	endpoint := "https://cn.bing.com/search?" + url.Values{"q": {query}, "format": {"rss"}, "count": {"5"}}.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
