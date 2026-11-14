@@ -37,7 +37,7 @@ import type {
 /**
  * Main state management hook for playground
  */
-export function usePlaygroundState() {
+export function usePlaygroundState(userId?: number) {
   // Load initial state from localStorage
   const [config, setConfig] = useState<PlaygroundConfig>(() => {
     const savedConfig = loadConfig()
@@ -52,7 +52,7 @@ export function usePlaygroundState() {
   )
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    return loadMessages() || []
+    return loadMessages(userId) || []
   })
 
   const [models, setModels] = useState<ModelOption[]>([])
@@ -88,11 +88,11 @@ export function usePlaygroundState() {
       setMessages((prev) => {
         const newMessages =
           typeof updater === 'function' ? updater(prev) : updater
-        saveMessages(newMessages)
+        saveMessages(newMessages, userId)
         return newMessages
       })
     },
-    []
+    [userId]
   )
 
   // Clear all messages

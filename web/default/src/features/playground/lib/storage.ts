@@ -84,19 +84,21 @@ export function saveParameterEnabled(
 /**
  * Load messages from localStorage
  */
-export function loadMessages(): Message[] | null {
+export function loadMessages(userId?: number): Message[] | null {
+  if (!userId) return null
+  const key = `${STORAGE_KEYS.MESSAGES}:${userId}`
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES)
+    const saved = localStorage.getItem(key)
     if (saved) {
       const parsed: unknown = JSON.parse(saved)
       if (!Array.isArray(parsed)) {
-        localStorage.removeItem(STORAGE_KEYS.MESSAGES)
+        localStorage.removeItem(key)
         return null
       }
       const sanitized = sanitizeMessagesOnLoad(parsed as Message[])
       // Persist sanitized result to avoid re-sanitizing on subsequent loads
       if (sanitized !== parsed) {
-        saveMessages(sanitized)
+        saveMessages(sanitized, userId)
       }
       return sanitized.map((message) => ({
         ...message,
@@ -113,9 +115,13 @@ export function loadMessages(): Message[] | null {
 /**
  * Save messages to localStorage
  */
-export function saveMessages(messages: Message[]): void {
+export function saveMessages(messages: Message[], userId?: number): void {
+  if (!userId) return
   try {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages))
+    localStorage.setItem(
+      `${STORAGE_KEYS.MESSAGES}:${userId}`,
+      JSON.stringify(messages)
+    )
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save messages:', error)
@@ -125,11 +131,11 @@ export function saveMessages(messages: Message[]): void {
 /**
  * Clear all playground data
  */
-export function clearPlaygroundData(): void {
+export function clearPlaygroundData(userId?: number): void {
   try {
     localStorage.removeItem(STORAGE_KEYS.CONFIG)
     localStorage.removeItem(STORAGE_KEYS.PARAMETER_ENABLED)
-    localStorage.removeItem(STORAGE_KEYS.MESSAGES)
+    if (userId) localStorage.removeItem(`${STORAGE_KEYS.MESSAGES}:${userId}`)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to clear playground data:', error)

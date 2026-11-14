@@ -203,3 +203,8 @@ func SearchRateLimit() func(c *gin.Context) {
 	}
 	return userRateLimitFactory(common.SearchRateLimitNum, common.SearchRateLimitDuration, "SR")
 }
+
+// AssistantSearchRateLimit bounds public retrieval per authenticated account.
+func AssistantSearchRateLimit() gin.HandlerFunc {
+	return userRateLimitFactory(20, 60, "AS")
+}

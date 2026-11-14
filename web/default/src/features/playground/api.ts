@@ -29,9 +29,11 @@ import type {
  * Send chat completion request (non-streaming)
  */
 export async function sendChatCompletion(
-  payload: ChatCompletionRequest
+  payload: ChatCompletionRequest,
+  signal?: AbortSignal
 ): Promise<ChatCompletionResponse> {
   const res = await api.post(API_ENDPOINTS.CHAT_COMPLETIONS, payload, {
+    signal,
     skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
@@ -76,4 +78,26 @@ export async function getUserGroups(): Promise<GroupOption[]> {
     ratio: info.ratio,
     desc: info.desc,
   }))
+}
+
+export type AssistantContext = {
+  context: string
+  sources: { title: string; href: string }[]
+  web_searched: boolean
+  warning?: string
+}
+
+export async function getAssistantContext(
+  query: string,
+  web: boolean,
+  signal: AbortSignal
+): Promise<AssistantContext> {
+  const response = await api.post(
+    '/api/user/self/assistant/context',
+    { query, web },
+    { signal, skipErrorHandler: true } as Record<string, unknown>
+  )
+  if (!response.data.success)
+    throw new Error(response.data.message || 'Could not retrieve sources')
+  return response.data.data
 }

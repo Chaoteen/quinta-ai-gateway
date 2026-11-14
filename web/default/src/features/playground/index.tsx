@@ -31,6 +31,7 @@ import type { Message as MessageType } from './types'
 
 export function Playground() {
   const { t } = useTranslation()
+  const [webSearch, setWebSearch] = useState(false)
   const userId = useAuthStore((state) => state.auth.user?.id)
   const {
     config,
@@ -42,13 +43,15 @@ export function Playground() {
     setModels,
     setGroups,
     updateConfig,
-  } = usePlaygroundState()
+  } = usePlaygroundState(userId)
 
-  const { sendChat, stopGeneration, isGenerating } = useChatHandler({
-    config,
-    parameterEnabled,
-    onMessageUpdate: updateMessages,
-  })
+  const { sendChat, stopGeneration, isGenerating, isRetrieving } =
+    useChatHandler({
+      webSearch,
+      config,
+      parameterEnabled,
+      onMessageUpdate: updateMessages,
+    })
 
   // Edit dialog state
   const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
@@ -201,6 +204,7 @@ export function Playground() {
     <div className='relative flex size-full flex-col overflow-hidden'>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-6 py-3'>
         <p className='text-sm font-medium'>
+          {t('Online chat')} ·{' '}
           {t('Current model: {{model}} · Group: {{group}}', {
             model: config.model || t('No model selected'),
             group: config.group,
@@ -225,9 +229,14 @@ export function Playground() {
               ? 'Failed to load models. Please refresh and try again.'
               : !canSend && !isGenerating
                 ? 'No available model in this group. Contact the administrator to configure an upstream channel.'
-                : 'Test model responses and prompts here. Model calls consume your account quota.'
+                : 'Chat here with platform documentation. Model calls consume account credit.'
         )}
       </p>
+      {isRetrieving && (
+        <p role='status' className='text-muted-foreground px-6 text-sm'>
+          {t('Retrieving platform documents and selected web sources…')}
+        </p>
+      )}
       {/* Full-width scroll container: scrolling works even over side whitespace */}
       <div className='flex flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
@@ -247,6 +256,8 @@ export function Playground() {
       {/* Input area: center content and constrain to the same container width */}
       <div className='mx-auto w-full max-w-4xl'>
         <PlaygroundInput
+          webSearch={webSearch}
+          onWebSearchChange={setWebSearch}
           disabled={isGenerating}
           canSubmit={canSend}
           groups={groups}

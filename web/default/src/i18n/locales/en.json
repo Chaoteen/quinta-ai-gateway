@@ -4805,6 +4805,19 @@
     "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.",
     "Beta notice": "Beta notice",
     "Private beta": "Private beta",
-    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit."
+    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.",
+    "Online chat": "Online chat",
+    "Chat here with platform documentation. Model calls consume account credit.": "Chat here with platform documentation. Model calls consume account credit.",
+    "Retrieving platform documents and selected web sources…": "Retrieving platform documents and selected web sources…",
+    "Web search on": "Web search on",
+    "Web search off": "Web search off",
+    "Platform documents are retrieved automatically. Web search sends only your current question (up to 256 characters) to Bing for public snippets. Do not include credentials or private information.": "Platform documents are retrieved automatically. Web search sends only your current question (up to 256 characters) to Bing for public snippets. Do not include credentials or private information.",
+    "How do I connect my application?": "How do I connect my application?",
+    "How do I redeem a voucher?": "How do I redeem a voucher?",
+    "How do I request an invoice?": "How do I request an invoice?",
+    "Could not retrieve sources": "Could not retrieve sources",
+    "No web results were found. Try a more specific question.": "No web results were found. Try a more specific question.",
+    "Retrieved references ({{count}})": "Retrieved references ({{count}})",
+    "The model returned no answer.": "The model returned no answer."
   }
 }

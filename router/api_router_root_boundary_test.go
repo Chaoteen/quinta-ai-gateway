@@ -233,3 +233,38 @@ func TestTenantScopedAdminRouteStillAllowsAdmin(t *testing.T) {
 		t.Fatalf("tenant scoped admin route was not accessible to admin, status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
+
+func TestPlatformAssistantContextAuthenticationAndTenantBoundary(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	request := httptest.NewRequest(http.MethodPost, "/api/user/self/assistant/context", strings.NewReader(`{"query":"发票","web":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, request)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated retrieval accepted: %d", rec.Code)
+	}
+	rec = performRootBoundaryRequest(r, http.MethodPost, "/api/user/self/assistant/context", `{"query":"如何申请发票","web":false}`, 2, common.RoleAdminUser)
+	var result struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Context string `json:"context"`
+			Sources []struct {
+				Href string `json:"href"`
+			} `json:"sources"`
+			Web bool `json:"web_searched"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != 200 || !result.Success || result.Data.Web || !strings.Contains(result.Data.Context, "没有自动调用税务系统") {
+		t.Fatalf("invalid grounded context: %d", rec.Code)
+	}
+	if err := model.DB.Model(&model.Tenant{}).Where("id = ?", 2).Update("status", 2).Error; err != nil {
+		t.Fatal(err)
+	}
+	rec = performRootBoundaryRequest(r, http.MethodPost, "/api/user/self/assistant/context", `{"query":"发票"}`, 2, common.RoleAdminUser)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("disabled tenant retrieved context: %d", rec.Code)
+	}
+}

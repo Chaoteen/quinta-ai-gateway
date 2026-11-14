@@ -4805,6 +4805,19 @@
     "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "导入会打开已安装的客户端，并将本平台添加为模型服务商；这不是登录客户端账号。请仅向你信任的工具导入。",
     "Beta notice": "内测提示",
     "Private beta": "内测版",
-    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "测试期间功能和数据可能调整，请勿用于生产业务；模型调用会消耗账户额度。"
+    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "测试期间功能和数据可能调整，请勿用于生产业务；模型调用会消耗账户额度。",
+    "Online chat": "在线聊天",
+    "Chat here with platform documentation. Model calls consume account credit.": "在平台内对话，自动检索平台公开功能文档；模型调用会消耗账户额度。",
+    "Retrieving platform documents and selected web sources…": "正在检索平台文档和所选网页资料…",
+    "Web search on": "联网检索已开启",
+    "Web search off": "联网检索已关闭",
+    "Platform documents are retrieved automatically. Web search sends only your current question (up to 256 characters) to Bing for public snippets. Do not include credentials or private information.": "自动检索平台文档。开启联网后，当前问题（最多256字）将发送给 Bing 检索公开网页摘要。请勿输入密钥或隐私信息。",
+    "How do I connect my application?": "如何通过 API 接入我的应用？",
+    "How do I redeem a voucher?": "如何兑换卡券？",
+    "How do I request an invoice?": "如何申请发票？",
+    "Could not retrieve sources": "未能检索参考资料",
+    "No web results were found. Try a more specific question.": "没有找到网页资料，请尝试更具体的问题。",
+    "Retrieved references ({{count}})": "检索到的参考资料（{{count}}）",
+    "The model returned no answer.": "模型未返回回答。"
   }
 }

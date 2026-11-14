@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { PublicLayout } from '@/components/layout'
 import { getUserGuideDoc } from '@/features/docs/docs-content'
-import { getPublicContent } from '@/features/docs/public-content'
+import { getPublicGuideContent } from '@/features/docs/public-content'
 
 function UserGuideDocPage() {
   const { slug } = Route.useParams()
@@ -34,6 +34,11 @@ function UserGuideDocPage() {
     throw notFound()
   }
 
+  const markdown = getPublicGuideContent(
+    slug,
+    i18n.resolvedLanguage || i18n.language,
+    window.location.origin
+  )
   const Icon = doc.icon
 
   return (
@@ -63,13 +68,9 @@ function UserGuideDocPage() {
         </header>
 
         <div className='space-y-6'>
-          {slug === 'api-access' || slug === 'quick-start' ? (
+          {markdown ? (
             <Markdown className='[&_code]:text-xs [&_pre]:overflow-x-auto [&_pre]:p-4 [&_pre_code]:whitespace-pre'>
-              {getPublicContent(
-                'api',
-                i18n.resolvedLanguage || i18n.language,
-                window.location.origin
-              )}
+              {markdown}
             </Markdown>
           ) : (
             doc.sections.map((section) => (

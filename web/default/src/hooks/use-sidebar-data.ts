@@ -28,7 +28,6 @@ import {
   User,
   Command,
   Radio,
-  FlaskConical,
   MessageSquare,
   CreditCard,
   ListTodo,
@@ -44,9 +43,9 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
 import { type SidebarData } from '@/components/layout/types'
-import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
@@ -157,14 +156,9 @@ export function useSidebarData(): SidebarData {
         title: t('Chat'),
         items: [
           {
-            title: t('Playground'),
+            title: t('Online chat'),
             url: '/playground',
-            icon: FlaskConical,
-          },
-          {
-            title: t('Chat'),
             icon: MessageSquare,
-            type: 'chat-presets',
           },
         ],
       },

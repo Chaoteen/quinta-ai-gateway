@@ -16,9 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { sendChatCompletion } from '../api'
+import { withBasePath } from '@/lib/base-path'
+import { getAssistantContext, sendChatCompletion } from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import {
   buildChatCompletionPayload,
@@ -31,6 +33,7 @@ import type { Message, PlaygroundConfig, ParameterEnabled } from '../types'
 import { useStreamRequest } from './use-stream-request'
 
 interface UseChatHandlerOptions {
+  webSearch: boolean
   config: PlaygroundConfig
   parameterEnabled: ParameterEnabled
   onMessageUpdate: (updater: (prev: Message[]) => Message[]) => void
@@ -40,11 +43,23 @@ interface UseChatHandlerOptions {
  * Hook for handling chat message sending and receiving
  */
 export function useChatHandler({
+  webSearch,
   config,
   parameterEnabled,
   onMessageUpdate,
 }: UseChatHandlerOptions) {
-  const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
+  const { t } = useTranslation()
+  const { sendStreamRequest, stopStream } = useStreamRequest()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isRetrieving, setIsRetrieving] = useState(false)
+  const requestRef = useRef<AbortController | null>(null)
+  useEffect(
+    () => () => {
+      requestRef.current?.abort()
+      stopStream()
+    },
+    [stopStream]
+  )
 
   // Handle stream update
   const handleStreamUpdate = useCallback(
@@ -79,6 +94,7 @@ export function useChatHandler({
 
   // Handle stream complete
   const handleStreamComplete = useCallback(() => {
+    setIsGenerating(false)
     onMessageUpdate((prev) =>
       updateLastAssistantMessage(prev, (message) =>
         message.status === MESSAGE_STATUS.COMPLETE ||
@@ -92,6 +108,7 @@ export function useChatHandler({
   // Handle stream error
   const handleStreamError = useCallback(
     (error: string, errorCode?: string) => {
+      setIsGenerating(false)
       toast.error(error)
       onMessageUpdate((prev) =>
         updateAssistantMessageWithError(prev, error, errorCode)
@@ -102,12 +119,13 @@ export function useChatHandler({
 
   // Send streaming chat request
   const sendStreamingChat = useCallback(
-    (messages: Message[]) => {
+    (messages: Message[], context: string) => {
       const payload = buildChatCompletionPayload(
         messages,
         config,
         parameterEnabled
       )
+      payload.messages.unshift({ role: 'system', content: context })
       sendStreamRequest(
         payload,
         handleStreamUpdate,
@@ -127,17 +145,20 @@ export function useChatHandler({
 
   // Send non-streaming chat request
   const sendNonStreamingChat = useCallback(
-    async (messages: Message[]) => {
+    async (messages: Message[], context: string, signal: AbortSignal) => {
       const payload = buildChatCompletionPayload(
         messages,
         config,
         parameterEnabled
       )
 
+      payload.messages.unshift({ role: 'system', content: context })
       try {
-        const response = await sendChatCompletion(payload)
+        const response = await sendChatCompletion(payload, signal)
+        if (signal.aborted) return
+        setIsGenerating(false)
         const choice = response.choices?.[0]
-        if (!choice) return
+        if (!choice) throw new Error(t('The model returned no answer.'))
 
         onMessageUpdate((prev) =>
           updateLastAssistantMessage(prev, (message) => ({
@@ -157,6 +178,7 @@ export function useChatHandler({
           }))
         )
       } catch (error: unknown) {
+        if (signal.aborted) return
         const err = error as {
           response?: {
             data?: { message?: string; error?: { code?: string } }
@@ -171,23 +193,89 @@ export function useChatHandler({
         )
       }
     },
-    [config, parameterEnabled, onMessageUpdate, handleStreamError]
+    [config, parameterEnabled, onMessageUpdate, handleStreamError, t]
   )
 
-  // Send chat request (stream or non-stream based on config)
+  // Retrieve public references before generation; no upstream credentials reach the browser.
   const sendChat = useCallback(
-    (messages: Message[]) => {
-      if (config.stream) {
-        sendStreamingChat(messages)
-      } else {
-        sendNonStreamingChat(messages)
+    async (messages: Message[]) => {
+      requestRef.current?.abort()
+      const request = new AbortController()
+      requestRef.current = request
+      setIsGenerating(true)
+      setIsRetrieving(true)
+      try {
+        const query =
+          [...messages].reverse().find((message) => message.from === 'user')
+            ?.versions[0]?.content ?? ''
+        const result = await getAssistantContext(
+          query,
+          webSearch,
+          request.signal
+        )
+        if (request.signal.aborted) return
+        onMessageUpdate((prev) =>
+          updateLastAssistantMessage(prev, (message) => ({
+            ...message,
+            sources: result.sources.map((source) => ({
+              ...source,
+              href: source.href.startsWith('/')
+                ? withBasePath(source.href)
+                : source.href,
+            })),
+          }))
+        )
+        if (result.warning)
+          toast.info(
+            t('No web results were found. Try a more specific question.')
+          )
+        setIsRetrieving(false)
+        const links: Record<string, string> = {
+          __GATEWAY_BASE_URL__: `${window.location.origin}${withBasePath('/v1')}`,
+          __REGISTER_URL__: withBasePath('/sign-up'),
+          __KEYS_URL__: withBasePath('/keys'),
+          __BILLING_URL__: withBasePath('/billing'),
+          __MODELS_URL__: withBasePath('/pricing'),
+          __LOGS_URL__: withBasePath('/usage-logs/common'),
+          __INVOICE_URL__: withBasePath('/invoices'),
+          __API_GUIDE_URL__: withBasePath('/docs/api-access'),
+        }
+        const context = result.context
+          .replaceAll('链接：/docs/', `链接：${withBasePath('/docs/')}`)
+          .replace(/__[A-Z_]+__/g, (key) => links[key] ?? key)
+        if (config.stream) sendStreamingChat(messages, context)
+        else await sendNonStreamingChat(messages, context, request.signal)
+      } catch (error: unknown) {
+        if (request.signal.aborted) return
+        const failure = error as {
+          response?: { data?: { message?: string } }
+          message?: string
+        }
+        handleStreamError(
+          failure.response?.data?.message ||
+            failure.message ||
+            t('Could not retrieve sources')
+        )
+      } finally {
+        if (!request.signal.aborted) setIsRetrieving(false)
       }
     },
-    [config.stream, sendStreamingChat, sendNonStreamingChat]
+    [
+      webSearch,
+      config.stream,
+      sendStreamingChat,
+      sendNonStreamingChat,
+      onMessageUpdate,
+      handleStreamError,
+      t,
+    ]
   )
 
   // Stop generation
   const stopGeneration = useCallback(() => {
+    requestRef.current?.abort()
+    setIsGenerating(false)
+    setIsRetrieving(false)
     stopStream()
     onMessageUpdate((prev) =>
       updateLastAssistantMessage(prev, (message) =>
@@ -202,6 +290,7 @@ export function useChatHandler({
   return {
     sendChat,
     stopGeneration,
-    isGenerating: isStreaming,
+    isGenerating,
+    isRetrieving,
   }
 }

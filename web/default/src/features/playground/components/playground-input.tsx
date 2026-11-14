@@ -18,11 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
 import {
-  PaperclipIcon,
-  FileIcon,
-  ImageIcon,
-  ScreenShareIcon,
-  CameraIcon,
   GlobeIcon,
   SendIcon,
   SquareIcon,
@@ -33,13 +28,6 @@ import {
   GraduationCapIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   PromptInput,
   PromptInputButton,
@@ -53,6 +41,8 @@ import { ModelSelector, GroupSelector } from '@/components/model-group-selector'
 import type { ModelOption, GroupOption } from '../types'
 
 interface PlaygroundInputProps {
+  webSearch: boolean
+  onWebSearchChange: (enabled: boolean) => void
   onSubmit: (text: string) => void
   onStop?: () => void
   disabled?: boolean
@@ -68,15 +58,25 @@ interface PlaygroundInputProps {
 }
 
 const suggestions = [
-  { icon: BarChartIcon, text: 'Analyze data', color: '#76d0eb' },
-  { icon: BoxIcon, text: 'Surprise me', color: '#76d0eb' },
-  { icon: NotepadTextIcon, text: 'Summarize text', color: '#ea8444' },
+  {
+    icon: BarChartIcon,
+    text: 'How do I connect my application?',
+    color: '#76d0eb',
+  },
+  { icon: BoxIcon, text: 'How do I redeem a voucher?', color: '#76d0eb' },
+  {
+    icon: NotepadTextIcon,
+    text: 'How do I request an invoice?',
+    color: '#ea8444',
+  },
   { icon: CodeSquareIcon, text: 'Code', color: '#6c71ff' },
   { icon: GraduationCapIcon, text: 'Get advice', color: '#76d0eb' },
   { icon: null, text: 'More' },
 ]
 
 export function PlaygroundInput({
+  webSearch,
+  onWebSearchChange,
   onSubmit,
   onStop,
   disabled,
@@ -104,12 +104,6 @@ export function PlaygroundInput({
     setText('')
   }
 
-  const handleFileAction = (action: string) => {
-    toast.info(t('Feature in development'), {
-      description: action,
-    })
-  }
-
   const handleSuggestionClick = (suggestion: string) => {
     if (!isInputDisabled) setText(t(suggestion))
   }
@@ -129,59 +123,17 @@ export function PlaygroundInput({
           value={text}
         />
 
-        <PromptInputFooter className='p-2.5'>
+        <PromptInputFooter className='flex-wrap gap-2 p-2.5'>
           <PromptInputTools>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <PromptInputButton
-                    className='border font-medium'
-                    disabled={isInputDisabled}
-                    variant='outline'
-                  />
-                }
-              >
-                <PaperclipIcon size={16} />
-                <span className='hidden sm:inline'>{t('Attach')}</span>
-                <span className='sr-only sm:hidden'>{t('Attach')}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='start'>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-file')}
-                >
-                  <FileIcon className='mr-2' size={16} />
-                  {t('Upload file')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-photo')}
-                >
-                  <ImageIcon className='mr-2' size={16} />
-                  {t('Upload photo')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-screenshot')}
-                >
-                  <ScreenShareIcon className='mr-2' size={16} />
-                  {t('Take screenshot')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-photo')}
-                >
-                  <CameraIcon className='mr-2' size={16} />
-                  {t('Take photo')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             <PromptInputButton
               className='border font-medium'
               disabled={isInputDisabled}
-              onClick={() => toast.info(t('Search feature in development'))}
-              variant='outline'
+              aria-pressed={webSearch}
+              onClick={() => onWebSearchChange(!webSearch)}
+              variant={webSearch ? 'secondary' : 'outline'}
             >
               <GlobeIcon size={16} />
-              <span className='hidden sm:inline'>{t('Search')}</span>
-              <span className='sr-only sm:hidden'>{t('Search')}</span>
+              <span>{t(webSearch ? 'Web search on' : 'Web search off')}</span>
             </PromptInputButton>
           </PromptInputTools>
 
@@ -225,6 +177,11 @@ export function PlaygroundInput({
         </PromptInputFooter>
       </PromptInput>
 
+      <p className='text-muted-foreground px-3 text-xs leading-relaxed'>
+        {t(
+          'Platform documents are retrieved automatically. Web search sends only your current question (up to 256 characters) to Bing for public snippets. Do not include credentials or private information.'
+        )}
+      </p>
       <Suggestions>
         {suggestions.map(({ icon: Icon, text, color }) => (
           <Suggestion
