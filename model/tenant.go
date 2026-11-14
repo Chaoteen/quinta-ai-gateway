@@ -26,3 +26,22 @@ func (tenant *Tenant) BeforeUpdate(tx *gorm.DB) error {
 	tenant.UpdatedAt = common.GetTimestamp()
 	return nil
 }
+
+// TenantAccessEnabled reads current state instead of caching authorization.
+// Older installations may not have a Tenant row for the implicit platform tenant 1.
+// This compatibility exception never applies to explicit disabled/deleted rows.
+func TenantAccessEnabled(tenantID int) (bool, error) {
+	tenantID = normalizeTenantId(tenantID)
+	if tenantID < 1 {
+		return false, nil
+	}
+	var tenant Tenant
+	result := DB.Unscoped().Select("id", "status", "deleted_at").Where("id = ?", tenantID).Limit(1).Find(&tenant)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return tenantID == 1, nil
+	}
+	return tenant.Status == 1 && !tenant.DeletedAt.Valid, nil
+}

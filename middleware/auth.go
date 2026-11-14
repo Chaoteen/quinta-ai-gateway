@@ -178,6 +178,10 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 		return
 	}
 
+	if !requireActiveTenant(c, c.GetInt("role") == common.RoleRootUser) {
+		return
+	}
+
 	if len(continueChain) == 0 || continueChain[0] {
 		c.Next()
 	}
@@ -265,6 +269,9 @@ func TokenOrUserAuth() func(c *gin.Context) {
 					return
 				}
 				c.Set("role", common.RoleKeyToLegacyRole(userCache.RoleKey))
+				if !requireActiveTenant(c, c.GetInt("role") == common.RoleRootUser) {
+					return
+				}
 				c.Next()
 				return
 			}
@@ -337,6 +344,9 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 		c.Set("token_id", token.Id)
 		c.Set("token_key", token.Key)
 		userCache.WriteContext(c)
+		if !requireActiveTenant(c, false) {
+			return
+		}
 		c.Next()
 	}
 }
@@ -446,6 +456,9 @@ func TokenAuth() func(c *gin.Context) {
 		}
 
 		userCache.WriteContext(c)
+		if !requireActiveTenant(c, false) {
+			return
+		}
 
 		userGroup := userCache.Group
 		tokenGroup := token.Group

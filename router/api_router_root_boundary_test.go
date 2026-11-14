@@ -65,6 +65,9 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 	seedRootBoundaryUser(t, db, 1, "root", common.RoleRootUser, 1)
 	seedRootBoundaryUser(t, db, 2, "tenant-admin", common.RoleAdminUser, 2)
 	seedRootBoundaryAdminConsoleHierarchy(t, db)
+	if err := db.Create(&model.Tenant{Id: 2, Name: "root-boundary-enterprise", Status: 1}).Error; err != nil {
+		t.Fatal(err)
+	}
 
 	r := gin.New()
 	store := cookie.NewStore([]byte("root-boundary-test-secret"))

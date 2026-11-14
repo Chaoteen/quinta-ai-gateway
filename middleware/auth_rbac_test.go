@@ -13,7 +13,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +26,13 @@ func setupAuthRBACTestRouter(t *testing.T, auth gin.HandlerFunc) *gin.Engine {
 	common.RedisEnabled = false
 
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	// Initialize dialect column helpers through the normal DB entry point.
+	t.Setenv("SQL_DSN", "local")
+	oldPath, oldMaster := common.SQLitePath, common.IsMasterNode
+	common.SQLitePath, common.IsMasterNode = dsn, false
+	err := model.InitDB()
+	common.SQLitePath, common.IsMasterNode = oldPath, oldMaster
+	db := model.DB
 	if err != nil {
 		t.Fatalf("failed to open sqlite db: %v", err)
 	}
@@ -40,7 +45,7 @@ func setupAuthRBACTestRouter(t *testing.T, auth gin.HandlerFunc) *gin.Engine {
 		}
 	})
 
-	if err := db.AutoMigrate(&model.User{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Tenant{}, &model.Token{}); err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)
 	}
 

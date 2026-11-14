@@ -73,6 +73,9 @@ func setupRoleAdoptionRouter(t *testing.T) *gin.Engine {
 		}
 	})
 
+	if err := db.Create(&model.Tenant{Id: 2, Name: "role-adoption-enterprise", Status: 1}).Error; err != nil {
+		t.Fatal(err)
+	}
 	for name, user := range roleAdoptionUsers {
 		seedRoleAdoptionUser(t, db, user.id, name, user.role, user.roleKey, user.tenant, user.organization)
 	}
