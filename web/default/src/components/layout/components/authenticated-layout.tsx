@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useTranslation } from 'react-i18next'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
 import { LayoutProvider } from '@/context/layout-provider'
@@ -32,6 +33,7 @@ type AuthenticatedLayoutProps = {
 }
 
 export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
+  const { t } = useTranslation()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
 
   return (
@@ -50,6 +52,19 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
                   'peer-data-[variant=inset]:h-[calc(100svh-var(--app-header-height,0px)-(var(--spacing)*4))]'
                 )}
               >
+                <aside
+                  aria-label={t('Beta notice')}
+                  className='bg-muted/60 text-foreground flex shrink-0 flex-col gap-1 border-b px-3 py-2.5 text-sm sm:flex-row sm:items-start sm:gap-3 sm:px-4'
+                >
+                  <span className='shrink-0 font-semibold'>
+                    {t('Private beta')}
+                  </span>
+                  <p className='min-w-0 leading-relaxed'>
+                    {t(
+                      'Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.'
+                    )}
+                  </p>
+                </aside>
                 {props.children ?? <AnimatedOutlet />}
               </SidebarInset>
             </div>

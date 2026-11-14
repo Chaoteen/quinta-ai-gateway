@@ -4802,6 +4802,9 @@
     "Selected key: {{name}}": "使用密钥：{{name}}",
     "Import into {{tool}}": "导入到 {{tool}}",
     "Manual API connection guide": "手动接入说明",
-    "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "导入会打开已安装的客户端，并将本平台添加为模型服务商；这不是登录客户端账号。请仅向你信任的工具导入。"
+    "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "导入会打开已安装的客户端，并将本平台添加为模型服务商；这不是登录客户端账号。请仅向你信任的工具导入。",
+    "Beta notice": "内测提示",
+    "Private beta": "内测版",
+    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "测试期间功能和数据可能调整，请勿用于生产业务；模型调用会消耗账户额度。"
   }
 }

@@ -4802,6 +4802,9 @@
     "Selected key: {{name}}": "Selected key: {{name}}",
     "Import into {{tool}}": "Import into {{tool}}",
     "Manual API connection guide": "Manual API connection guide",
-    "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust."
+    "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.": "Import opens the installed client and adds this platform as a model provider. It does not sign in to a client account. Only import into tools you trust.",
+    "Beta notice": "Beta notice",
+    "Private beta": "Private beta",
+    "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit.": "Features and data may change during testing. Please do not use this platform for production workloads. Model calls consume account credit."
   }
 }
