@@ -268,3 +268,23 @@ func TestPlatformAssistantContextAuthenticationAndTenantBoundary(t *testing.T) {
 		t.Fatalf("disabled tenant retrieved context: %d", rec.Code)
 	}
 }
+
+func TestPlatformSupplierEndpointsRequireRootAndStepUp(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	requireTables := []interface{}{&model.PlatformSupplier{}, &model.SupplierAccount{}, &model.SupplierPrice{}, &model.SupplierStatement{}, &model.SupplierPayment{}, &model.SupplierAudit{}, &model.SupplierRevision{}}
+	if err := model.DB.AutoMigrate(requireTables...); err != nil {
+		t.Fatal(err)
+	}
+	rec := performRootBoundaryRequest(r, http.MethodGet, "/api/platform/suppliers", "", 1, common.RoleRootUser)
+	if !decodeRootBoundaryResponse(t, rec).Success {
+		t.Fatalf("root could not load supplier catalog: %d", rec.Code)
+	}
+	rec = performRootBoundaryRequest(r, http.MethodGet, "/api/platform/suppliers", "", 2, common.RoleAdminUser)
+	if decodeRootBoundaryResponse(t, rec).Success {
+		t.Fatal("tenant admin accessed platform procurement")
+	}
+	rec = performRootBoundaryRequest(r, http.MethodPost, "/api/platform/suppliers", `{"supplier":{"name":"x"}}`, 1, common.RoleRootUser)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("supplier write without MFA accepted: %d", rec.Code)
+	}
+}

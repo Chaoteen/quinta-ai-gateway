@@ -145,8 +145,10 @@ func UniversalVerify(c *gin.Context) {
 func setSecureVerificationSession(c *gin.Context, method string) (int64, error) {
 	session := sessions.Default(c)
 	session.Delete(PasskeyReadySessionKey)
+	session.Delete("secure_passkey_ready_user_id")
 	now := time.Now().Unix()
 	session.Set(SecureVerificationSessionKey, now)
+	session.Set("secure_verified_user_id", c.GetInt("id"))
 	session.Set(secureVerificationMethodSessionKey, method)
 	if err := session.Save(); err != nil {
 		return 0, err
@@ -157,22 +159,25 @@ func setSecureVerificationSession(c *gin.Context, method string) (int64, error) 
 func consumePasskeyReady(c *gin.Context) (bool, error) {
 	session := sessions.Default(c)
 	readyAtRaw := session.Get(PasskeyReadySessionKey)
+	readyUser := session.Get("secure_passkey_ready_user_id")
 	if readyAtRaw == nil {
 		return false, nil
 	}
 
 	readyAt, ok := readyAtRaw.(int64)
-	if !ok {
+	if !ok || readyUser != c.GetInt("id") {
 		session.Delete(PasskeyReadySessionKey)
+		session.Delete("secure_passkey_ready_user_id")
 		_ = session.Save()
 		return false, fmt.Errorf("无效的 Passkey 验证状态")
 	}
 	session.Delete(PasskeyReadySessionKey)
+	session.Delete("secure_passkey_ready_user_id")
 	if err := session.Save(); err != nil {
 		return false, err
 	}
 	// Expired ready markers cannot be reused.
-	if time.Now().Unix()-readyAt >= PasskeyReadyTimeout {
+	if elapsed := time.Now().Unix() - readyAt; elapsed < 0 || elapsed >= PasskeyReadyTimeout {
 		return false, nil
 	}
 	return true, nil

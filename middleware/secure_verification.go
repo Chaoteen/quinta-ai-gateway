@@ -12,6 +12,7 @@ const (
 	// SecureVerificationSessionKey 安全验证的 session key（与 controller 保持一致）
 	SecureVerificationSessionKey       = "secure_verified_at"
 	secureVerificationMethodSessionKey = "secure_verified_method"
+	secureVerificationUserSessionKey   = "secure_verified_user_id"
 	// SecureVerificationTimeout 验证有效期（秒）
 	SecureVerificationTimeout = 300 // 5分钟
 )
@@ -61,7 +62,7 @@ func SecureVerificationRequired() gin.HandlerFunc {
 
 		// 检查验证是否过期
 		elapsed := time.Now().Unix() - verifiedAt
-		if elapsed >= SecureVerificationTimeout {
+		if elapsed < 0 || elapsed >= SecureVerificationTimeout || session.Get(secureVerificationUserSessionKey) != userId {
 			// 验证已过期，清除 session
 			clearSecureVerificationSession(session)
 			c.JSON(http.StatusForbidden, gin.H{
@@ -80,6 +81,7 @@ func SecureVerificationRequired() gin.HandlerFunc {
 func clearSecureVerificationSession(session sessions.Session) {
 	session.Delete(SecureVerificationSessionKey)
 	session.Delete(secureVerificationMethodSessionKey)
+	session.Delete(secureVerificationUserSessionKey)
 	_ = session.Save()
 }
 
@@ -112,7 +114,7 @@ func OptionalSecureVerification() gin.HandlerFunc {
 		}
 
 		elapsed := time.Now().Unix() - verifiedAt
-		if elapsed >= SecureVerificationTimeout {
+		if elapsed < 0 || elapsed >= SecureVerificationTimeout || session.Get(secureVerificationUserSessionKey) != userId {
 			clearSecureVerificationSession(session)
 			c.Set("secure_verified", false)
 			c.Next()

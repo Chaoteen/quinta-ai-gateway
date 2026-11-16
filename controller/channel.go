@@ -1240,6 +1240,10 @@ func CopyChannel(c *gin.Context) {
 		return
 	}
 
+	if origin.SupplierAccountId != 0 {
+		c.JSON(http.StatusConflict, gin.H{"success": false, "message": "供应商绑定渠道不能直接复制，请在供应商管理中建立独立账号与授权关联"})
+		return
+	}
 	// clone channel
 	clone := *origin // shallow copy is sufficient as we will overwrite primitives
 	clone.Id = 0     // let DB auto-generate

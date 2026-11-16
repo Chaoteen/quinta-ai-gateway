@@ -59,6 +59,7 @@ import { Route as AuthenticatedQuotaDashboardIndexRouteImport } from './routes/_
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedRevenueShareIndexRouteImport } from './routes/_authenticated/revenue-share/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
+import { Route as AuthenticatedSuppliersIndexRouteImport } from './routes/_authenticated/suppliers/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedTenantsIndexRouteImport } from './routes/_authenticated/tenants/index'
 import { Route as AuthenticatedTopupIndexRouteImport } from './routes/_authenticated/topup/index'
@@ -365,6 +366,12 @@ const AuthenticatedSubscriptionsIndexRoute =
     path: '/subscriptions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSuppliersIndexRoute =
+  AuthenticatedSuppliersIndexRouteImport.update({
+    id: '/suppliers/',
+    path: '/suppliers/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSystemSettingsIndexRoute =
   AuthenticatedSystemSettingsIndexRouteImport.update({
     id: '/',
@@ -577,6 +584,7 @@ export interface FileRoutesByFullPath {
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
+  '/suppliers/': typeof AuthenticatedSuppliersIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/tenants/': typeof AuthenticatedTenantsIndexRoute
   '/topup/': typeof AuthenticatedTopupIndexRoute
@@ -653,6 +661,7 @@ export interface FileRoutesByTo {
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/revenue-share': typeof AuthenticatedRevenueShareIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
+  '/suppliers': typeof AuthenticatedSuppliersIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
   '/tenants': typeof AuthenticatedTenantsIndexRoute
   '/topup': typeof AuthenticatedTopupIndexRoute
@@ -733,6 +742,7 @@ export interface FileRoutesById {
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
+  '/_authenticated/suppliers/': typeof AuthenticatedSuppliersIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/_authenticated/tenants/': typeof AuthenticatedTenantsIndexRoute
   '/_authenticated/topup/': typeof AuthenticatedTopupIndexRoute
@@ -812,6 +822,7 @@ export interface FileRouteTypes {
     | '/redemption-codes/'
     | '/revenue-share/'
     | '/subscriptions/'
+    | '/suppliers/'
     | '/system-settings/'
     | '/tenants/'
     | '/topup/'
@@ -888,6 +899,7 @@ export interface FileRouteTypes {
     | '/redemption-codes'
     | '/revenue-share'
     | '/subscriptions'
+    | '/suppliers'
     | '/system-settings'
     | '/tenants'
     | '/topup'
@@ -967,6 +979,7 @@ export interface FileRouteTypes {
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/revenue-share/'
     | '/_authenticated/subscriptions/'
+    | '/_authenticated/suppliers/'
     | '/_authenticated/system-settings/'
     | '/_authenticated/tenants/'
     | '/_authenticated/topup/'
@@ -1371,6 +1384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/suppliers/': {
+      id: '/_authenticated/suppliers/'
+      path: '/suppliers'
+      fullPath: '/suppliers/'
+      preLoaderRoute: typeof AuthenticatedSuppliersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/system-settings/': {
       id: '/_authenticated/system-settings/'
       path: '/'
@@ -1669,6 +1689,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedRevenueShareIndexRoute: typeof AuthenticatedRevenueShareIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
+  AuthenticatedSuppliersIndexRoute: typeof AuthenticatedSuppliersIndexRoute
   AuthenticatedTenantsIndexRoute: typeof AuthenticatedTenantsIndexRoute
   AuthenticatedTopupIndexRoute: typeof AuthenticatedTopupIndexRoute
   AuthenticatedUsageAnalyticsIndexRoute: typeof AuthenticatedUsageAnalyticsIndexRoute
@@ -1710,6 +1731,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedRevenueShareIndexRoute: AuthenticatedRevenueShareIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
+  AuthenticatedSuppliersIndexRoute: AuthenticatedSuppliersIndexRoute,
   AuthenticatedTenantsIndexRoute: AuthenticatedTenantsIndexRoute,
   AuthenticatedTopupIndexRoute: AuthenticatedTopupIndexRoute,
   AuthenticatedUsageAnalyticsIndexRoute: AuthenticatedUsageAnalyticsIndexRoute,

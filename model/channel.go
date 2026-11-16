@@ -20,6 +20,7 @@ import (
 )
 
 type Channel struct {
+	SupplierAccountId     int     `json:"-" gorm:"index;default:0"`
 	Id                    int     `json:"id"`
 	TenantId              int     `json:"tenant_id" gorm:"index;default:1"`
 	OrganizationId        int     `json:"organization_id" gorm:"index;default:0"`

@@ -471,6 +471,19 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/", operationalOpsReadAuth, controller.GetAllTask)
 		}
 
+		supplierRoute := apiRouter.Group("/platform/suppliers")
+		supplierRoute.Use(middleware.RootAuth(), middleware.DisableCache())
+		supplierRoute.GET("", controller.PlatformSupplierSummary)
+		supplierWrite := supplierRoute.Group("")
+		supplierWrite.Use(middleware.SupplierWriteRateLimit(), middleware.SecureVerificationRequired())
+		supplierWrite.POST("", controller.SavePlatformSupplier)
+		supplierWrite.POST("/accounts", controller.CreateSupplierAccount)
+		supplierWrite.PATCH("/accounts/:id/status", controller.SupplierAccountStatus)
+		supplierWrite.POST("/prices", controller.CreateSupplierPrice)
+		supplierWrite.POST("/statements", controller.CreateSupplierStatement)
+		supplierWrite.POST("/statements/:id/review", controller.ReviewSupplierStatement)
+		supplierWrite.POST("/payments", controller.RecordSupplierPayment)
+
 		vendorRoute := apiRouter.Group("/vendors")
 		{
 			vendorRoute.GET("/", catalogReadAuth, controller.GetAllVendors)

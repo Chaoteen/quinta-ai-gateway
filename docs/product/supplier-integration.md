@@ -1,0 +1,33 @@
+# 供应商接入与采购管理（2026-11-16）
+
+本文件描述实际交付边界。平台供应商管理与原模型品牌Vendor表分开，平台最高管理员可见，租户管理员不能读取采购合同、成本和银行流水。业务账号、厂商合作资质和真实生产Key需要公司在厂商侧办理，系统不代开户，不以“兼容OpenAI”推导分销许可。
+
+## 官方资料与配置依据
+
+| 平台 | 接入与商务依据 | 界面要求 |
+| --- | --- | --- |
+| 火山引擎 | [API Key](https://docs.volcengine.com/docs/ark/api-key)、[IAM Key与资源ID](https://docs.volcengine.com/docs/82379/2668093)、[分销合作](https://partner.volcengine.com/cooperate/RETAIL)、[订阅条款](https://docs.volcengine.com/docs/ark/subscription-package-service-terms-conditions?lang=en) | 项目/工作空间、Key资源ID、模型/接入点、地域；按量API与订阅产品分开。订阅套餐转售与共享受限，不能自动加入商业资源池。 |
+| 阿里云百炼 | [模型服务](https://www.alibabacloud.com/help/en/model-studio/what-is-model-studio)、[伙伴申请](https://partner.aliyun.com/programs/reseller_P) | 地域、Workspace及对应端点，Key资源ID、合同及授权期限。伙伴资质与具体模型转售范围分别核对。 |
+| MiniMax | [官方OpenAI兼容接口](https://platform.minimax.io/docs/api-reference/text-openai-api.md)、[合作咨询](https://platform.minimaxi.com/zh/cooperate) | 本次验证国际官方文档端点api.minimax.io；中国站端点需按对应控制台另行核实，未据第三方教程自动添加域名。 |
+| Moonshot/Kimi | [账号、地域与API区别](https://www.kimi.com/help/kimi-api/api-troubleshooting)、[企业商务](https://www.kimi.com/help/kimi-api/api-business-cooperation) | 中国/国际站账号、Key与余额分开，API与会员/Coding产品分开。合同及对公采购、SLA向销售确认。 |
+| DeepSeek | [官方接口](https://api-docs.deepseek.com/)、[余额接口](https://api-docs.deepseek.com/api/get-user-balance/) | 官方API接入及余额查询有文档；本次未核实公开分销开户接口，分销许可与结算以商务确认为准。 |
+
+以上资料为当日核验，不冻结模型名、价格、套餐或商务条款。实际账号的地域、隐私约定、模型使用权与合同优先。官方Bearer凭据调用数据接口，不意味着可以用同一Key自动管理IAM、账单、开户和分销；不混用数据面Key和云账号管理凭据。
+
+## 当前可操作闭环
+
+1. 平台管理菜单进入“供应商管理”，先在个人安全设置开启两步验证或Passkey。所有写入都要求近期MFA二次验证，每个账号每分钟最多60次；供应商合同变更保留只追加版本记录。
+2. 登记供应商主体、业务模式（应用集成/授权转售）、币种、合同凭证编号和授权有效期。启用时必须明确确认已核对授权。
+3. 在渠道管理按官方资料创建生产API渠道并配置Key；再在供应商中绑定已有渠道ID、账号/工作空间、地域和Key资源ID。此处不重复存储Key明文。
+4. 绑定校验协议、官方HTTPS域名和非订阅路径。渠道基础地址使用HTTPS源站地址，不包含SDK中的`/v1`或`/api/v3`等路径，路径由现有渠道适配器补全；不能把SDK的完整Base URL直接当成渠道源站地址。绑定时，并冻结端点与协议；绑定渠道不能直接复制。供应商暂停、授权到期、账号暂停或端点被改动会阻止新请求；历史记录和已进行请求不被重写。
+5. 登记采购报价版本，支持Token输入/输出/缓存、秒、图、请求、字符等计量。金额以精确十进制转换为整数微单位。采购价与客户销售计费独立，本次不自动改销售倍率或重算旧消费。
+6. 从上游账单登记账期、编号、金额和发票编号，系统截取同渠道该期间平台消耗日志计数。平台快照可能存在迟到、失败计费、缓存或异步任务口径差异，需人工核账说明，不能直接当作厂商结算金额。
+7. 核账确认后登记真实外部银行付款流水，支持部分付款；同一流水幂等，不能超出未付款金额。记录不发起真实转账。交易和审计记录同事务写入，不提供删除接口。
+
+币种支持采购CNY/USD，不自动换汇，不影响客户侧人民币余额。当前每类展示最近500条；付款流水号要求一条唯一流水对应一张账单，暂不拆分同一银行流水至多账单。
+
+## 尚需真实厂商与基础设施联调
+
+尚未实现厂商伙伴系统自动开户、统一管理API、自动拉取五家账单、逐笔自动成本差异识别、银行实际支付或私有合同附件托管。MiniMax中国站、更多官方地域与专有云端点须逐项验证加入，不能通过任意URL绕过白名单。没有五家真实生产凭据与商务授权，不能声称五家均已完成生产联通。
+
+报价记录用于采购管理，不是已完成的全模态自动成本结算引擎。现有渠道诊断、模型同步和余额查询能力在渠道页面按具体适配器使用；本模块不把“支持API”显示为“已获官方授权”。

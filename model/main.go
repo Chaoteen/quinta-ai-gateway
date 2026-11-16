@@ -263,6 +263,7 @@ func migrateDB() error {
 	}
 
 	err := autoMigrateCompatible(DB,
+		&PlatformSupplier{}, &SupplierAccount{}, &SupplierPrice{}, &SupplierStatement{}, &SupplierPayment{}, &SupplierAudit{}, &SupplierRevision{},
 		&Tenant{},
 		&DistributionChannel{},
 		&Organization{},
@@ -336,6 +337,7 @@ func migrateDBFast() error {
 		model interface{}
 		name  string
 	}{
+		{&PlatformSupplier{}, "PlatformSupplier"}, {&SupplierAccount{}, "SupplierAccount"}, {&SupplierPrice{}, "SupplierPrice"}, {&SupplierStatement{}, "SupplierStatement"}, {&SupplierPayment{}, "SupplierPayment"}, {&SupplierAudit{}, "SupplierAudit"}, {&SupplierRevision{}, "SupplierRevision"},
 		{&Tenant{}, "Tenant"},
 		{&DistributionChannel{}, "DistributionChannel"},
 		{&Organization{}, "Organization"},

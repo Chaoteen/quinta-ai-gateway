@@ -90,6 +90,7 @@ export const RBAC_PERMISSION_MATRIX: Record<
 }
 
 export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
+  '/suppliers': RBAC_PERMISSION.ROOT_ADMIN,
   '/tenants': RBAC_PERMISSION.ROOT_ADMIN,
   '/organizations': RBAC_PERMISSION.ROOT_ADMIN,
   '/departments': RBAC_PERMISSION.ROOT_ADMIN,

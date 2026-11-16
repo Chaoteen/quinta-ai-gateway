@@ -208,3 +208,6 @@ func SearchRateLimit() func(c *gin.Context) {
 func AssistantSearchRateLimit() gin.HandlerFunc {
 	return userRateLimitFactory(20, 60, "AS")
 }
+
+// SupplierWriteRateLimit bounds authenticated platform procurement mutations.
+func SupplierWriteRateLimit() gin.HandlerFunc { return userRateLimitFactory(60, 60, "SUP") }

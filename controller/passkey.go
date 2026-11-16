@@ -495,6 +495,7 @@ func PasskeyVerifyFinish(c *gin.Context) {
 	session := sessions.Default(c)
 	// Mark passkey as ready; /api/verify will convert this into the final secure verification session.
 	session.Set(PasskeyReadySessionKey, time.Now().Unix())
+	session.Set("secure_passkey_ready_user_id", c.GetInt("id"))
 	session.Delete(SecureVerificationSessionKey)
 	session.Delete(secureVerificationMethodSessionKey)
 	if err := session.Save(); err != nil {
