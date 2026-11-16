@@ -231,6 +231,11 @@ export function useSidebarData(): SidebarData {
         title: t('Admin'),
         items: [
           {
+            title: t('Administrator security'),
+            url: '/security-center',
+            icon: Key,
+          },
+          {
             title: t('Supplier management'),
             url: '/suppliers',
             icon: Building2,

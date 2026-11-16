@@ -288,3 +288,18 @@ func TestPlatformSupplierEndpointsRequireRootAndStepUp(t *testing.T) {
 		t.Fatalf("supplier write without MFA accepted: %d", rec.Code)
 	}
 }
+
+func TestSecurityReadinessIsRootOnly(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	if err := model.DB.AutoMigrate(&model.PasskeyCredential{}); err != nil {
+		t.Fatal(err)
+	}
+	rec := performRootBoundaryRequest(r, http.MethodGet, "/api/platform/security/readiness", "", 1, common.RoleRootUser)
+	if !decodeRootBoundaryResponse(t, rec).Success {
+		t.Fatal("root readiness failed")
+	}
+	rec = performRootBoundaryRequest(r, http.MethodGet, "/api/platform/security/readiness", "", 2, common.RoleAdminUser)
+	if decodeRootBoundaryResponse(t, rec).Success {
+		t.Fatal("tenant admin accessed platform security")
+	}
+}

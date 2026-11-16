@@ -471,6 +471,7 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/", operationalOpsReadAuth, controller.GetAllTask)
 		}
 
+		apiRouter.GET("/platform/security/readiness", middleware.RootAuth(), middleware.DisableCache(), controller.AdminSecurityReadiness)
 		supplierRoute := apiRouter.Group("/platform/suppliers")
 		supplierRoute.Use(middleware.RootAuth(), middleware.DisableCache())
 		supplierRoute.GET("", controller.PlatformSupplierSummary)
