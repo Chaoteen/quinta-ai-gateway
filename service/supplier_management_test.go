@@ -122,3 +122,76 @@ func TestSupplierConcurrentPaymentsCannotExceedStatement(t *testing.T) {
 	require.NoError(t, model.DB.Model(&model.SupplierPayment{}).Count(&payments).Error)
 	require.EqualValues(t, success, payments)
 }
+
+func TestSupplierStaleUnboundCacheStillEnforcesLivePolicy(t *testing.T) {
+	supplierTestDB(t)
+	now := common.GetTimestamp()
+	base := "https://api.deepseek.com"
+	supplier, err := SavePlatformSupplier(model.PlatformSupplier{Provider: "deepseek", Name: "DS", LegalEntity: "Company", Mode: "integration", Status: "active", Currency: "CNY", AgreementRef: "contract", AgreementExpiresAt: now + 3600}, 1, true)
+	require.NoError(t, err)
+	channel := model.Channel{Name: "live", Type: constant.ChannelTypeDeepSeek, Key: "fixture", BaseURL: &base, Status: 1}
+	require.NoError(t, model.DB.Create(&channel).Error)
+	cached := channel // fetched before another instance binds the resource
+	account, err := CreateSupplierAccount(model.SupplierAccount{SupplierId: supplier.Id, ChannelId: channel.Id, Name: "account"}, 1)
+	require.NoError(t, err)
+	require.Equal(t, 0, cached.SupplierAccountId)
+	require.NoError(t, model.CheckSupplierChannelAccess(&cached))
+	require.NoError(t, SetSupplierAccountStatus(account.Id, "paused", 1))
+	require.Error(t, model.CheckSupplierChannelAccess(&cached))
+	require.NoError(t, SetSupplierAccountStatus(account.Id, "active", 1))
+	require.NoError(t, model.DB.Model(&model.PlatformSupplier{}).Where("id = ?", supplier.Id).Update("agreement_expires_at", now-1).Error)
+	require.Error(t, model.CheckSupplierChannelAccess(&cached))
+	require.NoError(t, model.DB.Model(&model.PlatformSupplier{}).Where("id = ?", supplier.Id).Update("agreement_expires_at", now+3600).Error)
+	require.NoError(t, model.DB.Model(&model.Channel{}).Where("id = ?", channel.Id).Update("base_url", "https://example.com").Error)
+	require.Error(t, model.CheckSupplierChannelAccess(&cached))
+}
+
+func TestSupplierBoundChannelDeletePathsAreAtomic(t *testing.T) {
+	for _, operation := range []string{"single", "batch", "disabled", "status"} {
+		t.Run(operation, func(t *testing.T) {
+			supplierTestDB(t)
+			require.NoError(t, model.DB.AutoMigrate(&model.Ability{}))
+			first := model.Channel{Name: "unbound", Type: 43, Key: "fixture", Status: 2}
+			bound := model.Channel{Name: "bound", Type: 43, Key: "fixture", Status: 2, SupplierAccountId: 99}
+			require.NoError(t, model.DB.Create(&first).Error)
+			require.NoError(t, model.DB.Create(&bound).Error)
+			require.NoError(t, model.DB.Create(&model.Ability{ChannelId: first.Id, Model: "fixture", Group: "default", Enabled: true}).Error)
+			var err error
+			switch operation {
+			case "single":
+				err = bound.Delete()
+			case "batch":
+				err = model.BatchDeleteChannels([]int{first.Id, bound.Id})
+			case "disabled":
+				_, err = model.DeleteDisabledChannel()
+			case "status":
+				_, err = model.DeleteChannelByStatus(2)
+			}
+			require.Error(t, err)
+			var count int64
+			require.NoError(t, model.DB.Model(&model.Channel{}).Count(&count).Error)
+			require.EqualValues(t, 2, count)
+			require.NoError(t, first.Delete())
+			require.NoError(t, model.DB.Model(&model.Ability{}).Where("channel_id = ?", first.Id).Count(&count).Error)
+			require.Zero(t, count)
+			require.NoError(t, model.DB.Model(&model.Channel{}).Where("id = ?", bound.Id).Update("supplier_account_id", 0).Error)
+			require.NoError(t, model.DB.Create(&model.SupplierAccount{ChannelId: bound.Id, SupplierId: 88, Name: "live-binding"}).Error)
+			require.Error(t, bound.Delete())
+		})
+	}
+}
+
+func TestSupplierCleanupRespectsTenantScope(t *testing.T) {
+	supplierTestDB(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.Ability{}))
+	own := model.Channel{TenantId: 1, Name: "own", Key: "fixture", Type: 43, Status: 2}
+	other := model.Channel{TenantId: 2, Name: "other", Key: "fixture", Type: 43, Status: 2, SupplierAccountId: 99}
+	require.NoError(t, model.DB.Create(&own).Error)
+	require.NoError(t, model.DB.Create(&other).Error)
+	deleted, err := model.DeleteDisabledChannel(model.TenantScope{TenantId: 1})
+	require.NoError(t, err)
+	require.EqualValues(t, 1, deleted)
+	var remaining model.Channel
+	require.NoError(t, model.DB.First(&remaining, other.Id).Error)
+	require.Equal(t, 99, remaining.SupplierAccountId)
+}

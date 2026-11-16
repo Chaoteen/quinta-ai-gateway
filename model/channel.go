@@ -477,22 +477,8 @@ func BatchDeleteChannels(ids []int) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	// 使用事务 分批删除channel表和abilities表
-	tx := DB.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-	for _, chunk := range lo.Chunk(ids, 200) {
-		if err := tx.Where("id in (?)", chunk).Delete(&Channel{}).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-		if err := tx.Where("channel_id in (?)", chunk).Delete(&Ability{}).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	return tx.Commit().Error
+	_, err := deleteUnboundChannels(func(tx *gorm.DB) *gorm.DB { return tx.Where("id IN ?", ids) })
+	return err
 }
 
 func (channel *Channel) GetPriority() int64 {
@@ -614,13 +600,10 @@ func (channel *Channel) UpdateBalance(balance float64) {
 }
 
 func (channel *Channel) Delete() error {
-	var err error
-	err = DB.Delete(channel).Error
-	if err != nil {
-		return err
+	if channel.Id < 1 {
+		return errors.New("channel id required")
 	}
-	err = channel.DeleteAbilities()
-	return err
+	return BatchDeleteChannels([]int{channel.Id})
 }
 
 var channelStatusLock sync.Mutex
@@ -876,17 +859,61 @@ func updateChannelUsedQuota(id int, quota int) {
 }
 
 func DeleteChannelByStatus(status int64) (int64, error) {
-	result := DB.Where("status = ?", status).Delete(&Channel{})
-	return result.RowsAffected, result.Error
+	return deleteUnboundChannels(func(tx *gorm.DB) *gorm.DB { return tx.Where("status = ?", status) })
 }
 
 func DeleteDisabledChannel(scopes ...TenantScope) (int64, error) {
-	query := DB.Where("status = ? or status = ?", common.ChannelStatusAutoDisabled, common.ChannelStatusManuallyDisabled)
-	if len(scopes) > 0 {
-		query = scopes[0].Apply(query, "channels")
+	return deleteUnboundChannels(func(tx *gorm.DB) *gorm.DB {
+		query := tx.Where("(status = ? OR status = ?)", common.ChannelStatusAutoDisabled, common.ChannelStatusManuallyDisabled)
+		if len(scopes) > 0 {
+			query = scopes[0].Apply(query, "channels")
+		}
+		return query
+	})
+}
+
+// Lock the same channel rows used by supplier binding and delete abilities in
+// the same transaction. Never discard procurement links through bulk cleanup.
+func deleteUnboundChannels(filter func(*gorm.DB) *gorm.DB) (int64, error) {
+	var deleted int64
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var rows []Channel
+		if err := filter(tx.Model(&Channel{})).Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "supplier_account_id").Order("id").Find(&rows).Error; err != nil {
+			return err
+		}
+		ids := make([]int, 0, len(rows))
+		for _, row := range rows {
+			if row.SupplierAccountId != 0 {
+				return errors.New("供应商绑定渠道不能删除，请暂停账号或渠道以保留采购记录")
+			}
+			ids = append(ids, row.Id)
+		}
+		for _, chunk := range lo.Chunk(ids, 200) {
+			var count int64
+			if err := tx.Model(&SupplierAccount{}).Where("channel_id IN ?", chunk).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return errors.New("供应商绑定渠道不能删除，请暂停账号或渠道以保留采购记录")
+			}
+			result := filter(tx.Model(&Channel{})).Where("id IN ? AND supplier_account_id = ?", chunk, 0).Delete(&Channel{})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected != int64(len(chunk)) {
+				return errors.New("channel state changed; retry deletion")
+			}
+			if err := tx.Where("channel_id IN ?", chunk).Delete(&Ability{}).Error; err != nil {
+				return err
+			}
+			deleted += result.RowsAffected
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
 	}
-	result := query.Delete(&Channel{})
-	return result.RowsAffected, result.Error
+	return deleted, nil
 }
 
 func GetPaginatedTags(offset int, limit int, scopes ...TenantScope) ([]*string, error) {

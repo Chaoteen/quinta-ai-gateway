@@ -94,28 +94,46 @@ type SupplierAudit struct {
 // CheckSupplierChannelAccess is a live check, so pausing a supplier cannot be
 // bypassed by an already cached channel. Existing unbound channels are unchanged.
 func CheckSupplierChannelAccess(channel *Channel) error {
-	if channel.SupplierAccountId == 0 {
-		return nil
+	if channel == nil || channel.Id < 1 {
+		return errors.New("invalid supplier channel identity")
+	}
+	// The database is authoritative: a cached unbound channel can have been bound
+	// by another instance since the cache was populated.
+	var current Channel
+	if err := DB.Select("id", "supplier_account_id", "type", "base_url", "status").First(&current, channel.Id).Error; err != nil {
+		return err
 	}
 	var account SupplierAccount
-	if err := DB.Where("id = ? AND channel_id = ?", channel.SupplierAccountId, channel.Id).First(&account).Error; err != nil {
-		return err
+	result := DB.Where("channel_id = ?", channel.Id).Limit(1).Find(&account)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		if current.SupplierAccountId != 0 || channel.SupplierAccountId != 0 {
+			return errors.New("supplier binding is missing")
+		}
+		return nil
+	}
+	if current.SupplierAccountId != account.Id || (channel.SupplierAccountId != 0 && channel.SupplierAccountId != account.Id) {
+		return errors.New("supplier binding is inconsistent")
 	}
 	var supplier PlatformSupplier
 	if err := DB.First(&supplier, account.SupplierId).Error; err != nil {
 		return err
 	}
-	if channel.Type < 1 || channel.Type >= len(constant.ChannelBaseURLs) {
-		return errors.New("invalid supplier channel protocol")
+	for _, candidate := range []*Channel{channel, &current} {
+		if candidate.Type < 1 || candidate.Type >= len(constant.ChannelBaseURLs) {
+			return errors.New("invalid supplier channel protocol")
+		}
+		endpoint := constant.ChannelBaseURLs[candidate.Type]
+		if candidate.BaseURL != nil && *candidate.BaseURL != "" {
+			endpoint = *candidate.BaseURL
+		}
+		if endpoint != account.Endpoint || candidate.Type != account.Protocol {
+			return errors.New("supplier channel configuration changed; review the binding")
+		}
 	}
-	endpoint := constant.ChannelBaseURLs[channel.Type]
-	if channel.BaseURL != nil && *channel.BaseURL != "" {
-		endpoint = *channel.BaseURL
-	}
-	if endpoint != account.Endpoint || channel.Type != account.Protocol {
-		return errors.New("supplier channel configuration changed; review the binding")
-	}
-	if account.Status != "active" || supplier.Status != "active" || supplier.ReviewedBy == 0 || supplier.AgreementExpiresAt <= common.GetTimestamp() {
+	if current.Status != common.ChannelStatusEnabled || account.Status != "active" || supplier.Status != "active" || supplier.ReviewedBy == 0 || supplier.AgreementExpiresAt <= common.GetTimestamp() {
 		return errors.New("supplier resource unavailable")
 	}
 	return nil
