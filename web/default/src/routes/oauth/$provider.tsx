@@ -170,6 +170,12 @@ function OAuthCallback() {
         }
         const res = await api.get(`/api/oauth/${provider}`, config)
         if (res?.data?.success) {
+          if (res.data.data?.require_2fa) {
+            useAuthStore.getState().auth.reset()
+            window.localStorage.removeItem('uid')
+            navigate({ to: '/otp', replace: true })
+            return
+          }
           const { message } = res.data
           const loginUser = (res.data?.data ?? null) as AuthUser | null
           // Check if this is a bind operation

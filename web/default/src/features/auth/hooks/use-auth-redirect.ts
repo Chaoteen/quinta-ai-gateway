@@ -94,6 +94,8 @@ export function useAuthRedirect() {
    * Redirect to 2FA page
    */
   const redirectTo2FA = () => {
+    auth.reset()
+    window.localStorage.removeItem('uid')
     navigate({ to: '/otp', replace: true })
   }
 

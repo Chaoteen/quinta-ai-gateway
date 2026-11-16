@@ -101,7 +101,9 @@ const LoginForm = () => {
   const [otherLoginOptionsLoading, setOtherLoginOptionsLoading] =
     useState(false);
   const [wechatCodeSubmitLoading, setWechatCodeSubmitLoading] = useState(false);
-  const [showTwoFA, setShowTwoFA] = useState(false);
+  const [showTwoFA, setShowTwoFA] = useState(
+    () => searchParams.get('require_2fa') === 'true',
+  );
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -135,12 +137,12 @@ const LoginForm = () => {
     (status.custom_oauth_providers || []).length > 0;
   const hasOAuthLoginOptions = Boolean(
     status.github_oauth ||
-      status.discord_oauth ||
-      status.oidc_enabled ||
-      status.wechat_login ||
-      status.linuxdo_oauth ||
-      status.telegram_oauth ||
-      hasCustomOAuthProviders,
+    status.discord_oauth ||
+    status.oidc_enabled ||
+    status.wechat_login ||
+    status.linuxdo_oauth ||
+    status.telegram_oauth ||
+    hasCustomOAuthProviders,
   );
 
   useEffect(() => {
@@ -194,6 +196,14 @@ const LoginForm = () => {
       );
       const { success, message, data } = res.data;
       if (success) {
+        if (data?.require_2fa) {
+          userDispatch({ type: 'logout' });
+          localStorage.removeItem('user');
+          localStorage.removeItem('uid');
+          setShowWeChatLoginModal(false);
+          setShowTwoFA(true);
+          return;
+        }
         userDispatch({ type: 'login', payload: data });
         localStorage.setItem('user', JSON.stringify(data));
         setUserData(data);
@@ -295,6 +305,14 @@ const LoginForm = () => {
       const res = await API.get(`/api/oauth/telegram/login`, { params });
       const { success, message, data } = res.data;
       if (success) {
+        if (data?.require_2fa) {
+          userDispatch({ type: 'logout' });
+          localStorage.removeItem('user');
+          localStorage.removeItem('uid');
+          setShowWeChatLoginModal(false);
+          setShowTwoFA(true);
+          return;
+        }
         userDispatch({ type: 'login', payload: data });
         localStorage.setItem('user', JSON.stringify(data));
         showSuccess('登录成功！');
@@ -452,6 +470,13 @@ const LoginForm = () => {
       );
       const finish = finishRes.data;
       if (finish.success) {
+        if (finish.data?.require_2fa) {
+          userDispatch({ type: 'logout' });
+          localStorage.removeItem('user');
+          localStorage.removeItem('uid');
+          setShowTwoFA(true);
+          return;
+        }
         userDispatch({ type: 'login', payload: finish.data });
         setUserData(finish.data);
         updateAPI();
@@ -958,8 +983,7 @@ const LoginForm = () => {
         style={{ top: '50%', left: '-120px' }}
       />
       <div className='w-full max-w-sm mt-[60px]'>
-        {showEmailLogin ||
-        !hasOAuthLoginOptions
+        {showEmailLogin || !hasOAuthLoginOptions
           ? renderEmailLoginForm()
           : renderOAuthOptions()}
         {renderWeChatLoginModal()}

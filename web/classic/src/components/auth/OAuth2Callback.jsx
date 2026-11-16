@@ -35,7 +35,7 @@ const OAuth2Callback = (props) => {
   const [searchParams] = useSearchParams();
   const [, userDispatch] = useContext(UserContext);
   const navigate = useNavigate();
-  
+
   // 防止 React 18 Strict Mode 下重复执行
   const hasExecuted = useRef(false);
 
@@ -53,6 +53,14 @@ const OAuth2Callback = (props) => {
       if (!success) {
         // 业务错误不重试，直接显示错误
         showError(message || t('授权失败'));
+        return;
+      }
+
+      if (data?.require_2fa) {
+        userDispatch({ type: 'logout' });
+        localStorage.removeItem('user');
+        localStorage.removeItem('uid');
+        navigate('/login?require_2fa=true');
         return;
       }
 

@@ -65,6 +65,22 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	setupLogin(&user, c)
+}
+
+// setupLogin is the common gate for password, OAuth and Passkey identities.
+// Only a completed local second-factor challenge may call completeLogin directly.
+func setupLogin(user *model.User, c *gin.Context) {
+	current, err := model.GetUserById(user.Id, false)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgDatabaseError)
+		return
+	}
+	if current.Status != common.UserStatusEnabled {
+		common.ApiErrorI18n(c, i18n.MsgUserUsernameOrPasswordError)
+		return
+	}
+	user = current
 	// 检查是否启用2FA
 	twoFA, err := model.GetTwoFAByUserId(user.Id)
 	if err != nil {
@@ -74,7 +90,7 @@ func Login(c *gin.Context) {
 	if twoFA != nil && twoFA.IsEnabled {
 		// 设置pending session，等待2FA验证
 		session := sessions.Default(c)
-		// A password-only challenge must not retain a previously authenticated identity.
+		// A primary identity challenge must not retain a previously authenticated identity.
 		session.Clear()
 		session.Set("pending_username", user.Username)
 		session.Set("pending_user_id", user.Id)
@@ -95,11 +111,11 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	setupLogin(&user, c)
+	completeLogin(user, c)
 }
 
-// setup session & cookies and then return user info
-func setupLogin(user *model.User, c *gin.Context) {
+// completeLogin establishes the authenticated session after all required factors.
+func completeLogin(user *model.User, c *gin.Context) {
 	model.UpdateUserLastLoginAt(user.Id)
 	session := sessions.Default(c)
 	// Do not carry pending challenges or another login's step-up grant forward.

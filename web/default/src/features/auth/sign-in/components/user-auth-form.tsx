@@ -100,14 +100,6 @@ export function UserAuthForm({
   const hasWeChatLogin = Boolean(status?.wechat_login)
 
   useEffect(() => {
-    if (requiresLegalConsent) {
-      setAgreedToLegal(false)
-    } else {
-      setAgreedToLegal(true)
-    }
-  }, [requiresLegalConsent])
-
-  useEffect(() => {
     detectPasskeySupport()
       .then(setPasskeySupported)
       .catch(() => setPasskeySupported(false))
@@ -194,6 +186,11 @@ export function UserAuthForm({
     try {
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success) {
+        if ((res.data as { require_2fa?: boolean } | null)?.require_2fa) {
+          handleWeChatDialogChange(false)
+          redirectTo2FA()
+          return
+        }
         await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)
@@ -251,6 +248,11 @@ export function UserAuthForm({
       const finish = await finishPasskeyLogin(assertion)
       if (!finish.success) {
         throw new Error(finish.message || t('Failed to complete Passkey login'))
+      }
+
+      if ((finish.data as { require_2fa?: boolean } | null)?.require_2fa) {
+        redirectTo2FA()
+        return
       }
 
       if (!finish.data) {
