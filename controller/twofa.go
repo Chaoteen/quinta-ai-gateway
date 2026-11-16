@@ -416,7 +416,11 @@ func Verify2FALogin(c *gin.Context) {
 		return
 	}
 	userId, ok := pendingUserId.(int)
-	if !ok {
+	startedAt, hasTimestamp := session.Get("pending_2fa_started_at").(int64)
+	elapsed := common.GetTimestamp() - startedAt
+	if !ok || !hasTimestamp || elapsed < 0 || elapsed >= 300 {
+		session.Clear()
+		_ = session.Save()
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "会话数据无效，请重新登录",
@@ -430,6 +434,12 @@ func Verify2FALogin(c *gin.Context) {
 			"success": false,
 			"message": "用户不存在",
 		})
+		return
+	}
+	if user.Status != common.UserStatusEnabled {
+		session.Clear()
+		_ = session.Save()
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "账号不可用，请重新登录"})
 		return
 	}
 

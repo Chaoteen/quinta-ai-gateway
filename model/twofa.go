@@ -179,7 +179,7 @@ func ValidateBackupCode(userId int, code string) (bool, error) {
 
 	// 查找未使用的备用码
 	var backupCodes []TwoFABackupCode
-	if err := DB.Where("user_id = ? AND is_used = false", userId).Find(&backupCodes).Error; err != nil {
+	if err := DB.Where("user_id = ? AND is_used = ?", userId, false).Find(&backupCodes).Error; err != nil {
 		return false, err
 	}
 
@@ -188,14 +188,14 @@ func ValidateBackupCode(userId int, code string) (bool, error) {
 		if common.ValidatePasswordAndHash(normalizedCode, bc.CodeHash) {
 			// 标记为已使用
 			now := time.Now()
-			bc.IsUsed = true
-			bc.UsedAt = &now
-
-			if err := DB.Save(&bc).Error; err != nil {
-				return false, err
+			// Only one request can consume this code, including across instances.
+			result := DB.Model(&TwoFABackupCode{}).
+				Where("id = ? AND user_id = ? AND is_used = ?", bc.Id, userId, false).
+				Updates(map[string]interface{}{"is_used": true, "used_at": now})
+			if result.Error != nil {
+				return false, result.Error
 			}
-
-			return true, nil
+			return result.RowsAffected == 1, nil
 		}
 	}
 
