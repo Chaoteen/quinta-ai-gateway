@@ -44,6 +44,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  SecureVerificationDialog,
+  useSecureVerification,
+} from '@/features/auth/secure-verification'
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
 import { manageUser, resetUserPasskey, resetUserTwoFA } from '../api'
 import { USER_STATUS, ERROR_MESSAGES, isUserDeleted } from '../constants'
@@ -58,6 +62,7 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
+  const verification = useSecureVerification()
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
   const [resetPasskeyOpen, setResetPasskeyOpen] = useState(false)
@@ -91,7 +96,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     }
   }
 
-  const handleResetPasskey = async () => {
+  const performResetPasskey = async () => {
     try {
       const result = await resetUserPasskey(user.id)
       if (result.success) {
@@ -107,7 +112,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     }
   }
 
-  const handleResetTwoFA = async () => {
+  const performResetTwoFA = async () => {
     try {
       const result = await resetUserTwoFA(user.id)
       if (result.success) {
@@ -121,6 +126,15 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     } finally {
       setResetTwoFAOpen(false)
     }
+  }
+
+  const handleResetPasskey = async () => {
+    setResetPasskeyOpen(false)
+    await verification.startVerification(performResetPasskey)
+  }
+  const handleResetTwoFA = async () => {
+    setResetTwoFAOpen(false)
+    await verification.startVerification(performResetTwoFA)
   }
 
   const isDisabled = user.status === USER_STATUS.DISABLED
@@ -277,6 +291,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         handleConfirm={handleResetTwoFA}
       />
 
+      <SecureVerificationDialog
+        open={verification.open}
+        onOpenChange={(open) => {
+          if (!open) verification.cancel()
+        }}
+        methods={verification.methods}
+        state={verification.state}
+        onVerify={async (method, code) => {
+          await verification.executeVerification(method, code)
+        }}
+        onCancel={verification.cancel}
+        onCodeChange={verification.setCode}
+        onMethodChange={verification.switchMethod}
+      />
       <UserBindingDialog
         open={bindingDialogOpen}
         onOpenChange={setBindingDialogOpen}

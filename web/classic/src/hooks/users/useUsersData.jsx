@@ -20,11 +20,13 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API, showError, showSuccess } from '../../helpers';
+import { useSecureVerification } from '../common/useSecureVerification';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 
 export const useUsersData = () => {
   const { t } = useTranslation();
+  const verification = useSecureVerification();
   const [compactMode, setCompactMode] = useTableCompactMode('users');
 
   // State management
@@ -154,7 +156,7 @@ export const useUsersData = () => {
     setLoading(false);
   };
 
-  const resetUserPasskey = async (user) => {
+  const performResetPasskey = async (user) => {
     if (!user) {
       return;
     }
@@ -171,7 +173,7 @@ export const useUsersData = () => {
     }
   };
 
-  const resetUserTwoFA = async (user) => {
+  const performResetTwoFA = async (user) => {
     if (!user) {
       return;
     }
@@ -187,6 +189,11 @@ export const useUsersData = () => {
       showError(t('操作失败，请重试'));
     }
   };
+
+  const resetUserPasskey = (user) =>
+    verification.startVerification(() => performResetPasskey(user));
+  const resetUserTwoFA = (user) =>
+    verification.startVerification(() => performResetTwoFA(user));
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -275,6 +282,7 @@ export const useUsersData = () => {
   }, []);
 
   return {
+    verification,
     // Data state
     users,
     loading,

@@ -174,11 +174,11 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.POST("/manage", controller.ManageUser)
 				adminRoute.PUT("/", controller.UpdateUser)
 				adminRoute.DELETE("/:id", controller.DeleteUser)
-				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
+				adminRoute.DELETE("/:id/reset_passkey", middleware.SecureVerificationRequired(), controller.AdminResetPasskey)
 
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", middleware.RootAuth(), controller.Admin2FAStats)
-				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
+				adminRoute.DELETE("/:id/2fa", middleware.SecureVerificationRequired(), controller.AdminDisable2FA)
 			}
 		}
 

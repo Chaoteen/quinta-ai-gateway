@@ -303,3 +303,13 @@ func TestSecurityReadinessIsRootOnly(t *testing.T) {
 		t.Fatal("tenant admin accessed platform security")
 	}
 }
+
+func TestAdminCredentialResetRequiresRecentVerification(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	for _, path := range []string{"/api/user/2/2fa", "/api/user/2/reset_passkey"} {
+		rec := performRootBoundaryRequest(r, http.MethodDelete, path, "", 1, common.RoleRootUser)
+		if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "VERIFICATION_REQUIRED") {
+			t.Fatalf("reset must require MFA: %d %s", rec.Code, rec.Body.String())
+		}
+	}
+}

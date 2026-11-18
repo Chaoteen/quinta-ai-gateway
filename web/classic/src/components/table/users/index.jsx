@@ -25,6 +25,7 @@ import UsersFilters from './UsersFilters';
 import UsersDescription from './UsersDescription';
 import AddUserModal from './modals/AddUserModal';
 import EditUserModal from './modals/EditUserModal';
+import SecureVerificationModal from '../../common/modals/SecureVerificationModal';
 import { useUsersData } from '../../../hooks/users/useUsersData';
 import { useIsMobile } from '../../../hooks/common/useIsMobile';
 import { createCardProPagination } from '../../../helpers/utils';
@@ -77,6 +78,15 @@ const UsersPage = () => {
         editingUser={editingUser}
       />
 
+      <SecureVerificationModal
+        visible={usersData.verification.isModalVisible}
+        verificationMethods={usersData.verification.verificationMethods}
+        verificationState={usersData.verification.verificationState}
+        onVerify={usersData.verification.executeVerification}
+        onCancel={usersData.verification.cancelVerification}
+        onCodeChange={usersData.verification.setVerificationCode}
+        onMethodSwitch={usersData.verification.switchVerificationMethod}
+      />
       <CardPro
         type='type1'
         descriptionArea={
