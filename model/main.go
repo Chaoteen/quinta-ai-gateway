@@ -263,7 +263,7 @@ func migrateDB() error {
 	}
 
 	err := autoMigrateCompatible(DB,
-		&PlatformSupplier{}, &SupplierAccount{}, &SupplierPrice{}, &SupplierStatement{}, &SupplierPayment{}, &SupplierAudit{}, &SupplierRevision{},
+		&PlatformSupplier{}, &SupplierAccount{}, &SupplierPrice{}, &SupplierStatement{}, &SupplierPayment{}, &SupplierAudit{}, &SupplierRevision{}, &CredentialResetAudit{},
 		&Tenant{},
 		&DistributionChannel{},
 		&Organization{},
@@ -337,7 +337,7 @@ func migrateDBFast() error {
 		model interface{}
 		name  string
 	}{
-		{&PlatformSupplier{}, "PlatformSupplier"}, {&SupplierAccount{}, "SupplierAccount"}, {&SupplierPrice{}, "SupplierPrice"}, {&SupplierStatement{}, "SupplierStatement"}, {&SupplierPayment{}, "SupplierPayment"}, {&SupplierAudit{}, "SupplierAudit"}, {&SupplierRevision{}, "SupplierRevision"},
+		{&PlatformSupplier{}, "PlatformSupplier"}, {&SupplierAccount{}, "SupplierAccount"}, {&SupplierPrice{}, "SupplierPrice"}, {&SupplierStatement{}, "SupplierStatement"}, {&SupplierPayment{}, "SupplierPayment"}, {&SupplierAudit{}, "SupplierAudit"}, {&SupplierRevision{}, "SupplierRevision"}, {&CredentialResetAudit{}, "CredentialResetAudit"},
 		{&Tenant{}, "Tenant"},
 		{&DistributionChannel{}, "DistributionChannel"},
 		{&Organization{}, "Organization"},

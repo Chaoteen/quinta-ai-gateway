@@ -538,7 +538,7 @@ func AdminDisable2FA(c *gin.Context) {
 	}
 
 	// 禁用2FA
-	if err := model.DisableTwoFA(userId); err != nil {
+	if err := model.AdminResetCredential(c.GetInt("id"), userId, "totp"); err != nil {
 		if errors.Is(err, model.ErrTwoFANotEnabled) {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

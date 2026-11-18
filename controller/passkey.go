@@ -373,7 +373,7 @@ func AdminResetPasskey(c *gin.Context) {
 		return
 	}
 
-	if err := model.DeletePasskeyByUserID(user.Id); err != nil {
+	if err := model.AdminResetCredential(c.GetInt("id"), user.Id, "passkey"); err != nil {
 		common.ApiError(c, err)
 		return
 	}
