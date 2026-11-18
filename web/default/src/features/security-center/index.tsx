@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { SectionPageLayout } from '@/components/layout'
+import { ResetAudits } from './reset-audits'
 
 type Readiness = {
   accounts: {
@@ -67,6 +68,7 @@ export function SecurityCenter() {
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='space-y-5'>
+          <ResetAudits />
           <p className='rounded-lg border p-4 text-sm'>
             {t(
               'This page checks authenticator enrollment only. Recovery and global MFA enforcement are not enabled or certified by this check.'

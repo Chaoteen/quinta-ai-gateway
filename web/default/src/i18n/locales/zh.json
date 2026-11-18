@@ -4932,6 +4932,12 @@
     "Keep the current session open. In a separate private browser window, test a new login with password and authenticator. Confirm access to Suppliers without closing the working session.": "保持当前登录会话，另开无痕窗口测试密码加认证器登录，确认能进入供应商管理，再关闭原会话。",
     "Check recovery with a saved recovery code in a separate session before enforcement, then record that the code was consumed. If regenerating codes, replace all old copies securely.": "强制启用前，用另一个会话测试一枚已保存的恢复码，并标记该码已使用。重新生成恢复码后，应安全替换所有旧副本。",
     "Confirm an independent server recovery path with your operator. Server recovery must require verified ownership and audit; it must not expose a public bypass URL.": "与运维确认独立的服务器恢复通道。维护恢复需核验身份并保留审计，不能提供公网免验证后门。",
-    "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page.": "当前使用 IP 访问，建议先绑定 TOTP 认证器。Passkey 需先核对生产域名与 WebAuthn 配置。本页不收集恢复密钥或恢复码。"
+    "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page.": "当前使用 IP 访问，建议先绑定 TOTP 认证器。Passkey 需先核对生产域名与 WebAuthn 配置。本页不收集恢复密钥或恢复码。",
+    "Credential reset audit": "认证器重置审计",
+    "Local audit records are not independent tamper-proof storage.": "本地审计记录不等于独立防篡改存储。",
+    "Audit unavailable. Retry to check records.": "审计查询失败，请重试查看记录。",
+    "Target account ID": "目标账号 ID",
+    "Credential type": "凭据类型",
+    "No credential reset records.": "暂无认证器重置记录。"
   }
 }

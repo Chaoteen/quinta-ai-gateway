@@ -4932,6 +4932,12 @@
     "Keep the current session open. In a separate private browser window, test a new login with password and authenticator. Confirm access to Suppliers without closing the working session.": "Keep the current session open. In a separate private browser window, test a new login with password and authenticator. Confirm access to Suppliers without closing the working session.",
     "Check recovery with a saved recovery code in a separate session before enforcement, then record that the code was consumed. If regenerating codes, replace all old copies securely.": "Check recovery with a saved recovery code in a separate session before enforcement, then record that the code was consumed. If regenerating codes, replace all old copies securely.",
     "Confirm an independent server recovery path with your operator. Server recovery must require verified ownership and audit; it must not expose a public bypass URL.": "Confirm an independent server recovery path with your operator. Server recovery must require verified ownership and audit; it must not expose a public bypass URL.",
-    "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page.": "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page."
+    "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page.": "Use TOTP first for the current IP-based site. Passkey setup requires checking the production hostname and WebAuthn configuration. No recovery secrets are collected on this page.",
+    "Credential reset audit": "Credential reset audit",
+    "Local audit records are not independent tamper-proof storage.": "Local audit records are not independent tamper-proof storage.",
+    "Audit unavailable. Retry to check records.": "Audit unavailable. Retry to check records.",
+    "Target account ID": "Target account ID",
+    "Credential type": "Credential type",
+    "No credential reset records.": "No credential reset records."
   }
 }

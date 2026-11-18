@@ -313,3 +313,39 @@ func TestAdminCredentialResetRequiresRecentVerification(t *testing.T) {
 		}
 	}
 }
+
+func TestCredentialAuditQueryIsRootOnlyAndBounded(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	if err := model.DB.AutoMigrate(&model.CredentialResetAudit{}); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 22; i++ {
+		if err := model.DB.Create(&model.CredentialResetAudit{ActorId: 1, TargetId: 2, TargetTenantId: 2, CredentialType: "totp", CreatedAt: 1}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		path     string
+		role, id int
+		status   int
+		success  bool
+	}{
+		{"/api/platform/security/credential-resets", 100, 1, 200, true},
+		{"/api/platform/security/credential-resets?before=0", 100, 1, 400, false},
+		{"/api/platform/security/credential-resets?before=abc", 100, 1, 400, false},
+		{"/api/platform/security/credential-resets", 10, 2, 200, false},
+	} {
+		rec := performRootBoundaryRequest(r, http.MethodGet, tc.path, "", tc.id, tc.role)
+		if rec.Code != tc.status || decodeRootBoundaryResponse(t, rec).Success != tc.success {
+			t.Fatalf("unexpected audit access %d %s", rec.Code, rec.Body.String())
+		}
+	}
+	rows, more, err := model.ListCredentialResetAudits(0)
+	if err != nil || len(rows) != 20 || !more || rows[0].Id != 22 {
+		t.Fatal("first page failed")
+	}
+	rows, more, err = model.ListCredentialResetAudits(3)
+	if err != nil || len(rows) != 2 || more || rows[0].Id != 2 {
+		t.Fatal("cursor page failed")
+	}
+}
