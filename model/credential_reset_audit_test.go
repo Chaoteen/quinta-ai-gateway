@@ -28,6 +28,8 @@ func TestCredentialResetAuditIsAtomic(t *testing.T) {
 				}
 			}))
 			require.Error(t, AdminResetCredential(1, 2, kind))
+			u, _ := GetUserById(2, false)
+			require.Zero(t, u.AuthEpoch)
 			var n int64
 			for _, m := range []interface{}{&TwoFA{}, &TwoFABackupCode{}, &PasskeyCredential{}} {
 				require.NoError(t, db.Model(m).Count(&n).Error)
@@ -36,6 +38,12 @@ func TestCredentialResetAuditIsAtomic(t *testing.T) {
 			require.NoError(t, db.Callback().Create().Remove("test:audit-fail"))
 			require.Error(t, AdminResetCredential(2, 1, kind))
 			require.NoError(t, AdminResetCredential(1, 2, kind))
+			u, _ = GetUserById(2, false)
+			require.EqualValues(t, 1, u.AuthEpoch)
+			u.AuthEpoch = 0
+			require.NoError(t, db.Save(u).Error)
+			u, _ = GetUserById(2, false)
+			require.EqualValues(t, 1, u.AuthEpoch)
 			var rows []CredentialResetAudit
 			require.NoError(t, db.Find(&rows).Error)
 			require.Len(t, rows, 1)

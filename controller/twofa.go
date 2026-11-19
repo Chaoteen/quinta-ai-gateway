@@ -436,7 +436,11 @@ func Verify2FALogin(c *gin.Context) {
 		})
 		return
 	}
-	if user.Status != common.UserStatusEnabled {
+	pendingEpoch, validEpoch := session.Get("pending_auth_epoch").(int64)
+	if session.Get("pending_auth_epoch") == nil {
+		validEpoch = true
+	}
+	if user.Status != common.UserStatusEnabled || !validEpoch || pendingEpoch != user.AuthEpoch {
 		session.Clear()
 		_ = session.Save()
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "账号不可用，请重新登录"})

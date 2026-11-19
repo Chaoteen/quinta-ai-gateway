@@ -60,6 +60,10 @@ func AdminResetCredential(actorId, targetId int, kind string) error {
 				return ErrPasskeyNotFound
 			}
 		}
+		// The read-only User field cannot be overwritten by ordinary profile saves.
+		if err := tx.Table("users").Where("id = ?", targetId).UpdateColumn("auth_epoch", gorm.Expr("auth_epoch + ?", 1)).Error; err != nil {
+			return err
+		}
 		return tx.Create(&CredentialResetAudit{ActorId: actorId, TargetId: targetId, TargetTenantId: target.TenantId, CredentialType: kind, CreatedAt: common.GetTimestamp()}).Error
 	})
 }

@@ -22,6 +22,7 @@ const UserNameMaxLength = 20
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
+	AuthEpoch             int64          `json:"-" gorm:"->;not null;default:0"`
 	Id                    int            `json:"id"`
 	TenantId              int            `json:"tenant_id" gorm:"index;default:1"`
 	OrganizationId        int            `json:"organization_id" gorm:"index;default:0"`

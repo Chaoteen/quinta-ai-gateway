@@ -95,6 +95,7 @@ func setupLogin(user *model.User, c *gin.Context) {
 		session.Set("pending_username", user.Username)
 		session.Set("pending_user_id", user.Id)
 		session.Set("pending_2fa_started_at", common.GetTimestamp())
+		session.Set("pending_auth_epoch", user.AuthEpoch)
 		err := session.Save()
 		if err != nil {
 			common.ApiErrorI18n(c, i18n.MsgUserSessionSaveFailed)
@@ -121,6 +122,7 @@ func completeLogin(user *model.User, c *gin.Context) {
 	// Do not carry pending challenges or another login's step-up grant forward.
 	session.Clear()
 	session.Set("id", user.Id)
+	session.Set("auth_epoch", user.AuthEpoch)
 	session.Set("username", user.Username)
 	session.Set("role", user.Role)
 	session.Set("status", user.Status)

@@ -178,6 +178,23 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 		return
 	}
 
+	if !useAccessToken {
+		var current model.User
+		if err := model.DB.Select("id", "auth_epoch").First(&current, id.(int)).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "Session verification unavailable"})
+			return
+		}
+		epoch, ok := session.Get("auth_epoch").(int64)
+		if session.Get("auth_epoch") == nil {
+			ok = true
+		}
+		if !ok || epoch != current.AuthEpoch {
+			session.Clear()
+			_ = session.Save()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Session revoked. Sign in again."})
+			return
+		}
+	}
 	if !requireActiveTenant(c, c.GetInt("role") == common.RoleRootUser) {
 		return
 	}

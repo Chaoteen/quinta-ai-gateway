@@ -89,6 +89,10 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 		}
 		session := sessions.Default(c)
 		session.Set("id", userID)
+		if raw := c.GetHeader("X-Test-Auth-Epoch"); raw != "" {
+			epoch, _ := strconv.ParseInt(raw, 10, 64)
+			session.Set("auth_epoch", epoch)
+		}
 		session.Set("username", fmt.Sprintf("test-user-%d", userID))
 		session.Set("role", role)
 		session.Set("status", common.UserStatusEnabled)
@@ -347,5 +351,30 @@ func TestCredentialAuditQueryIsRootOnlyAndBounded(t *testing.T) {
 	rows, more, err = model.ListCredentialResetAudits(3)
 	if err != nil || len(rows) != 2 || more || rows[0].Id != 2 {
 		t.Fatal("cursor page failed")
+	}
+}
+
+func TestBrowserSessionEpochRevocation(t *testing.T) {
+	r := setupRootBoundaryRouter(t)
+	rec := performRootBoundaryRequest(r, http.MethodGet, "/api/user/self", "", 1, 100)
+	if rec.Code != 200 {
+		t.Fatal("legacy session rejected before revocation")
+	}
+	if err := model.DB.Table("users").Where("id = ?", 1).UpdateColumn("auth_epoch", 1).Error; err != nil {
+		t.Fatal(err)
+	}
+	rec = performRootBoundaryRequest(r, http.MethodGet, "/api/user/self", "", 1, 100)
+	if rec.Code != 401 {
+		t.Fatalf("revoked cookie accepted: %d", rec.Code)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/user/self", nil)
+	req.Header.Set("X-Test-User-ID", "1")
+	req.Header.Set("X-Test-Role", "100")
+	req.Header.Set("New-Api-User", "1")
+	req.Header.Set("X-Test-Auth-Epoch", "1")
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("new cookie rejected: %d %s", rec.Code, rec.Body.String())
 	}
 }
