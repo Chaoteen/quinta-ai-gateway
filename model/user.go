@@ -575,8 +575,7 @@ func (user *User) Update(updatePassword bool) error {
 		}
 	}
 	newUser := *user
-	DB.First(&user, user.Id)
-	if err = DB.Model(user).Updates(newUser).Error; err != nil {
+	if err = persistUserUpdate(user, newUser, updatePassword); err != nil {
 		return err
 	}
 
@@ -604,8 +603,7 @@ func (user *User) Edit(updatePassword bool) error {
 		updates["password"] = newUser.Password
 	}
 
-	DB.First(&user, user.Id)
-	if err = DB.Model(user).Updates(updates).Error; err != nil {
+	if err = persistUserUpdate(user, updates, updatePassword); err != nil {
 		return err
 	}
 
@@ -788,8 +786,15 @@ func ResetUserPasswordByEmail(email string, password string) error {
 	if err != nil {
 		return err
 	}
-	err = DB.Model(&User{}).Where("email = ?", email).Update("password", hashedPassword).Error
-	return err
+	// One SQL update commits the password and browser-session revocation together.
+	result := DB.Table("users").Where("email = ? AND deleted_at IS NULL", email).Updates(map[string]interface{}{"password": hashedPassword, "auth_epoch": gorm.Expr("auth_epoch + ?", 1)})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func IsAdmin(userId int) bool {
@@ -1138,4 +1143,31 @@ func RootUserExists() bool {
 		return false
 	}
 	return true
+}
+
+// persistUserUpdate prevents profile-only edits from changing a password and
+// commits password changes with browser-session revocation in one transaction.
+func persistUserUpdate(user *User, updates interface{}, passwordChanged bool) error {
+	if user.Id <= 0 {
+		return errors.New("invalid user ID")
+	}
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var current User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&current, user.Id).Error; err != nil {
+			return err
+		}
+		q := tx.Model(&User{}).Where("id = ?", user.Id)
+		if !passwordChanged {
+			q = q.Omit("password")
+		}
+		if err := q.Updates(updates).Error; err != nil {
+			return err
+		}
+		if passwordChanged {
+			if err := tx.Table("users").Where("id = ?", user.Id).UpdateColumn("auth_epoch", gorm.Expr("auth_epoch + ?", 1)).Error; err != nil {
+				return err
+			}
+		}
+		return tx.First(user, user.Id).Error
+	})
 }
