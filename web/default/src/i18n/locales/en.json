@@ -4938,6 +4938,15 @@
     "Audit unavailable. Retry to check records.": "Audit unavailable. Retry to check records.",
     "Target account ID": "Target account ID",
     "Credential type": "Credential type",
-    "No credential reset records.": "No credential reset records."
+    "No credential reset records.": "No credential reset records.",
+    "Built for enterprise AI": "Built for enterprise AI",
+    "Model access": "Model access",
+    "One connection for your team": "One connection for your team",
+    "Manage access, usage and billing in one place.": "Manage access, usage and billing in one place.",
+    "Available models depend on your account and configured channels.": "Available models depend on your account and configured channels.",
+    "Your AI workspace": "Your AI workspace",
+    "One gateway for enterprise AI": "One gateway for enterprise AI",
+    "Connect models to your business": "Connect models to your business",
+    "Balance Center": "Balance Center"
   }
 }

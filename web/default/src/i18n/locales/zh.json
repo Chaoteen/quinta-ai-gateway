@@ -4938,6 +4938,15 @@
     "Audit unavailable. Retry to check records.": "审计查询失败，请重试查看记录。",
     "Target account ID": "目标账号 ID",
     "Credential type": "凭据类型",
-    "No credential reset records.": "暂无认证器重置记录。"
+    "No credential reset records.": "暂无认证器重置记录。",
+    "Built for enterprise AI": "面向企业的 AI 服务",
+    "Model access": "模型接入",
+    "One connection for your team": "连接模型与企业应用",
+    "Manage access, usage and billing in one place.": "在一个工作台管理接入、用量和账单。",
+    "Available models depend on your account and configured channels.": "模型可用性以账号权限和已配置渠道为准。",
+    "Your AI workspace": "你的 AI 工作台",
+    "One gateway for enterprise AI": "统一接入企业 AI",
+    "Connect models to your business": "让模型连接业务",
+    "Balance Center": "余额中心"
   }
 }

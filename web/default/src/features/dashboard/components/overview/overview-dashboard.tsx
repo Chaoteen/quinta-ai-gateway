@@ -93,12 +93,7 @@ const SETUP_GUIDE_CODE_PATTERN = [
 ].join('\n')
 
 type DashboardActionPath =
-  | '/keys'
-  | '/wallet'
-  | '/playground'
-  | '/channels'
-  | '/usage-logs'
-  | '/pricing'
+  '/keys' | '/wallet' | '/playground' | '/channels' | '/usage-logs' | '/pricing'
 
 interface StartStep {
   title: string
@@ -195,7 +190,7 @@ function SetupGuideBackdrop(props: { compact?: boolean }) {
     <>
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,oklch(0.97_0.04_250/.92)_0%,oklch(0.95_0.08_315/.82)_38%,oklch(0.96_0.12_92/.78)_74%,oklch(0.94_0.1_132/.62)_100%)] dark:opacity-25',
+          'pointer-events-none absolute inset-0 bg-primary/10 dark:opacity-25',
           props.compact
             ? '[mask-image:linear-gradient(90deg,black_0%,black_48%,transparent_74%)] opacity-55'
             : 'opacity-85'
@@ -465,9 +460,7 @@ function TenantMetricCard(props: {
         <CardDescription>{props.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className='text-2xl font-semibold tabular-nums'>
-          {props.value}
-        </div>
+        <div className='text-2xl font-semibold tabular-nums'>{props.value}</div>
       </CardContent>
     </Card>
   )
@@ -870,7 +863,26 @@ export function OverviewDashboard() {
   }
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='quinta-overview flex flex-col gap-5'>
+      <div className='quinta-overview-heading bg-card flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-6 sm:px-7'>
+        <div>
+          <p className='text-primary mb-2 text-sm font-medium'>
+            Quinta AI Gateway
+          </p>
+          <h2 className='text-2xl font-semibold tracking-tight'>
+            {t('Your AI workspace')}
+          </h2>
+          <p className='text-muted-foreground mt-2 max-w-xl text-sm leading-6'>
+            {t('Manage access, usage and billing in one place.')}
+          </p>
+        </div>
+        <div className='flex flex-wrap gap-2'>
+          <Button variant='outline' render={<Link to='/keys' />}>
+            {t('API Keys')}
+          </Button>
+          <Button render={<Link to='/wallet' />}>{t('Balance Center')}</Button>
+        </div>
+      </div>
       {setupGuideExpanded ? (
         <CardStaggerContainer className='grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]'>
           <CardStaggerItem className='bg-card h-full overflow-hidden rounded-2xl border shadow-xs'>

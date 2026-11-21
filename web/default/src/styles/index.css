@@ -583,3 +583,64 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
   }
 }
+
+/* Quinta public and overview surfaces: scoped so finance forms retain their semantics. */
+.quinta-landing,
+.quinta-overview {
+  --primary: #087f78;
+  --primary-foreground: #ffffff;
+  --ring: #087f78;
+  --border: #dbe5e9;
+  --muted: #eef4f6;
+  --muted-foreground: #4d6470;
+  --foreground: #142e40;
+  --card: #ffffff;
+  --card-foreground: #142e40;
+  color: var(--foreground);
+}
+.quinta-landing {
+  background: #f8fbfc;
+}
+.quinta-landing > section + section {
+  border-top: 1px solid var(--border);
+}
+.quinta-landing > section:nth-of-type(even) {
+  background: var(--card);
+}
+.quinta-hero {
+  background: linear-gradient(110deg, #f0f8f8, #f8fbfc 65%);
+}
+.quinta-landing h1,
+.quinta-landing h2,
+.quinta-overview h2 {
+  text-wrap: balance;
+}
+.quinta-route-map {
+  position: relative;
+  border-top: 4px solid var(--primary);
+}
+.quinta-overview-heading {
+  border-left: 4px solid var(--primary);
+}
+.quinta-overview [data-slot='card'] {
+  border-color: var(--border);
+  box-shadow: 0 3px 16px #163d5010;
+}
+.dark .quinta-landing,
+.dark .quinta-overview {
+  --primary: #66d2c5;
+  --primary-foreground: #092825;
+  --ring: #66d2c5;
+  --border: #304650;
+  --muted: #1a303b;
+  --muted-foreground: #b2c4cc;
+  --foreground: #e9f2f6;
+  --card: #142731;
+  --card-foreground: #e9f2f6;
+}
+.dark .quinta-landing {
+  background: #10212b;
+}
+.dark .quinta-hero {
+  background: linear-gradient(110deg, #153333, #10212b 65%);
+}

@@ -27,7 +27,6 @@ import {
   PlatformArchitecture,
   PricingPreview,
   Roadmap,
-  Stats,
 } from './components'
 import { useHomePageContent } from './hooks'
 
@@ -69,13 +68,14 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <PlatformArchitecture />
-      <Features />
-      <Stats />
-      <Roadmap />
-      <PricingPreview />
-      <Footer />
+      <div className='quinta-landing'>
+        <Hero isAuthenticated={isAuthenticated} />
+        <PlatformArchitecture />
+        <Features />
+        <Roadmap />
+        <PricingPreview />
+        <Footer />
+      </div>
     </PublicLayout>
   )
 }
