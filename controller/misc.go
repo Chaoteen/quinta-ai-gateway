@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -337,15 +336,15 @@ type PasswordResetRequest struct {
 
 func ResetPassword(c *gin.Context) {
 	var req PasswordResetRequest
-	err := json.NewDecoder(c.Request.Body).Decode(&req)
-	if req.Email == "" || req.Token == "" {
+	err := common.DecodeJson(c.Request.Body, &req)
+	if err != nil || req.Email == "" || req.Token == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "无效的参数",
 		})
 		return
 	}
-	if !common.VerifyCodeWithKey(req.Email, req.Token, common.PasswordResetPurpose) {
+	if !common.ConsumeVerificationCode(req.Email, req.Token, common.PasswordResetPurpose) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "重置链接非法或已过期",
@@ -358,7 +357,6 @@ func ResetPassword(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	common.DeleteKey(req.Email, common.PasswordResetPurpose)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

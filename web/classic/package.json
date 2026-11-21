@@ -16,7 +16,7 @@
     "history": "^5.3.0",
     "i18next": "^23.16.8",
     "i18next-browser-languagedetector": "^7.2.2",
-    "katex": "^0.16.47",
+    "katex": "0.18.2",
     "lucide-react": "^0.511.0",
     "marked": "^4.3.0",
     "mermaid": "^11.17.2",
@@ -28,7 +28,7 @@
     "react-i18next": "^13.5.0",
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "7.18.2",
     "react-telegram-login": "^1.1.2",
     "react-toastify": "^9.1.3",
     "react-turnstile": "^1.1.5",
@@ -73,7 +73,8 @@
     ]
   },
   "overrides": {
-    "minimist": "1.2.8"
+    "minimist": "1.2.8",
+    "katex": "0.18.2"
   },
   "devDependencies": {
     "@douyinfe/vite-plugin-semi": "^2.74.0-alpha.6",

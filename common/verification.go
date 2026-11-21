@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/subtle"
 	"strings"
 	"sync"
 	"time"
@@ -75,4 +76,26 @@ func init() {
 	verificationMutex.Lock()
 	defer verificationMutex.Unlock()
 	verificationMap = make(map[string]verificationValue)
+}
+
+// ConsumeVerificationCode atomically verifies and removes a one-time code.
+// A consumed recovery code is never restored after a downstream failure.
+func ConsumeVerificationCode(key, code, purpose string) bool {
+	verificationMutex.Lock()
+	defer verificationMutex.Unlock()
+	mapKey := purpose + key
+	v, ok := verificationMap[mapKey]
+	if !ok {
+		return false
+	}
+	elapsed := time.Since(v.time)
+	if elapsed < 0 || elapsed >= time.Duration(VerificationValidMinutes)*time.Minute {
+		delete(verificationMap, mapKey)
+		return false
+	}
+	if code == "" || subtle.ConstantTimeCompare([]byte(code), []byte(v.code)) != 1 {
+		return false
+	}
+	delete(verificationMap, mapKey)
+	return true
 }
