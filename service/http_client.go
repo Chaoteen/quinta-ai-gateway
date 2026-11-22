@@ -41,6 +41,9 @@ func InitHttpClient() {
 		ForceAttemptHTTP2:   true,
 		Proxy:               http.ProxyFromEnvironment, // Support HTTP_PROXY, HTTPS_PROXY, NO_PROXY env vars
 	}
+	if productionOutboundSecurity() {
+		transport.Proxy = nil
+	}
 	if common.TLSInsecureSkipVerify {
 		transport.TLSClientConfig = common.InsecureTLSConfig
 	}

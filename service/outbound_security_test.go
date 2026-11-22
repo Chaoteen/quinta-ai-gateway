@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,4 +17,19 @@ func TestSecurityProductionOutboundBlocksPrivateDestinations(t *testing.T) {
 	}
 	_, err := NewProxyHttpClient("http://127.0.0.1:8080")
 	require.Error(t, err)
+}
+
+func TestProductionTransportsRejectProxyBypass(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("HTTPS_PROXY", "http://127.0.0.1:8080")
+	old := httpClient
+	t.Cleanup(func() { httpClient = old })
+	InitHttpClient()
+	tr := GetHttpClient().Transport.(*http.Transport)
+	require.Nil(t, tr.Proxy)
+	d := NewOutboundWebsocketDialer()
+	require.Nil(t, d.Proxy)
+	conn, err := d.NetDialContext(context.Background(), "tcp", "169.254.169.254:80")
+	require.Error(t, err)
+	require.Nil(t, conn)
 }

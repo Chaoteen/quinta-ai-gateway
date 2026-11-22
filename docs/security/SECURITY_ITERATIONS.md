@@ -73,3 +73,15 @@ TOTP和Passkey管理重置接口均要求绑定当前账号的五分钟内安全
 KaTeX固定0.18.2，默认主题minimatch覆盖为11.0.1，经典React Router DOM更新7.18.2；默认与经典依赖审计复扫均为空，两主题构建及经典登录页/默认首页浏览器检查通过。Bun安装关闭依赖脚本。来源：GHSA-238p-pmpm-9mq7、GHSA-g3hv-75wg-m249、GHSA-wrjc-x8rr-h8h6、GHSA-qwww-vcr4-c8h2。
 
 网关增加nosniff、SAMEORIGIN和限制frame-ancestors/object-src/base-uri的CSP，保留同源嵌入；不是完整脚本CSP，不宣称已消除XSS。HSTS未启用，需正式域名和共享主机HTTPS策略评估。静态扫描124条告警尚未全部验证，SSRF/原始HTML等待继续分析；此次整改不能代表全项目无漏洞。
+
+## 出站、HTML与浏览器策略补强
+
+生产环境HTTP Transport不再使用HTTP_PROXY/HTTPS_PROXY环境代理，防止代理绕过本地目的地址校验；WebSocket使用受控拨号器并禁用环境代理，沿用实际连接IP防回绑检查。测试覆盖元数据目的地址及代理策略；不代表所有SDK、自定义代理或远端Worker已通过全路径审计。
+
+默认主题通用Markdown在rehype-raw之后使用rehype-sanitize默认白名单；浏览器测试覆盖脚本、onerror、iframe、表单及javascript链接清除，保留正常Markdown。未审计经典主题所有富文本渲染组件和自定义远程iframe的隔离边界。
+
+保留基础强制CSP，同时默认提供包含script-src的完整Content-Security-Policy-Report-Only观察策略；SECURITY_CSP_ENFORCE=true才切换强制完整策略。报告只在浏览器可见，未配置服务器报告接收器；不得将观察模式表述为脚本拦截已生效。脚本允许同源及challenges.cloudflare.com，不含unsafe-inline或unsafe-eval。需在真实聊天、图表、验证码等路径验证后启用。
+
+HSTS仅当SECURITY_HSTS_HOST与请求主机匹配且为非IP，并配置SECURITY_HSTS_MAX_AGE在300至31536000秒、HTTPS请求时输出；不带includeSubDomains/preload。生产IP站点未启用，不改变同机其他服务策略。正式域名和证书尚待确认。
+
+独立审计待用户提供独立SLS/存储目的地与授权：应采用独立账号最小写权限、保留锁/不可变策略、访问隔离、批次确认与失败重试告警，并验证删除/篡改主机不能删除远端副本。本轮未接入远端审计，不以应用表、同机文件或本地备份替代。禁止将目的地写入凭据、真实Cookie、请求正文、模型密钥或恢复码。

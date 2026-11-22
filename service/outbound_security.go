@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/gorilla/websocket"
 	"net"
 	"os"
 	"strings"
@@ -49,4 +50,14 @@ func dialOutbound(ctx context.Context, network, address string) (net.Conn, error
 		}
 	}
 	return nil, errors.New("outbound connection failed")
+}
+
+// NewOutboundWebsocketDialer copies the default so shared state is not mutated.
+func NewOutboundWebsocketDialer() *websocket.Dialer {
+	d := *websocket.DefaultDialer
+	if productionOutboundSecurity() {
+		d.NetDialContext = dialOutbound
+		d.Proxy = nil
+	}
+	return &d
 }
