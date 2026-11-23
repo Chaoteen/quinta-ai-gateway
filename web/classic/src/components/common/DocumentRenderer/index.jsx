@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { safeHtml } from '../../../helpers/safeHtml';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { API, showError } from '../../../helpers';
@@ -31,8 +32,8 @@ import MarkdownRenderer from '../markdown/MarkdownRenderer';
 // Check whether content is a URL.
 const isUrl = (content) => {
   try {
-    new URL(content.trim());
-    return true;
+    const parsed = new URL(content.trim());
+    return ['http:', 'https:'].includes(parsed.protocol);
   } catch {
     return false;
   }
@@ -48,17 +49,7 @@ const isHtmlContent = (content) => {
 
 // Parse HTML content and extract inline styles.
 const sanitizeHtml = (html) => {
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
-
-  const styles = Array.from(tempDiv.querySelectorAll('style'))
-    .map((style) => style.innerHTML)
-    .join('\n');
-
-  const bodyContent = tempDiv.querySelector('body');
-  const content = bodyContent ? bodyContent.innerHTML : html;
-
-  return { content, styles };
+  return { content: safeHtml(html), styles: '' };
 };
 
 /**
@@ -204,7 +195,9 @@ const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
             </Title>
             <div
               className='prose prose-lg max-w-none'
-              dangerouslySetInnerHTML={{ __html: htmlPayload.content }}
+              dangerouslySetInnerHTML={{
+                __html: safeHtml(htmlPayload.content),
+              }}
             />
           </div>
         </div>

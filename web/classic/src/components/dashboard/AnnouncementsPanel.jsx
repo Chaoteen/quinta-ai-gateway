@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { safeHtml } from '../../helpers/safeHtml';
 
 import React from 'react';
 import { Card, Tag, Timeline, Empty } from '@douyinfe/semi-ui';
@@ -90,7 +91,9 @@ const AnnouncementsPanel = ({
                     item.extra ? (
                       <div
                         className='text-xs text-gray-500'
-                        dangerouslySetInnerHTML={{ __html: htmlExtra }}
+                        dangerouslySetInnerHTML={{
+                          __html: safeHtml(htmlExtra),
+                        }}
                       />
                     ) : null
                   }
@@ -98,7 +101,7 @@ const AnnouncementsPanel = ({
                   <div>
                     <div
                       dangerouslySetInnerHTML={{
-                        __html: marked.parse(item.content || ''),
+                        __html: safeHtml(marked.parse(item.content || '')),
                       }}
                     />
                   </div>

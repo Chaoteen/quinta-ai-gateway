@@ -85,3 +85,11 @@ KaTeX固定0.18.2，默认主题minimatch覆盖为11.0.1，经典React Router DO
 HSTS仅当SECURITY_HSTS_HOST与请求主机匹配且为非IP，并配置SECURITY_HSTS_MAX_AGE在300至31536000秒、HTTPS请求时输出；不带includeSubDomains/preload。生产IP站点未启用，不改变同机其他服务策略。正式域名和证书尚待确认。
 
 独立审计待用户提供独立SLS/存储目的地与授权：应采用独立账号最小写权限、保留锁/不可变策略、访问隔离、批次确认与失败重试告警，并验证删除/篡改主机不能删除远端副本。本轮未接入远端审计，不以应用表、同机文件或本地备份替代。禁止将目的地写入凭据、真实Cookie、请求正文、模型密钥或恢复码。
+
+## 经典富文本与远端Worker隔离
+
+经典主题文档、公告、通知、FAQ及自定义页脚经过DOMPurify的HTML白名单清洗；去除脚本/事件、iframe/表单、style标签与style属性。文档不再向document.head注入用户内容中的CSS，只允许HTTP(S)外链。Mermaid改为strict安全等级。浏览器注入测试确认协议文档保留正常文本且恶意JS/全局CSS不执行。自定义页脚/文档的内联样式会被剥离，需使用平台样式；不是所有dangerouslySetInnerHTML调用均已完成审计。
+
+生产环境禁止DoWorkerRequest远端代理请求，防止另一端DNS解析及连接绕过本地SSRF防护；不静默fallback。开发模式增加空请求、严格HTTP(S)协议、有效主机与禁止userinfo的校验。Worker下载日志地址脱敏，JSON通过common封装。若未来恢复Worker，必须验证远端DNS/连接IP、元数据与私网阻断、重定向、凭据转发和目的地授权，再提供独立受控连接器。
+
+本轮不启用HSTS或完整强制脚本CSP，不接入尚未开通的独立日志服务。

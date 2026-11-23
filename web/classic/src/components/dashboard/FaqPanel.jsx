@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { safeHtml } from '../../helpers/safeHtml';
 
 import React from 'react';
 import { Card, Collapse, Empty } from '@douyinfe/semi-ui';
@@ -62,7 +63,7 @@ const FaqPanel = ({
               >
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: marked.parse(item.answer || ''),
+                    __html: safeHtml(marked.parse(item.answer || '')),
                   }}
                 />
               </Collapse.Panel>

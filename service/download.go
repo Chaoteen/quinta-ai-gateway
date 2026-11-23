@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
@@ -22,10 +23,21 @@ type WorkerRequest struct {
 
 // DoWorkerRequest 通过Worker发送请求
 func DoWorkerRequest(req *WorkerRequest) (*http.Response, error) {
+	if productionOutboundSecurity() {
+		return nil, fmt.Errorf("remote worker forwarding is disabled in production pending egress review")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("worker request is required")
+	}
+	parsed, err := url.Parse(req.URL)
+	if err != nil || parsed.Hostname() == "" || parsed.User != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return nil, fmt.Errorf("invalid worker target URL")
+	}
+
 	if !system_setting.EnableWorker() {
 		return nil, fmt.Errorf("worker not enabled")
 	}
-	if !system_setting.WorkerAllowHttpImageRequestEnabled && !strings.HasPrefix(req.URL, "https") {
+	if !system_setting.WorkerAllowHttpImageRequestEnabled && parsed.Scheme != "https" {
 		return nil, fmt.Errorf("only support https url")
 	}
 
@@ -41,7 +53,7 @@ func DoWorkerRequest(req *WorkerRequest) (*http.Response, error) {
 	}
 
 	// 序列化worker请求数据
-	workerPayload, err := json.Marshal(req)
+	workerPayload, err := common.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal worker payload: %v", err)
 	}
@@ -51,7 +63,7 @@ func DoWorkerRequest(req *WorkerRequest) (*http.Response, error) {
 
 func DoDownloadRequest(originUrl string, reason ...string) (resp *http.Response, err error) {
 	if system_setting.EnableWorker() {
-		common.SysLog(fmt.Sprintf("downloading file from worker: %s, reason: %s", originUrl, strings.Join(reason, ", ")))
+		common.SysLog(fmt.Sprintf("downloading file from worker: %s, reason: %s", common.MaskSensitiveInfo(originUrl), strings.Join(reason, ", ")))
 		req := &WorkerRequest{
 			URL: originUrl,
 			Key: system_setting.WorkerValidKey,

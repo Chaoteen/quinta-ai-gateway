@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { safeHtml } from '../../helpers/safeHtml';
 
 import React, { useEffect, useState, useContext, useMemo } from 'react';
 import {
@@ -143,7 +144,7 @@ const NoticeModal = ({
 
     return (
       <div
-        dangerouslySetInnerHTML={{ __html: noticeContent }}
+        dangerouslySetInnerHTML={{ __html: safeHtml(noticeContent) }}
         className='notice-content-scroll max-h-[55vh] overflow-y-auto pr-2'
       />
     );
@@ -181,7 +182,7 @@ const NoticeModal = ({
                   item.extra ? (
                     <div
                       className='text-xs text-gray-500'
-                      dangerouslySetInnerHTML={{ __html: htmlExtra }}
+                      dangerouslySetInnerHTML={{ __html: safeHtml(htmlExtra) }}
                     />
                   ) : null
                 }
@@ -190,7 +191,7 @@ const NoticeModal = ({
                 <div>
                   <div
                     className={item.isUnread ? 'shine-text' : ''}
-                    dangerouslySetInnerHTML={{ __html: htmlContent }}
+                    dangerouslySetInnerHTML={{ __html: safeHtml(htmlContent) }}
                   />
                 </div>
               </Timeline.Item>
