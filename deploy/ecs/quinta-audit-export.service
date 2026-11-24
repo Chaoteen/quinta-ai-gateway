@@ -1,0 +1,23 @@
+[Unit]
+Description=Quinta committed security audit export for SLS collection
+After=quinta-gateway.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 /opt/quinta-audit/export_security_audit.py --database /var/lib/quinta-ai-gateway/quinta.db --directory /var/log/quinta-audit
+StateDirectory=quinta-audit
+LogsDirectory=quinta-audit
+LogsDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/lib/quinta-ai-gateway
+ReadWritePaths=/var/log/quinta-audit
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+TimeoutStartSec=30
+MemoryMax=128M
+

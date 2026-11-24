@@ -1,0 +1,10 @@
+[Unit]
+Description=Export Quinta audit evidence every minute
+
+[Timer]
+OnBootSec=90s
+OnUnitInactiveSec=60s
+Unit=quinta-audit-export.service
+
+[Install]
+WantedBy=timers.target

@@ -93,3 +93,9 @@ HSTS仅当SECURITY_HSTS_HOST与请求主机匹配且为非IP，并配置SECURITY
 生产环境禁止DoWorkerRequest远端代理请求，防止另一端DNS解析及连接绕过本地SSRF防护；不静默fallback。开发模式增加空请求、严格HTTP(S)协议、有效主机与禁止userinfo的校验。Worker下载日志地址脱敏，JSON通过common封装。若未来恢复Worker，必须验证远端DNS/连接IP、元数据与私网阻断、重定向、凭据转发和目的地授权，再提供独立受控连接器。
 
 本轮不启用HSTS或完整强制脚本CSP，不接入尚未开通的独立日志服务。
+
+
+## 2026-11-24 HSTS 与审计导出
+
+HSTS 的代理 HTTPS 声明仅信任 TRUSTED_PROXIES，新增伪造转发头与 IP 拒绝测试。当前 IP 入口不启用 HSTS，正式域名上线后按 INDEPENDENT_AUDIT.md 启用。
+新增当前 SQLite ECS 的只读事务审计导出进程、systemd 每分钟任务、脱敏字段白名单、fsync 后断点、稳定事件去重 ID 和心跳。当前未准备 SLS 资源，远端接收、云端告警及独立存储验收仍未完成，不能声称已实现全量独立审计。详见 INDEPENDENT_AUDIT.md。
