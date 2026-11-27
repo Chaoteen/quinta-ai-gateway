@@ -58,6 +58,7 @@ import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedQuotaDashboardIndexRouteImport } from './routes/_authenticated/quota-dashboard/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedRevenueShareIndexRouteImport } from './routes/_authenticated/revenue-share/index'
+import { Route as AuthenticatedRolePermissionsIndexRouteImport } from './routes/_authenticated/role-permissions/index'
 import { Route as AuthenticatedSecurityCenterIndexRouteImport } from './routes/_authenticated/security-center/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSuppliersIndexRouteImport } from './routes/_authenticated/suppliers/index'
@@ -361,6 +362,12 @@ const AuthenticatedRevenueShareIndexRoute =
     path: '/revenue-share/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRolePermissionsIndexRoute =
+  AuthenticatedRolePermissionsIndexRouteImport.update({
+    id: '/role-permissions/',
+    path: '/role-permissions/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSecurityCenterIndexRoute =
   AuthenticatedSecurityCenterIndexRouteImport.update({
     id: '/security-center/',
@@ -590,6 +597,7 @@ export interface FileRoutesByFullPath {
   '/quota-dashboard/': typeof AuthenticatedQuotaDashboardIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
+  '/role-permissions/': typeof AuthenticatedRolePermissionsIndexRoute
   '/security-center/': typeof AuthenticatedSecurityCenterIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/suppliers/': typeof AuthenticatedSuppliersIndexRoute
@@ -668,6 +676,7 @@ export interface FileRoutesByTo {
   '/quota-dashboard': typeof AuthenticatedQuotaDashboardIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/revenue-share': typeof AuthenticatedRevenueShareIndexRoute
+  '/role-permissions': typeof AuthenticatedRolePermissionsIndexRoute
   '/security-center': typeof AuthenticatedSecurityCenterIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/suppliers': typeof AuthenticatedSuppliersIndexRoute
@@ -750,6 +759,7 @@ export interface FileRoutesById {
   '/_authenticated/quota-dashboard/': typeof AuthenticatedQuotaDashboardIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/revenue-share/': typeof AuthenticatedRevenueShareIndexRoute
+  '/_authenticated/role-permissions/': typeof AuthenticatedRolePermissionsIndexRoute
   '/_authenticated/security-center/': typeof AuthenticatedSecurityCenterIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/suppliers/': typeof AuthenticatedSuppliersIndexRoute
@@ -831,6 +841,7 @@ export interface FileRouteTypes {
     | '/quota-dashboard/'
     | '/redemption-codes/'
     | '/revenue-share/'
+    | '/role-permissions/'
     | '/security-center/'
     | '/subscriptions/'
     | '/suppliers/'
@@ -909,6 +920,7 @@ export interface FileRouteTypes {
     | '/quota-dashboard'
     | '/redemption-codes'
     | '/revenue-share'
+    | '/role-permissions'
     | '/security-center'
     | '/subscriptions'
     | '/suppliers'
@@ -990,6 +1002,7 @@ export interface FileRouteTypes {
     | '/_authenticated/quota-dashboard/'
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/revenue-share/'
+    | '/_authenticated/role-permissions/'
     | '/_authenticated/security-center/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/suppliers/'
@@ -1390,6 +1403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRevenueShareIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/role-permissions/': {
+      id: '/_authenticated/role-permissions/'
+      path: '/role-permissions'
+      fullPath: '/role-permissions/'
+      preLoaderRoute: typeof AuthenticatedRolePermissionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/security-center/': {
       id: '/_authenticated/security-center/'
       path: '/security-center'
@@ -1708,6 +1728,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedQuotaDashboardIndexRoute: typeof AuthenticatedQuotaDashboardIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedRevenueShareIndexRoute: typeof AuthenticatedRevenueShareIndexRoute
+  AuthenticatedRolePermissionsIndexRoute: typeof AuthenticatedRolePermissionsIndexRoute
   AuthenticatedSecurityCenterIndexRoute: typeof AuthenticatedSecurityCenterIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSuppliersIndexRoute: typeof AuthenticatedSuppliersIndexRoute
@@ -1751,6 +1772,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedRevenueShareIndexRoute: AuthenticatedRevenueShareIndexRoute,
+  AuthenticatedRolePermissionsIndexRoute:
+    AuthenticatedRolePermissionsIndexRoute,
   AuthenticatedSecurityCenterIndexRoute: AuthenticatedSecurityCenterIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSuppliersIndexRoute: AuthenticatedSuppliersIndexRoute,

@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useAuthStore } from '@/stores/auth-store'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
@@ -54,6 +56,8 @@ export function DataTableBulkActions<TData>({
   table,
 }: DataTableBulkActionsProps<TData>) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const businessAdmin = [ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === getUserRoleKey(actor))
   const queryClient = useQueryClient()
   const [showTagDialog, setShowTagDialog] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -96,6 +100,8 @@ export function DataTableBulkActions<TData>({
       handleClearSelection()
     })
   }
+
+  if (businessAdmin) return null
 
   return (
     <>

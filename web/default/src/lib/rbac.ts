@@ -90,6 +90,7 @@ export const RBAC_PERMISSION_MATRIX: Record<
 }
 
 export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
+  '/role-permissions': RBAC_PERMISSION.ROOT_ADMIN,
   '/security-center': RBAC_PERMISSION.ROOT_ADMIN,
   '/suppliers': RBAC_PERMISSION.ROOT_ADMIN,
   '/tenants': RBAC_PERMISSION.ROOT_ADMIN,
@@ -120,6 +121,11 @@ export function hasPermission(
 ): boolean {
   const roleKey = getUserRoleKey(user)
   if (roleKey === ROLE_KEY.ROOT) return true
+  if ([ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === roleKey)) {
+    if (permission === RBAC_PERMISSION.USERS) return true
+    if (permission === RBAC_PERMISSION.CHANNELS) return roleKey === ROLE_KEY.SUPPLIER_ADMIN
+    return false
+  }
   return RBAC_PERMISSION_MATRIX[permission].includes(roleKey)
 }
 

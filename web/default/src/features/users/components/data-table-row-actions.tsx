@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useAuthStore } from '@/stores/auth-store'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { useState } from 'react'
 import { type Row } from '@tanstack/react-table'
 import {
@@ -62,6 +64,8 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const businessAdmin = [ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === getUserRoleKey(actor))
   const verification = useSecureVerification()
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
@@ -144,6 +148,8 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   if (isUserDeleted(user)) {
     return null
   }
+
+  if (businessAdmin) return <Button variant='outline' size='sm' onClick={handleEdit}>{t('Edit')}</Button>
 
   return (
     <>

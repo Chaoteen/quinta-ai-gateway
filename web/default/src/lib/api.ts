@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import axios from 'axios'
+import { isVerificationRequiredError } from './secure-verification'
 import i18next from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
@@ -120,7 +121,7 @@ api.interceptors.response.use(
           /* empty */
         }
         navigateToSignIn()
-      } else if (status === 403) {
+      } else if (status === 403 && !isVerificationRequiredError(error)) {
         toast.error(i18next.t("You don't have necessary permission"))
         navigateToErrorPage('/403')
       } else if (typeof status === 'number' && status >= 500) {

@@ -61,6 +61,25 @@ export function useSidebarData(): SidebarData {
     },
   ]
 
+  if ([ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === roleKey)) {
+    const items = [
+      { title: t('Overview'), url: '/dashboard/overview', icon: Activity },
+      { title: t('User Management'), url: '/users', icon: Users },
+      { title: t('API Keys'), url: '/keys', icon: Key },
+      { title: t('Personal Settings'), url: '/profile', icon: User },
+    ]
+    if (roleKey === ROLE_KEY.SUPPLIER_ADMIN) {
+      items.splice(1, 0, { title: t('Channel Management'), url: '/channels', icon: Radio })
+    } else {
+      items.splice(2, 0,
+        { title: t('Billing Center'), url: '/billing', icon: ReceiptText },
+        { title: t('Wallet'), url: '/wallet', icon: Wallet },
+        { title: t('Invoices'), url: '/invoices', icon: ReceiptText },
+        { title: t('Vouchers'), url: '/vouchers', icon: Gift })
+    }
+    return { workspaces, navGroups: [{ id: 'business', title: t('Business Workspace'), items }] }
+  }
+
   if (roleKey === ROLE_KEY.TENANT_ADMIN) {
     return {
       workspaces,
@@ -231,7 +250,12 @@ export function useSidebarData(): SidebarData {
         title: t('Admin'),
         items: [
           {
-            title: t('Administrator security'),
+            title: t('Roles and permissions'),
+ url: '/role-permissions',
+ icon: Key,
+ },
+ {
+ title: t('Administrator security'),
             url: '/security-center',
             icon: Key,
           },

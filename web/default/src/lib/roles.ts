@@ -30,6 +30,9 @@ export type RoleValue = (typeof ROLE)[keyof typeof ROLE]
 
 export const ROLE_KEY = {
   ROOT: 'root',
+ SUPPLIER_ADMIN: 'supplier_admin',
+ DISTRIBUTOR_ADMIN: 'distributor_admin',
+ ENTERPRISE_ADMIN: 'enterprise_admin',
   TENANT_ADMIN: 'tenant_admin',
   ORGANIZATION_ADMIN: 'organization_admin',
   FINANCE: 'finance',
@@ -61,6 +64,9 @@ export function normalizeRoleKey(roleKey?: string | null): RoleKey {
   switch ((roleKey || '').trim().toLowerCase()) {
     case ROLE_KEY.ROOT:
       return ROLE_KEY.ROOT
+ case ROLE_KEY.SUPPLIER_ADMIN: return ROLE_KEY.SUPPLIER_ADMIN
+ case ROLE_KEY.DISTRIBUTOR_ADMIN: return ROLE_KEY.DISTRIBUTOR_ADMIN
+ case ROLE_KEY.ENTERPRISE_ADMIN: return ROLE_KEY.ENTERPRISE_ADMIN
     case ROLE_KEY.TENANT_ADMIN:
       return ROLE_KEY.TENANT_ADMIN
     case ROLE_KEY.ORGANIZATION_ADMIN:

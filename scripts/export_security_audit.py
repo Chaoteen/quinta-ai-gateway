@@ -15,6 +15,7 @@ import time
 import uuid
 
 SOURCES = {
+    'role_assignment_audits': ('id', 'actor_id', 'target_id', 'tenant_id', 'previous_role', 'new_role', 'created_at'),
     'credential_reset_audits': ('id', 'actor_id', 'target_id', 'target_tenant_id', 'credential_type', 'created_at'),
     'supplier_audits': ('id', 'actor_id', 'action', 'resource_id', 'created_at'),
 }
@@ -62,6 +63,9 @@ def export_once(database, directory, limit=1000):
     state_path = directory / 'checkpoint.json'
     if state_path.exists():
         state = json.loads(state_path.read_text(encoding='utf-8'))
+        if state.get('version') == 1 and set(state.get('cursors', {})) == {'credential_reset_audits', 'supplier_audits'}:
+            state['cursors']['role_assignment_audits'] = 0
+            atomic_json(state_path, state)
         if state.get('version') != 1 or set(state.get('cursors', {})) != set(SOURCES):
             raise ValueError('invalid checkpoint; operator review required')
         uuid.UUID(state['instance'])

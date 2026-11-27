@@ -99,3 +99,8 @@ HSTS仅当SECURITY_HSTS_HOST与请求主机匹配且为非IP，并配置SECURITY
 
 HSTS 的代理 HTTPS 声明仅信任 TRUSTED_PROXIES，新增伪造转发头与 IP 拒绝测试。当前 IP 入口不启用 HSTS，正式域名上线后按 INDEPENDENT_AUDIT.md 启用。
 新增当前 SQLite ECS 的只读事务审计导出进程、systemd 每分钟任务、脱敏字段白名单、fsync 后断点、稳定事件去重 ID 和心跳。当前未准备 SLS 资源，远端接收、云端告警及独立存储验收仍未完成，不能声称已实现全量独立审计。详见 INDEPENDENT_AUDIT.md。
+
+
+## 2026-11-27 业务角色 RBAC 基础
+
+新增供应商、分销商、企业管理员资源动作矩阵、显式接口白名单、平台角色分配界面与事务审计；分配后撤销浏览器会话及个人管理令牌，禁止对共用个人租户直接提权。修复安全验证 403 被全局拦截器误跳转。保留旧角色兼容策略。已接入与未完成的业务边界详见 docs/rbac/resource-permissions.md；不得将此批基础发布视为供货报价、分销定价或企业统一资金账户已经完成。

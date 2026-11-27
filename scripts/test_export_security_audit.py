@@ -20,6 +20,7 @@ class AuditExportTest(unittest.TestCase):
         self.out = Path(self.temp.name) / 'logs'
         with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('CREATE TABLE credential_reset_audits(id INTEGER PRIMARY KEY, actor_id INT, target_id INT, target_tenant_id INT, credential_type TEXT, created_at INT, secret TEXT)')
+            db.execute('CREATE TABLE role_assignment_audits(id INTEGER PRIMARY KEY, actor_id INT, target_id INT, tenant_id INT, previous_role TEXT, new_role TEXT, created_at INT)')
             db.execute('CREATE TABLE supplier_audits(id INTEGER PRIMARY KEY, actor_id INT, action TEXT, resource_id INT, created_at INT)')
             db.execute("INSERT INTO credential_reset_audits VALUES(1, 1, 2, 1, 'totp', 100, 'never-export-this')")
             db.execute("INSERT INTO supplier_audits VALUES(1, 1, 'supplier.create', 1, 101)")

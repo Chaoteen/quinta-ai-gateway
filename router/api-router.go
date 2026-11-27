@@ -471,6 +471,9 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/", operationalOpsReadAuth, controller.GetAllTask)
 		}
 
+		apiRouter.GET("/rbac/self", middleware.UserAuth(), controller.GetResourcePermissions)
+		apiRouter.GET("/rbac/roles", middleware.RootAuth(), controller.GetRolePermissionMatrix)
+		apiRouter.POST("/rbac/assign", middleware.RootAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.AssignResourceRole)
 		apiRouter.GET("/platform/security/credential-resets", middleware.RootAuth(), middleware.DisableCache(), controller.AdminCredentialResetAudits)
 		apiRouter.GET("/platform/security/readiness", middleware.RootAuth(), middleware.DisableCache(), controller.AdminSecurityReadiness)
 		supplierRoute := apiRouter.Group("/platform/suppliers")

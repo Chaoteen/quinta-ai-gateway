@@ -199,6 +199,11 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 		return
 	}
 
+	roleKey := c.GetString(string(constant.ContextKeyUserRoleKey))
+	if businessRole(roleKey) && (common.GetContextKeyInt(c, constant.ContextKeyTenantId) <= 1 || !businessRouteGrant(c, roleKey)) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "Permission denied"})
+		return
+	}
 	if len(continueChain) == 0 || continueChain[0] {
 		c.Next()
 	}
@@ -231,7 +236,7 @@ func RoleAuth(requiredRoles ...string) func(c *gin.Context) {
 		if roleKey == "" {
 			roleKey = common.LegacyRoleToRoleKey(c.GetInt("role"))
 		}
-		if !common.HasAnyRole(roleKey, requiredRoles...) {
+		if !common.HasAnyRole(roleKey, requiredRoles...) && !(businessRole(roleKey) && businessRouteGrant(c, roleKey) && !common.StringsContains(requiredRoles, common.RoleKeyRoot)) {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
 				"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),

@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useAuthStore } from '@/stores/auth-store'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -54,6 +56,8 @@ import { useChannels } from './channels-provider'
 
 export function ChannelsPrimaryButtons() {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const businessAdmin = [ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === getUserRoleKey(actor))
   const {
     setOpen,
     enableTagMode,
@@ -74,6 +78,8 @@ export function ChannelsPrimaryButtons() {
     localStorage.setItem('channels-id-sort', String(checked))
     setIdSort(checked)
   }
+
+  if (businessAdmin) return <Button onClick={() => setOpen('create-channel')}>{t('Add Channel')}</Button>
 
   return (
     <>

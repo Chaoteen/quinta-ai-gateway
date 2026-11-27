@@ -141,6 +141,7 @@ func completeLogin(user *model.User, c *gin.Context) {
 			"display_name":            user.DisplayName,
 			"role":                    user.Role,
 			"role_key":                user.NormalizedRoleKey(),
+			"resource_permissions":    common.ResourcePermissions(user.NormalizedRoleKey()),
 			"tenant_id":               user.TenantId,
 			"organization_id":         user.OrganizationId,
 			"department_id":           user.DepartmentId,
@@ -456,6 +457,7 @@ func GetSelf(c *gin.Context) {
 		"display_name":            user.DisplayName,
 		"role":                    user.Role,
 		"role_key":                user.NormalizedRoleKey(),
+		"resource_permissions":    common.ResourcePermissions(user.NormalizedRoleKey()),
 		"tenant_id":               user.TenantId,
 		"organization_id":         user.OrganizationId,
 		"department_id":           user.DepartmentId,
@@ -648,6 +650,14 @@ func UpdateUser(c *gin.Context) {
 	}
 	if !requireUserTenantAccess(c, originUser) {
 		return
+	}
+	roleKey := model.AccessScopeFromContext(c).RoleKey
+	if roleKey == common.RoleKeyEnterpriseAdmin || roleKey == common.RoleKeySupplierAdmin || roleKey == common.RoleKeyDistributorAdmin {
+		// Delegated member management cannot change a pricing group or credentials.
+		if updatedUser.Group != originUser.Group || updatedUser.Password != "$I_LOVE_U" {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 	}
 	myRole := c.GetInt("role")
 	if myRole <= originUser.Role && myRole != common.RoleRootUser {

@@ -4,6 +4,9 @@ import "strings"
 
 const (
 	RoleKeyRoot              = "root"
+	RoleKeySupplierAdmin     = "supplier_admin"
+	RoleKeyDistributorAdmin  = "distributor_admin"
+	RoleKeyEnterpriseAdmin   = "enterprise_admin"
 	RoleKeyTenantAdmin       = "tenant_admin"
 	RoleKeyOrganizationAdmin = "organization_admin"
 	RoleKeyFinance           = "finance"
@@ -16,6 +19,8 @@ func NormalizeRoleKey(roleKey string) string {
 	switch strings.ToLower(strings.TrimSpace(roleKey)) {
 	case RoleKeyRoot:
 		return RoleKeyRoot
+	case RoleKeySupplierAdmin, RoleKeyDistributorAdmin, RoleKeyEnterpriseAdmin:
+		return strings.ToLower(strings.TrimSpace(roleKey))
 	case RoleKeyTenantAdmin:
 		return RoleKeyTenantAdmin
 	case RoleKeyOrganizationAdmin:
@@ -48,7 +53,7 @@ func RoleKeyToLegacyRole(roleKey string) int {
 	switch NormalizeRoleKey(roleKey) {
 	case RoleKeyRoot:
 		return RoleRootUser
-	case RoleKeyTenantAdmin:
+	case RoleKeyTenantAdmin, RoleKeySupplierAdmin, RoleKeyDistributorAdmin, RoleKeyEnterpriseAdmin:
 		return RoleAdminUser
 	default:
 		return RoleCommonUser

@@ -263,7 +263,7 @@ func migrateDB() error {
 	}
 
 	err := autoMigrateCompatible(DB,
-		&PlatformSupplier{}, &SupplierAccount{}, &SupplierPrice{}, &SupplierStatement{}, &SupplierPayment{}, &SupplierAudit{}, &SupplierRevision{}, &CredentialResetAudit{},
+		&PlatformSupplier{}, &SupplierAccount{}, &SupplierPrice{}, &SupplierStatement{}, &SupplierPayment{}, &SupplierAudit{}, &SupplierRevision{}, &CredentialResetAudit{}, &RoleAssignmentAudit{},
 		&Tenant{},
 		&DistributionChannel{},
 		&Organization{},
@@ -337,7 +337,7 @@ func migrateDBFast() error {
 		model interface{}
 		name  string
 	}{
-		{&PlatformSupplier{}, "PlatformSupplier"}, {&SupplierAccount{}, "SupplierAccount"}, {&SupplierPrice{}, "SupplierPrice"}, {&SupplierStatement{}, "SupplierStatement"}, {&SupplierPayment{}, "SupplierPayment"}, {&SupplierAudit{}, "SupplierAudit"}, {&SupplierRevision{}, "SupplierRevision"}, {&CredentialResetAudit{}, "CredentialResetAudit"},
+		{&PlatformSupplier{}, "PlatformSupplier"}, {&SupplierAccount{}, "SupplierAccount"}, {&SupplierPrice{}, "SupplierPrice"}, {&SupplierStatement{}, "SupplierStatement"}, {&SupplierPayment{}, "SupplierPayment"}, {&SupplierAudit{}, "SupplierAudit"}, {&SupplierRevision{}, "SupplierRevision"}, {&CredentialResetAudit{}, "CredentialResetAudit"}, {&RoleAssignmentAudit{}, "RoleAssignmentAudit"},
 		{&Tenant{}, "Tenant"},
 		{&DistributionChannel{}, "DistributionChannel"},
 		{&Organization{}, "Organization"},
