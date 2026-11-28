@@ -104,3 +104,12 @@ HSTS 的代理 HTTPS 声明仅信任 TRUSTED_PROXIES，新增伪造转发头与 
 ## 2026-11-27 业务角色 RBAC 基础
 
 新增供应商、分销商、企业管理员资源动作矩阵、显式接口白名单、平台角色分配界面与事务审计；分配后撤销浏览器会话及个人管理令牌，禁止对共用个人租户直接提权。修复安全验证 403 被全局拦截器误跳转。保留旧角色兼容策略。已接入与未完成的业务边界详见 docs/rbac/resource-permissions.md；不得将此批基础发布视为供货报价、分销定价或企业统一资金账户已经完成。
+
+
+## 2026-11-28 可配置委派与 WebSocket 补丁
+
+完成平台权限上限、一级租户委派、自定义角色、实时模型调用授权与事务审计；增加真实路由、旧调用Key、视频session撤销、三类管理员隔离和角色停用测试。MySQL、PostgreSQL CI 的并发与RBAC测试通过，默认/classic构建及依赖审计通过，后端全套和安全race测试通过。
+
+首次最终CI在 govulncheck 检出 GO-2026-6278（github.com/gorilla/websocket v1.5.3）。对照官方Go漏洞库 https://pkg.go.dev/vuln/GO-2026-6278 和修复提交 https://github.com/gorilla/websocket/commit/d67f41855da42d7bccd9ef050c49f7e54e783b95，将唯一相关依赖固定到 v1.5.4-0.20240701034025-d67f41855da4；掩码随机数改用上游crypto/rand实现。保留BSD-2-Clause声明，更新版本清单，不屏蔽漏洞或降低CI门槛。
+
+更新后本机重跑全包测试通过，Go1.26.11下全项目govulncheck为“No vulnerabilities found”；这只表示此次漏洞数据库与调用可达性扫描未检出已知漏洞，不代表项目无逻辑漏洞或完成独立安全认证。最终CI和部署验证以对应发布记录为准。前端原有余额Effect告警仍单列，不宣称全量lint通过。

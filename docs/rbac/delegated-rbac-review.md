@@ -24,3 +24,6 @@ SLS 未配置，当前是本机审计导出；未宣称云端独立审计或等�
 浏览器验收脚本 `scripts/test_rbac_ui.py` 已用已有 Edge/Playwright 通过：平台和租户写入都必须先完成验证，未提交成功前无成功提示；角色列表刷新、成员分配、聚焦撤权、只读密钥/卡券/发票/余额页面、390px宽屏检查、页面异常检查均通过。复核中发现的验证重试提前成功和同级 React key 重复问题均由该测试复现并修复。
 
 后端全包测试通过；最后改动重新运行 common/model/middleware/router/controller/service 通过，新增三种业务类型、角色停用、未知资源/扩大scope/无view动作拒绝。审计导出7项测试通过。类型检查和生产构建通过。MySQL/PostgreSQL 测试已加入 CI，必须等待实际运行，不能用 SQLite 结果代替。
+
+
+GitHub CI ef1d2760fe66 已通过MySQL/PostgreSQL的真实一次性库验收、默认/classic生产构建、前端依赖审计、后端全套与安全race检查；其govulncheck发现WebSocket依赖漏洞，继续以官方补丁修复并在本机重扫通过，详见安全迭代记录。没有将失败的CI表示为全部通过。
