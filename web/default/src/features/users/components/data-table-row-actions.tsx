@@ -34,8 +34,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useAuthStore } from '@/stores/auth-store'
-import { canResource } from '@/lib/rbac'
-import { isAdminConsoleUser, isRootUser } from '@/lib/rbac'
+import { canResource, isAdminConsoleUser, isRootUser } from '@/lib/rbac'
 import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import {

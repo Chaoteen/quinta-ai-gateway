@@ -12,7 +12,7 @@ export function RbacSync() {
     queryKey: ['rbac-state', actor?.id],
     enabled: !!actor && isBusinessRole(actor),
     refetchInterval: 30000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
     queryFn: async () => {
       const { data } = await api.get('/api/rbac/self')
       if (!data.success) throw new Error('Authorization unavailable')

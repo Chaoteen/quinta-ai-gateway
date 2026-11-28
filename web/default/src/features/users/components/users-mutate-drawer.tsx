@@ -23,8 +23,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
+import { isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -80,6 +82,8 @@ export function UsersMutateDrawer({
   currentRow,
 }: UsersMutateDrawerProps) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const business = isBusinessRole(actor)
   const isUpdate = !!currentRow
   const { triggerRefresh } = useUsers()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -88,6 +92,7 @@ export function UsersMutateDrawer({
   // Fetch groups
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
+    enabled: open && !business,
     queryFn: getGroups,
     staleTime: 5 * 60 * 1000,
   })
@@ -212,7 +217,7 @@ export function UsersMutateDrawer({
                   )}
                 />
 
-                {!isUpdate && (
+                {!isUpdate && !business && (
                   <FormField
                     control={form.control}
                     name='role'
@@ -296,7 +301,7 @@ export function UsersMutateDrawer({
               </div>
 
               {/* Group & Quota Settings (Update only) */}
-              {isUpdate && (
+              {isUpdate && !business && (
                 <div className='space-y-4'>
                   <h3 className='text-sm font-medium'>{t('Group & Quota')}</h3>
 
@@ -398,7 +403,7 @@ export function UsersMutateDrawer({
               )}
 
               {/* Binding Information (Read-only) */}
-              {isUpdate && (
+              {isUpdate && !business && (
                 <div className='space-y-4'>
                   <h3 className='text-sm font-medium'>
                     {t('Binding Information')}

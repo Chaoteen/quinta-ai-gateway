@@ -88,5 +88,10 @@ func TestRBACHTTPDelegationAndRevocation(t *testing.T) {
 	require.Equal(t, 403, rec.Code, rec.Body.String())
 	require.True(t, strings.Contains(rec.Body.String(), "Model usage is not allowed"))
 	require.False(t, reached)
+	r.GET("/rbac-video-fixture", middleware.TokenOrUserAuth(), func(c *gin.Context) { c.Status(204) })
+	response = rbacRequest(t, r, 3, 10, 0, "GET", "/rbac-video-fixture", nil)
+	require.Equal(t, 401, response.Code, "video session also checks revoked epoch")
+	response = rbacRequest(t, r, 3, 10, 1, "GET", "/rbac-video-fixture", nil)
+	require.Equal(t, 403, response.Code, "video session respects model use withdrawal")
 
 }

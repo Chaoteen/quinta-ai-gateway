@@ -484,6 +484,16 @@ func GetSelf(c *gin.Context) {
 		"sidebar_modules":         userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"permissions":             permissions,                // 新增权限字段
 	}
+	if model.BusinessRoleFamily(user.NormalizedRoleKey()) {
+		state, err := model.EffectiveRBAC(user.Id)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "Authorization unavailable"})
+			return
+		}
+		responseData["resource_permissions"] = state.Grants
+		responseData["can_delegate_roles"] = state.CanDelegate
+		responseData["scoped_role_id"] = state.RoleId
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

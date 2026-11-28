@@ -20,11 +20,11 @@ import { AxiosError } from 'axios'
 import i18next from 'i18next'
 import { toast } from 'sonner'
 
-export function handleServerError(error: unknown) {
+export function handleServerError(error: unknown, fallbackMessage?: string) {
   // eslint-disable-next-line no-console
   console.log(error)
 
-  let errMsg = i18next.t('Something went wrong!')
+  let errMsg = fallbackMessage || i18next.t('Something went wrong!')
 
   if (
     error &&
@@ -36,7 +36,7 @@ export function handleServerError(error: unknown) {
   }
 
   if (error instanceof AxiosError) {
-    errMsg = error.response?.data.title
+    errMsg = fallbackMessage || error.response?.data.title || errMsg
   }
 
   toast.error(errMsg)

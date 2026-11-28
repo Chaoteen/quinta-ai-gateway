@@ -5014,6 +5014,12 @@
     "rbac.audit.role.create": "创建角色",
     "rbac.audit.role.update": "修改或停用角色",
     "rbac.audit.assignment.create": "分配角色",
-    "rbac.audit.assignment.revoke": "撤销角色"
+    "rbac.audit.assignment.revoke": "撤销角色",
+    "Role name must contain 1 to 128 UTF-8 bytes": "角色名称须为 1 至 128 个 UTF-8 字节",
+    "Enter a positive user ID": "请输入正整数用户 ID",
+    "Role changed. Refresh and retry.": "角色配置已变化，请刷新后重试。",
+    "Role operation unavailable": "授权操作暂不可用，请刷新或检查权限。",
+    "Invoices": "发票",
+    "Vouchers": "卡券"
   }
 }

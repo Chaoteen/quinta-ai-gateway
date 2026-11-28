@@ -178,22 +178,8 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 		return
 	}
 
-	if !useAccessToken {
-		var current model.User
-		if err := model.DB.Select("id", "auth_epoch").First(&current, id.(int)).Error; err != nil {
-			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "Session verification unavailable"})
-			return
-		}
-		epoch, ok := session.Get("auth_epoch").(int64)
-		if session.Get("auth_epoch") == nil {
-			ok = true
-		}
-		if !ok || epoch != current.AuthEpoch {
-			session.Clear()
-			_ = session.Save()
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Session revoked. Sign in again."})
-			return
-		}
+	if !useAccessToken && !sessionHasCurrentEpoch(c, id.(int), session) {
+		return
 	}
 	if !requireActiveTenant(c, c.GetInt("role") == common.RoleRootUser) {
 		return
@@ -276,6 +262,25 @@ func WssAuth(c *gin.Context) {
 
 }
 
+func sessionHasCurrentEpoch(c *gin.Context, userID int, session sessions.Session) bool {
+	var current model.User
+	if err := model.DB.Select("id", "auth_epoch").First(&current, userID).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "Session verification unavailable"})
+		return false
+	}
+	epoch, ok := session.Get("auth_epoch").(int64)
+	if session.Get("auth_epoch") == nil {
+		ok = true
+	}
+	if !ok || epoch != current.AuthEpoch {
+		session.Clear()
+		_ = session.Save()
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Session revoked. Sign in again."})
+		return false
+	}
+	return true
+}
+
 // TokenOrUserAuth allows either session-based user auth or API token auth.
 // Used for endpoints that need to be accessible from both the dashboard and API clients.
 func TokenOrUserAuth() func(c *gin.Context) {
@@ -284,6 +289,14 @@ func TokenOrUserAuth() func(c *gin.Context) {
 		session := sessions.Default(c)
 		if id := session.Get("id"); id != nil {
 			if status, ok := session.Get("status").(int); ok && status == common.UserStatusEnabled {
+				userID, validID := id.(int)
+				if !validID {
+					c.AbortWithStatus(http.StatusUnauthorized)
+					return
+				}
+				if !sessionHasCurrentEpoch(c, userID, session) {
+					return
+				}
 				c.Set("id", id)
 				if role, ok := session.Get("role").(int); ok {
 					c.Set("role", role)
@@ -304,6 +317,15 @@ func TokenOrUserAuth() func(c *gin.Context) {
 				}
 				c.Set("role", common.RoleKeyToLegacyRole(userCache.RoleKey))
 				if !requireActiveTenant(c, c.GetInt("role") == common.RoleRootUser) {
+					return
+				}
+				allowed, err := model.RBACInferenceAllowed(userID)
+				if err != nil {
+					c.AbortWithStatus(http.StatusServiceUnavailable)
+					return
+				}
+				if !allowed {
+					c.AbortWithStatus(http.StatusForbidden)
 					return
 				}
 				c.Next()

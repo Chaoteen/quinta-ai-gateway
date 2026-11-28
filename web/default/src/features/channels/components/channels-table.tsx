@@ -31,7 +31,9 @@ import {
 } from '@tanstack/react-table'
 import { useDebounce, useMediaQuery } from '@/hooks'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
 import { getLobeIcon } from '@/lib/lobe-icon'
+import { isBusinessRole } from '@/lib/rbac'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { Input } from '@/components/ui/input'
 import {
@@ -174,9 +176,12 @@ export function ChannelsTable() {
     })
   }
 
+  const actor = useAuthStore((state) => state.auth.user)
+  // Business users cannot inspect platform-wide group configuration.
   // Fetch groups for filter
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
+    enabled: !isBusinessRole(actor),
     queryFn: getGroups,
   })
 

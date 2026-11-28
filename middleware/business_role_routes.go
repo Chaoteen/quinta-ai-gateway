@@ -9,7 +9,7 @@ import (
 )
 
 func businessRole(role string) bool {
-	return role == common.RoleKeySupplierAdmin || role == common.RoleKeyDistributorAdmin || role == common.RoleKeyEnterpriseAdmin
+	return model.BusinessRoleFamily(role)
 }
 
 // Explicit route patterns prevent a new admin-class role from inheriting old

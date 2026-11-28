@@ -176,3 +176,46 @@ func TestRBACConcurrentRoleRevision(t *testing.T) {
 	require.Equal(t, 1, success)
 	require.Equal(t, 1, conflicts)
 }
+
+func TestRBACFamilyIsolationAndDisabledRoles(t *testing.T) {
+	for _, family := range []string{common.RoleKeySupplierAdmin, common.RoleKeyDistributorAdmin, common.RoleKeyEnterpriseAdmin} {
+		t.Run(family, func(t *testing.T) {
+			rbacFixture(t)
+			require.NoError(t, DB.Model(&User{}).Where("id = ?", 2).Update("role_key", family).Error)
+			caps := common.ResourcePermissions(family)
+			_, err := SaveRBACPolicy(1, family, caps, true, 0)
+			require.NoError(t, err)
+			input := ScopedRoleInput{TenantId: 2, Family: family, Name: "Scoped member", Active: true, Grants: caps}
+			for _, invalid := range []map[string]common.ResourceGrant{
+				{"unknown_resource": {Scope: "tenant", View: true}},
+				{"keys": {Scope: "platform", View: true}},
+				{"keys": {Scope: "tenant", Create: true}},
+			} {
+				bad := input
+				bad.Grants = invalid
+				_, err = SaveScopedRole(2, bad)
+				require.ErrorIs(t, err, ErrRBACDenied)
+			}
+			role, err := SaveScopedRole(2, input)
+			require.NoError(t, err)
+			require.NoError(t, AssignScopedRole(2, 3, role.Id))
+			foreignFamily := common.RoleKeyEnterpriseAdmin
+			if family == foreignFamily {
+				foreignFamily = common.RoleKeySupplierAdmin
+			}
+			require.NoError(t, DB.Model(&User{}).Where("id = ?", 5).Update("role_key", foreignFamily).Error)
+			require.ErrorIs(t, AssignScopedRole(5, 3, role.Id), ErrRBACDenied)
+			input.Id, input.Version, input.Active = role.Id, role.Version, false
+			_, err = SaveScopedRole(2, input)
+			require.NoError(t, err)
+			state, err := EffectiveRBAC(3)
+			require.NoError(t, err)
+			for _, grant := range state.Grants {
+				require.False(t, grant.View || grant.Use || grant.Create || grant.Operate || grant.Update || grant.Delete)
+			}
+			require.ErrorIs(t, AssignScopedRole(2, 3, role.Id), ErrRBACDenied)
+			_, err = SaveScopedRole(2, input)
+			require.ErrorIs(t, err, ErrRBACConflict)
+		})
+	}
+}

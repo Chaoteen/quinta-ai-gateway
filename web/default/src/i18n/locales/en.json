@@ -5014,6 +5014,12 @@
     "rbac.audit.role.create": "create",
     "rbac.audit.role.update": "update",
     "rbac.audit.assignment.create": "create",
-    "rbac.audit.assignment.revoke": "revoke"
+    "rbac.audit.assignment.revoke": "revoke",
+    "Role name must contain 1 to 128 UTF-8 bytes": "Role name must contain 1 to 128 UTF-8 bytes",
+    "Enter a positive user ID": "Enter a positive user ID",
+    "Role changed. Refresh and retry.": "Role changed. Refresh and retry.",
+    "Role operation unavailable": "Role operation unavailable",
+    "Invoices": "Invoices",
+    "Vouchers": "Vouchers"
   }
 }
