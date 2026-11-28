@@ -35,8 +35,24 @@ jobs:
       - run: go test . ./common/... ./constant/... ./controller/... ./dto/... ./i18n/... ./logger/... ./middleware/... ./model/... ./oauth/... ./pkg/... ./relay/... ./router/... ./service/... ./setting/... ./types/...
       - run: go test -race ./service ./middleware -run 'TestSecurity' -count=1
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 . ./common/... ./constant/... ./controller/... ./dto/... ./i18n/... ./logger/... ./middleware/... ./model/... ./oauth/... ./pkg/... ./relay/... ./router/... ./service/... ./setting/... ./types/...
+      - name: Secret-scan waiver regression
+        run: python3 scripts/test_secret_scan.py --gitleaks-command go run github.com/zricethezav/gitleaks/v8@v8.30.1
       - name: Full-history secret scan (redacted)
-        run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner --log-opts="--all"
+        run: |
+          mkdir -p .audit-tools
+          set +e
+          go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact=100 --no-banner --log-opts="--all" --gitleaks-ignore-path .gitleaksignore --report-format=json --report-path=.audit-tools/gitleaks-redacted.json
+          scan_result=$?
+          set -e
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path('.audit-tools/gitleaks-redacted.json')
+          if report.is_file():
+              for row in json.loads(report.read_text()):
+                  print(json.dumps({key: row.get(key) for key in ('RuleID', 'File', 'StartLine', 'Commit', 'Fingerprint')}))
+          PY
+          exit "$scan_result"
   database-concurrency:
     runs-on: ubuntu-latest
     timeout-minutes: 25

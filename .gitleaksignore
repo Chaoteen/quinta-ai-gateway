@@ -1,0 +1,27 @@
+# Reviewed false positives in the immutable initial import only.
+# Rules remain enabled for all future commits and all other findings.
+# Evidence: docs/security/SECRET_SCAN_TRIAGE.md.
+# Public Docker image tags in upstream build commands, not credentials.
+4f20c9896961fb3eab82851be97c324c82636350:.github/workflows/docker-image-nightly.yml:generic-api-key:105
+# Public Docker image tags in upstream build commands, not credentials.
+4f20c9896961fb3eab82851be97c324c82636350:.github/workflows/docker-image-nightly.yml:generic-api-key:106
+# 47-character API masking example in a comment, not a runtime credential or a 39-character GCP key.
+4f20c9896961fb3eab82851be97c324c82636350:common/str.go:gcp-api-key:250
+# Synthetic local database token fixtures created by seedToken in unit tests.
+4f20c9896961fb3eab82851be97c324c82636350:controller/token_test.go:generic-api-key:395
+# Synthetic local database token fixtures created by seedToken in unit tests.
+4f20c9896961fb3eab82851be97c324c82636350:controller/token_test.go:generic-api-key:423
+# Synthetic local database token fixtures created by seedToken in unit tests.
+4f20c9896961fb3eab82851be97c324c82636350:controller/token_test.go:generic-api-key:450
+# Synthetic local database token fixtures created by seedToken in unit tests.
+4f20c9896961fb3eab82851be97c324c82636350:controller/token_test.go:generic-api-key:475
+# Public response compatibility identifier, not an authentication credential.
+4f20c9896961fb3eab82851be97c324c82636350:middleware/auth.go:generic-api-key:148
+# PEM boundary marker strings only, no private key material.
+4f20c9896961fb3eab82851be97c324c82636350:relay/channel/vertex/service_account.go:private-key:68
+# Public req_key model/task identifiers; authentication credentials come from separate runtime configuration.
+4f20c9896961fb3eab82851be97c324c82636350:relay/channel/task/jimeng/adaptor.go:generic-api-key:226
+# Public req_key model/task identifiers; authentication credentials come from separate runtime configuration.
+4f20c9896961fb3eab82851be97c324c82636350:relay/channel/task/jimeng/adaptor.go:generic-api-key:410
+# Public req_key model/task identifiers; authentication credentials come from separate runtime configuration.
+4f20c9896961fb3eab82851be97c324c82636350:relay/channel/task/jimeng/adaptor.go:generic-api-key:412
