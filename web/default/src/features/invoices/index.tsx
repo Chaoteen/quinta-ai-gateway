@@ -9,6 +9,7 @@ import {
   formatDisplayDateTime,
   formatDisplayMoney,
 } from '@/lib/commercial-display'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -132,6 +133,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 export function InvoicePortal() {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const canCreate =
+    !isBusinessRole(actor) || canResource(actor, 'invoice_requests', 'create')
+  const canOperate =
+    !isBusinessRole(actor) || canResource(actor, 'invoice_requests', 'operate')
+  const canReadPayments =
+    !isBusinessRole(actor) || canResource(actor, 'payments')
   const [activeTab, setActiveTab] = useState<UserTab>('profiles')
   const [pages, setPages] = useState<Record<UserTab, number>>({
     profiles: 1,
@@ -168,6 +176,7 @@ export function InvoicePortal() {
   })
   const paymentsQuery = useQuery({
     queryKey: ['invoices', 'paid-payments'],
+    enabled: canReadPayments,
     queryFn: () => getPaidPaymentOrders({ p: 1, page_size: 100 }),
   })
 
@@ -175,7 +184,7 @@ export function InvoicePortal() {
     void profilesQuery.refetch()
     void applicationsQuery.refetch()
     void filesQuery.refetch()
-    void paymentsQuery.refetch()
+    if (canReadPayments) void paymentsQuery.refetch()
   }
 
   const createProfileMutation = useMutation({
@@ -271,85 +280,91 @@ export function InvoicePortal() {
           </TabsList>
 
           <TabsContent value='profiles'>
-            <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
-              <Card className='rounded-lg'>
-                <CardHeader>
-                  <CardTitle className='text-base'>
-                    {t('Create invoice profile')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form
-                    className='space-y-3'
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      createProfileMutation.mutate()
-                    }}
-                  >
-                    <Field label={t('Profile Type')}>
-                      <select
-                        className='bg-background h-9 rounded-md border px-3 text-sm'
-                        value={profileForm.profile_type}
+            <div
+              className={
+                canCreate ? 'grid gap-4 xl:grid-cols-[360px_1fr]' : 'grid gap-4'
+              }
+            >
+              {canCreate && (
+                <Card className='rounded-lg'>
+                  <CardHeader>
+                    <CardTitle className='text-base'>
+                      {t('Create invoice profile')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      className='space-y-3'
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        createProfileMutation.mutate()
+                      }}
+                    >
+                      <Field label={t('Profile Type')}>
+                        <select
+                          className='bg-background h-9 rounded-md border px-3 text-sm'
+                          value={profileForm.profile_type}
+                          onChange={(event) =>
+                            setProfileForm((current) => ({
+                              ...current,
+                              profile_type: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value='COMPANY'>{t('Company')}</option>
+                          <option value='PERSONAL'>{t('Personal')}</option>
+                        </select>
+                      </Field>
+                      <Input
+                        value={profileForm.title}
                         onChange={(event) =>
                           setProfileForm((current) => ({
                             ...current,
-                            profile_type: event.target.value,
+                            title: event.target.value,
                           }))
                         }
-                      >
-                        <option value='COMPANY'>{t('Company')}</option>
-                        <option value='PERSONAL'>{t('Personal')}</option>
-                      </select>
-                    </Field>
-                    <Input
-                      value={profileForm.title}
-                      onChange={(event) =>
-                        setProfileForm((current) => ({
-                          ...current,
-                          title: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Invoice title')}
-                    />
-                    <Input
-                      value={profileForm.tax_no}
-                      onChange={(event) =>
-                        setProfileForm((current) => ({
-                          ...current,
-                          tax_no: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Tax number')}
-                    />
-                    <Input
-                      value={profileForm.recipient_email}
-                      onChange={(event) =>
-                        setProfileForm((current) => ({
-                          ...current,
-                          recipient_email: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Recipient email')}
-                    />
-                    <label className='flex items-center gap-2 text-sm'>
-                      <input
-                        type='checkbox'
-                        checked={profileForm.is_default}
-                        onChange={(event) =>
-                          setProfileForm((current) => ({
-                            ...current,
-                            is_default: event.target.checked,
-                          }))
-                        }
+                        placeholder={t('Invoice title')}
                       />
-                      {t('Set as default')}
-                    </label>
-                    <Button type='submit' className='w-full'>
-                      {t('Create')}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                      <Input
+                        value={profileForm.tax_no}
+                        onChange={(event) =>
+                          setProfileForm((current) => ({
+                            ...current,
+                            tax_no: event.target.value,
+                          }))
+                        }
+                        placeholder={t('Tax number')}
+                      />
+                      <Input
+                        value={profileForm.recipient_email}
+                        onChange={(event) =>
+                          setProfileForm((current) => ({
+                            ...current,
+                            recipient_email: event.target.value,
+                          }))
+                        }
+                        placeholder={t('Recipient email')}
+                      />
+                      <label className='flex items-center gap-2 text-sm'>
+                        <input
+                          type='checkbox'
+                          checked={profileForm.is_default}
+                          onChange={(event) =>
+                            setProfileForm((current) => ({
+                              ...current,
+                              is_default: event.target.checked,
+                            }))
+                          }
+                        />
+                        {t('Set as default')}
+                      </label>
+                      <Button type='submit' className='w-full'>
+                        {t('Create')}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
               <Card className='rounded-lg'>
                 <CardHeader>
                   <CardTitle className='text-base'>
@@ -359,7 +374,11 @@ export function InvoicePortal() {
                 <CardContent>
                   <ProfileTable
                     items={profilesQuery.data?.data.items ?? []}
-                    onDisable={(id) => disableMutation.mutate(id)}
+                    onDisable={
+                      canOperate
+                        ? (id) => disableMutation.mutate(id)
+                        : undefined
+                    }
                   />
                   <Pager
                     page={pages.profiles}
@@ -372,98 +391,111 @@ export function InvoicePortal() {
           </TabsContent>
 
           <TabsContent value='applications'>
-            <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
-              <Card className='rounded-lg'>
-                <CardHeader>
-                  <CardTitle className='text-base'>
-                    {t('Submit invoice application')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form
-                    className='space-y-3'
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      createApplicationMutation.mutate()
-                    }}
-                  >
-                    <Field label={t('Payment Order')}>
-                      <select
-                        className='bg-background h-9 rounded-md border px-3 text-sm'
-                        value={applicationForm.source_id}
+            <div
+              className={
+                canCreate ? 'grid gap-4 xl:grid-cols-[360px_1fr]' : 'grid gap-4'
+              }
+            >
+              {canCreate && (
+                <Card className='rounded-lg'>
+                  <CardHeader>
+                    <CardTitle className='text-base'>
+                      {t('Submit invoice application')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      className='space-y-3'
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        createApplicationMutation.mutate()
+                      }}
+                    >
+                      <Field label={t('Payment Order')}>
+                        <select
+                          className='bg-background h-9 rounded-md border px-3 text-sm'
+                          value={applicationForm.source_id}
+                          onChange={(event) =>
+                            setApplicationForm((current) => ({
+                              ...current,
+                              source_id: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value=''>{t('Select payment order')}</option>
+                          {(paymentsQuery.data?.data.items ?? [])
+                            .filter((order) => order.currency === 'CNY')
+                            .map((order) => (
+                              <option key={order.id} value={order.id}>
+                                {order.order_no} -{' '}
+                                {formatDisplayMoney(
+                                  order.amount,
+                                  order.currency
+                                )}
+                              </option>
+                            ))}
+                        </select>
+                      </Field>
+                      <Field label={t('Invoice Profile')}>
+                        <select
+                          className='bg-background h-9 rounded-md border px-3 text-sm'
+                          value={applicationForm.invoice_profile_id}
+                          onChange={(event) =>
+                            setApplicationForm((current) => ({
+                              ...current,
+                              invoice_profile_id: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value=''>
+                            {t('Select invoice profile')}
+                          </option>
+                          {(profilesQuery.data?.data.items ?? []).map(
+                            (profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {profile.title}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </Field>
+                      <Input
+                        type='number'
+                        min='0'
+                        step='0.01'
+                        value={applicationForm.amount}
                         onChange={(event) =>
                           setApplicationForm((current) => ({
                             ...current,
-                            source_id: event.target.value,
+                            amount: event.target.value,
                           }))
                         }
-                      >
-                        <option value=''>{t('Select payment order')}</option>
-                        {(paymentsQuery.data?.data.items ?? [])
-                          .filter((order) => order.currency === 'CNY')
-                          .map((order) => (
-                            <option key={order.id} value={order.id}>
-                              {order.order_no} -{' '}
-                              {formatDisplayMoney(order.amount, order.currency)}
-                            </option>
-                          ))}
-                      </select>
-                    </Field>
-                    <Field label={t('Invoice Profile')}>
-                      <select
-                        className='bg-background h-9 rounded-md border px-3 text-sm'
-                        value={applicationForm.invoice_profile_id}
-                        onChange={(event) =>
-                          setApplicationForm((current) => ({
-                            ...current,
-                            invoice_profile_id: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value=''>{t('Select invoice profile')}</option>
-                        {(profilesQuery.data?.data.items ?? []).map(
-                          (profile) => (
-                            <option key={profile.id} value={profile.id}>
-                              {profile.title}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </Field>
-                    <Input
-                      type='number'
-                      min='0'
-                      step='0.01'
-                      value={applicationForm.amount}
-                      onChange={(event) =>
-                        setApplicationForm((current) => ({
-                          ...current,
-                          amount: event.target.value,
-                        }))
-                      }
-                      placeholder={t('Invoice amount')}
-                    />
-                    <Field label={t('Invoice Type')}>
-                      <select
-                        className='bg-background h-9 rounded-md border px-3 text-sm'
-                        value={applicationForm.invoice_type}
-                        onChange={(event) =>
-                          setApplicationForm((current) => ({
-                            ...current,
-                            invoice_type: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value='VAT_NORMAL'>{t('VAT Normal')}</option>
-                        <option value='VAT_SPECIAL'>{t('VAT Special')}</option>
-                      </select>
-                    </Field>
-                    <Button type='submit' className='w-full'>
-                      {t('Submit')}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                        placeholder={t('Invoice amount')}
+                      />
+                      <Field label={t('Invoice Type')}>
+                        <select
+                          className='bg-background h-9 rounded-md border px-3 text-sm'
+                          value={applicationForm.invoice_type}
+                          onChange={(event) =>
+                            setApplicationForm((current) => ({
+                              ...current,
+                              invoice_type: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value='VAT_NORMAL'>{t('VAT Normal')}</option>
+                          <option value='VAT_SPECIAL'>
+                            {t('VAT Special')}
+                          </option>
+                        </select>
+                      </Field>
+                      <Button type='submit' className='w-full'>
+                        {t('Submit')}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
               <Card className='rounded-lg'>
                 <CardHeader>
                   <CardTitle className='text-base'>

@@ -12,7 +12,7 @@ type ResourceGrant struct {
 	Scope   string `json:"scope"`
 }
 
-var RBACResources = []string{"platform", "supplier_procurement", "supply_models", "supply_prices", "resale_models", "resale_prices", "members", "keys", "subscriptions", "payments", "invoice_requests", "invoice_issuance", "vouchers", "audit"}
+var RBACResources = []string{"model_calls", "platform", "supplier_procurement", "supply_models", "supply_prices", "resale_models", "resale_prices", "members", "keys", "subscriptions", "payments", "invoice_requests", "invoice_issuance", "vouchers", "audit"}
 
 func ResourcePermissions(role string) map[string]ResourceGrant {
 	result := make(map[string]ResourceGrant, len(RBACResources))
@@ -46,20 +46,24 @@ func ResourcePermissions(role string) map[string]ResourceGrant {
 	case RoleKeyRoot:
 		grant(RBACResources, "platform", "vucoed")
 	case RoleKeySupplierAdmin:
+		grant([]string{"model_calls"}, "self", "vu")
 		grant([]string{"supply_models", "supply_prices"}, "supplier", "vucoe")
 		grant([]string{"members", "keys"}, "tenant", "vucoed")
 		grant([]string{"payments", "audit"}, "supplier", "v")
 	case RoleKeyDistributorAdmin:
+		grant([]string{"model_calls"}, "self", "vu")
 		grant([]string{"resale_models", "resale_prices"}, "distribution", "vucoe")
 		grant([]string{"members", "keys"}, "tenant", "vucoed")
 		grant([]string{"subscriptions", "payments", "invoice_requests", "vouchers"}, "tenant", "vucoe")
 		grant([]string{"audit"}, "tenant", "v")
 	case RoleKeyEnterpriseAdmin:
+		grant([]string{"model_calls"}, "self", "vu")
 		grant([]string{"members", "keys"}, "tenant", "vucoed")
 		grant([]string{"subscriptions", "payments", "invoice_requests"}, "tenant", "vucoe")
 		grant([]string{"vouchers"}, "tenant", "vu")
 		grant([]string{"audit"}, "tenant", "v")
 	case RoleKeyUser:
+		grant([]string{"model_calls"}, "self", "vu")
 		grant([]string{"keys"}, "self", "vucoed")
 		grant([]string{"subscriptions", "payments", "invoice_requests"}, "self", "vucoe")
 		grant([]string{"vouchers"}, "self", "vu")
@@ -72,6 +76,10 @@ func ResourceAllowed(role, resource, action string) bool {
 	if !ok {
 		return false
 	}
+	return GrantAllowed(g, action)
+}
+
+func GrantAllowed(g ResourceGrant, action string) bool {
 	switch action {
 	case "view":
 		return g.View

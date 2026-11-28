@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useAuthStore } from '@/stores/auth-store'
+import { isBusinessRole, canResource } from '@/lib/rbac'
 import { useStatus } from '@/hooks/use-status'
 import { Main } from '@/components/layout'
 import {
@@ -37,7 +38,8 @@ import { useProfile } from './hooks'
 export function Profile() {
   const { profile, loading, refreshProfile } = useProfile()
   const { status } = useStatus()
-  const permissions = useAuthStore((s) => s.auth.user?.permissions)
+  const actor = useAuthStore((s) => s.auth.user)
+  const permissions = actor?.permissions
 
   const checkinEnabled = status?.checkin_enabled === true
   const turnstileEnabled = !!(
@@ -49,7 +51,7 @@ export function Profile() {
   return (
     <Main>
       <div className='min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4 sm:py-6'>
-        <CardStaggerContainer className='flex w-full min-w-0 max-w-[100rem] flex-col gap-4 sm:gap-6'>
+        <CardStaggerContainer className='flex w-full max-w-[100rem] min-w-0 flex-col gap-4 sm:gap-6'>
           <CardStaggerItem>
             <ProfileHeader profile={profile} loading={loading} />
           </CardStaggerItem>
@@ -66,7 +68,9 @@ export function Profile() {
                   profile={profile}
                   onProfileUpdate={refreshProfile}
                 />
-                <ChatToolsCard />
+                {(!isBusinessRole(actor) ||
+                  (canResource(actor, 'keys', 'create') &&
+                    canResource(actor, 'keys', 'use'))) && <ChatToolsCard />}
                 <ProfileSecurityCard profile={profile} loading={loading} />
               </div>
 

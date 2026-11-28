@@ -73,6 +73,13 @@ jobs:
           SECURITY_ALLOW_DISPOSABLE_DB: 'true'
           SECURITY_TEST_DB_DSN: host=localhost user=postgres password=disposable_ci_password dbname=security_test port=5432 sslmode=disable
         run: go test ./service -run '^TestSecurity' -count=1
+      - name: PostgreSQL RBAC isolation and revision tests
+        if: matrix.driver == 'postgres'
+        env:
+          RBAC_TEST_DB_DRIVER: postgres
+          RBAC_ALLOW_DISPOSABLE_DB: 'true'
+          RBAC_TEST_DB_DSN: host=localhost user=postgres password=disposable_ci_password dbname=security_test port=5432 sslmode=disable
+        run: go test ./model -run '^TestRBAC' -count=1
       - name: MySQL concurrent payment and voucher tests
         if: matrix.driver == 'mysql'
         env:
@@ -80,6 +87,13 @@ jobs:
           SECURITY_ALLOW_DISPOSABLE_DB: 'true'
           SECURITY_TEST_DB_DSN: root:disposable_ci_password@tcp(localhost:3306)/security_test?parseTime=true
         run: go test ./service -run '^TestSecurity' -count=1
+      - name: MySQL RBAC isolation and revision tests
+        if: matrix.driver == 'mysql'
+        env:
+          RBAC_TEST_DB_DRIVER: mysql
+          RBAC_ALLOW_DISPOSABLE_DB: 'true'
+          RBAC_TEST_DB_DSN: root:disposable_ci_password@tcp(localhost:3306)/security_test?parseTime=true
+        run: go test ./model -run '^TestRBAC' -count=1
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 20

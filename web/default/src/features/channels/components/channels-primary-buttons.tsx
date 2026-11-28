@@ -1,3 +1,18 @@
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  Plus,
+  MoreHorizontal,
+  Settings2,
+  Trash2,
+  Tags,
+  TestTube,
+  DollarSign,
+  SortAsc,
+  RefreshCw,
+  ArrowUpFromLine,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,22 +32,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useAuthStore } from '@/stores/auth-store'
+import { canResource } from '@/lib/rbac'
 import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
-import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import {
-  Plus,
-  MoreHorizontal,
-  Settings2,
-  Trash2,
-  Tags,
-  TestTube,
-  DollarSign,
-  SortAsc,
-  RefreshCw,
-  ArrowUpFromLine,
-} from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -57,7 +58,11 @@ import { useChannels } from './channels-provider'
 export function ChannelsPrimaryButtons() {
   const { t } = useTranslation()
   const actor = useAuthStore((state) => state.auth.user)
-  const businessAdmin = [ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === getUserRoleKey(actor))
+  const businessAdmin = [
+    ROLE_KEY.SUPPLIER_ADMIN,
+    ROLE_KEY.DISTRIBUTOR_ADMIN,
+    ROLE_KEY.ENTERPRISE_ADMIN,
+  ].some((role) => role === getUserRoleKey(actor))
   const {
     setOpen,
     enableTagMode,
@@ -79,7 +84,14 @@ export function ChannelsPrimaryButtons() {
     setIdSort(checked)
   }
 
-  if (businessAdmin) return <Button onClick={() => setOpen('create-channel')}>{t('Add Channel')}</Button>
+  if (businessAdmin && !canResource(actor, 'supply_models', 'create'))
+    return null
+  if (businessAdmin)
+    return (
+      <Button onClick={() => setOpen('create-channel')}>
+        {t('Add Channel')}
+      </Button>
+    )
 
   return (
     <>

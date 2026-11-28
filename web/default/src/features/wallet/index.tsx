@@ -18,9 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
 import { getSelf } from '@/lib/api'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
+import { Button } from '@/components/ui/button'
 import { SectionPageLayout } from '@/components/layout'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
@@ -57,6 +60,39 @@ interface WalletProps {
 }
 
 export function Wallet(props: WalletProps) {
+  const actor = useAuthStore((state) => state.auth.user)
+  if (isBusinessRole(actor) && !canResource(actor, 'payments', 'create'))
+    return <ReadOnlyWallet />
+  return <EditableWallet {...props} />
+}
+function ReadOnlyWallet() {
+  const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
+  const [history, setHistory] = useState(false)
+  return (
+    <>
+      <SectionPageLayout>
+        <SectionPageLayout.Title>{t('Wallet')}</SectionPageLayout.Title>
+        <SectionPageLayout.Content>
+          <div className='max-w-[100rem] space-y-4'>
+            <WalletStatsCard
+              user={actor as UserWalletData | null}
+              loading={false}
+            />
+            <p className='text-muted-foreground text-sm'>
+              {t('Your role can view billing but cannot initiate payments.')}
+            </p>
+            <Button variant='outline' onClick={() => setHistory(true)}>
+              {t('Order History')}
+            </Button>
+          </div>
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
+      <BillingHistoryDialog open={history} onOpenChange={setHistory} />
+    </>
+  )
+}
+function EditableWallet(props: WalletProps) {
   const { t } = useTranslation()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
@@ -265,7 +301,7 @@ export function Wallet(props: WalletProps) {
           {t('Manage your balance and payment methods')}
         </SectionPageLayout.Description>
         <SectionPageLayout.Content>
-          <div className='flex w-full min-w-0 max-w-[100rem] flex-col gap-4 sm:gap-5'>
+          <div className='flex w-full max-w-[100rem] min-w-0 flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
 
             <div

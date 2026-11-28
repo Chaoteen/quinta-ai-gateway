@@ -22,6 +22,7 @@ import { getUserRoleKey, ROLE_KEY, type RoleKey } from './roles'
 export const RBAC_PERMISSION = {
   ADMIN_CONSOLE: 'adminConsole',
   ROOT_ADMIN: 'rootAdmin',
+  ROLE_MANAGEMENT: 'roleManagement',
   CHANNELS: 'channels',
   MODELS: 'models',
   USERS: 'users',
@@ -40,7 +41,10 @@ export const RBAC_PERMISSION = {
 export type RbacPermission =
   (typeof RBAC_PERMISSION)[keyof typeof RBAC_PERMISSION]
 
-type PermissionSubject = Pick<AuthUser, 'role_key'> | null | undefined
+type PermissionSubject =
+  | Pick<AuthUser, 'role_key' | 'resource_permissions' | 'can_delegate_roles'>
+  | null
+  | undefined
 
 export const RBAC_PERMISSION_MATRIX: Record<
   RbacPermission,
@@ -54,6 +58,7 @@ export const RBAC_PERMISSION_MATRIX: Record<
     ROLE_KEY.AUDITOR,
   ],
   [RBAC_PERMISSION.ROOT_ADMIN]: [],
+  [RBAC_PERMISSION.ROLE_MANAGEMENT]: [],
   [RBAC_PERMISSION.CHANNELS]: [ROLE_KEY.TENANT_ADMIN, ROLE_KEY.OPS],
   [RBAC_PERMISSION.MODELS]: [],
   [RBAC_PERMISSION.USERS]: [ROLE_KEY.TENANT_ADMIN, ROLE_KEY.ORGANIZATION_ADMIN],
@@ -90,7 +95,7 @@ export const RBAC_PERMISSION_MATRIX: Record<
 }
 
 export const ADMIN_SIDEBAR_PERMISSION_BY_URL: Record<string, RbacPermission> = {
-  '/role-permissions': RBAC_PERMISSION.ROOT_ADMIN,
+  '/role-permissions': RBAC_PERMISSION.ROLE_MANAGEMENT,
   '/security-center': RBAC_PERMISSION.ROOT_ADMIN,
   '/suppliers': RBAC_PERMISSION.ROOT_ADMIN,
   '/tenants': RBAC_PERMISSION.ROOT_ADMIN,
@@ -121,9 +126,19 @@ export function hasPermission(
 ): boolean {
   const roleKey = getUserRoleKey(user)
   if (roleKey === ROLE_KEY.ROOT) return true
-  if ([ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === roleKey)) {
-    if (permission === RBAC_PERMISSION.USERS) return true
-    if (permission === RBAC_PERMISSION.CHANNELS) return roleKey === ROLE_KEY.SUPPLIER_ADMIN
+  if (
+    [
+      ROLE_KEY.SUPPLIER_ADMIN,
+      ROLE_KEY.DISTRIBUTOR_ADMIN,
+      ROLE_KEY.ENTERPRISE_ADMIN,
+    ].some((role) => role === roleKey)
+  ) {
+    if (permission === RBAC_PERMISSION.ROLE_MANAGEMENT)
+      return user?.can_delegate_roles === true
+    if (permission === RBAC_PERMISSION.USERS)
+      return canResource(user, 'members', 'view')
+    if (permission === RBAC_PERMISSION.CHANNELS)
+      return canResource(user, 'supply_models', 'view')
     return false
   }
   return RBAC_PERMISSION_MATRIX[permission].includes(roleKey)
@@ -162,4 +177,22 @@ export function isPathAllowedForRole(
   return !TENANT_ADMIN_RESTRICTED_PATH_PREFIXES.some((prefix) =>
     matchesPathPrefix(pathname, prefix)
   )
+}
+
+export type ResourceAction =
+  'view' | 'use' | 'create' | 'operate' | 'update' | 'delete'
+export function isBusinessRole(user: PermissionSubject): boolean {
+  return [
+    ROLE_KEY.SUPPLIER_ADMIN,
+    ROLE_KEY.DISTRIBUTOR_ADMIN,
+    ROLE_KEY.ENTERPRISE_ADMIN,
+  ].some((role) => role === getUserRoleKey(user))
+}
+export function canResource(
+  user: PermissionSubject,
+  resource: string,
+  action: ResourceAction = 'view'
+): boolean {
+  if (getUserRoleKey(user) === ROLE_KEY.ROOT) return true
+  return user?.resource_permissions?.[resource]?.[action] === true
 }

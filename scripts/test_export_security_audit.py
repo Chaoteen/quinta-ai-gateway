@@ -20,6 +20,7 @@ class AuditExportTest(unittest.TestCase):
         self.out = Path(self.temp.name) / 'logs'
         with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('CREATE TABLE credential_reset_audits(id INTEGER PRIMARY KEY, actor_id INT, target_id INT, target_tenant_id INT, credential_type TEXT, created_at INT, secret TEXT)')
+            db.execute('CREATE TABLE rbac_audits(id INTEGER PRIMARY KEY, actor_id INT, target_user_id INT, role_id INT, tenant_id INT, action TEXT, snapshot TEXT, created_at INT)')
             db.execute('CREATE TABLE role_assignment_audits(id INTEGER PRIMARY KEY, actor_id INT, target_id INT, tenant_id INT, previous_role TEXT, new_role TEXT, created_at INT)')
             db.execute('CREATE TABLE supplier_audits(id INTEGER PRIMARY KEY, actor_id INT, action TEXT, resource_id INT, created_at INT)')
             db.execute("INSERT INTO credential_reset_audits VALUES(1, 1, 2, 1, 'totp', 100, 'never-export-this')")
@@ -68,6 +69,15 @@ class AuditExportTest(unittest.TestCase):
             self.assertEqual(audit.export_once(self.db, self.out), 2)
             db.rollback()
         self.assertNotIn('uncommitted', json.dumps(self.records()))
+
+    def test_previous_checkpoint_adds_source_without_replaying_old_rows(self):
+        audit.export_once(self.db, self.out)
+        path = self.out / 'checkpoint.json'
+        state = json.loads(path.read_text())
+        del state['cursors']['rbac_audits']
+        path.write_text(json.dumps(state))
+        self.assertEqual(audit.export_once(self.db, self.out), 0)
+        self.assertEqual(json.loads(path.read_text())['cursors']['supplier_audits'], 1)
 
     def test_killed_partial_write_is_recovered(self):
         audit.export_once(self.db, self.out, limit=0)

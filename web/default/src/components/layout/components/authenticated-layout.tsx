@@ -24,6 +24,7 @@ import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { AnimatedOutlet } from '@/components/page-transition'
 import { SkipToMain } from '@/components/skip-to-main'
+import { RbacSync } from '@/features/role-permissions/rbac-sync'
 import { WorkspaceProvider } from '../context/workspace-context'
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
@@ -42,6 +43,7 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
         <WorkspaceProvider>
           <SidebarProvider defaultOpen={defaultOpen} className='flex-col'>
             <SkipToMain />
+            <RbacSync />
             <AppHeader />
             <div className='flex min-h-0 w-full flex-1'>
               <AppSidebar />

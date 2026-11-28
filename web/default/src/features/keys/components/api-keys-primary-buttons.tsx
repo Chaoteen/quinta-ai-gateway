@@ -18,12 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { useApiKeys } from './api-keys-provider'
 
 export function ApiKeysPrimaryButtons() {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
   const { setOpen } = useApiKeys()
+  if (isBusinessRole(actor) && !canResource(actor, 'keys', 'create'))
+    return null
   return (
     <div className='flex gap-2'>
       <Button size='sm' onClick={() => setOpen('create')}>

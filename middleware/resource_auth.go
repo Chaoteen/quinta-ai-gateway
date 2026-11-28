@@ -16,7 +16,12 @@ func ResourceAuth(resource, action string) gin.HandlerFunc {
 			return
 		}
 		scope := model.AccessScopeFromContext(c)
-		if !common.ResourceAllowed(scope.RoleKey, resource, action) || (!scope.IsRoot && scope.TenantId <= 0) {
+		allowed := common.ResourceAllowed(scope.RoleKey, resource, action)
+		if value, exists := c.Get("rbac_state"); exists {
+			state, ok := value.(model.RBACState)
+			allowed = ok && common.GrantAllowed(state.Grants[resource], action)
+		}
+		if !allowed || (!scope.IsRoot && scope.TenantId <= 0) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "Permission denied"})
 			return
 		}

@@ -18,11 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { useUsers } from './users-provider'
 
 export function UsersPrimaryButtons() {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
   const { setOpen, setCurrentRow } = useUsers()
 
   const handleCreate = () => {
@@ -30,6 +33,8 @@ export function UsersPrimaryButtons() {
     setOpen('create')
   }
 
+  if (isBusinessRole(actor) && !canResource(actor, 'members', 'create'))
+    return null
   return (
     <div className='flex gap-2'>
       <Button size='sm' onClick={handleCreate}>

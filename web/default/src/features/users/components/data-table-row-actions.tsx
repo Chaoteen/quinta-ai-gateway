@@ -1,3 +1,20 @@
+import { useState } from 'react'
+import { type Row } from '@tanstack/react-table'
+import {
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Power,
+  PowerOff,
+  ArrowUp,
+  ArrowDown,
+  KeyRound,
+  ShieldAlert,
+  Link2,
+  CreditCard,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,25 +34,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useAuthStore } from '@/stores/auth-store'
-import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
-import { useState } from 'react'
-import { type Row } from '@tanstack/react-table'
-import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Power,
-  PowerOff,
-  ArrowUp,
-  ArrowDown,
-  KeyRound,
-  ShieldAlert,
-  Link2,
-  CreditCard,
-} from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
+import { canResource } from '@/lib/rbac'
 import { isAdminConsoleUser, isRootUser } from '@/lib/rbac'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -65,7 +66,11 @@ interface DataTableRowActionsProps {
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
   const actor = useAuthStore((state) => state.auth.user)
-  const businessAdmin = [ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === getUserRoleKey(actor))
+  const businessAdmin = [
+    ROLE_KEY.SUPPLIER_ADMIN,
+    ROLE_KEY.DISTRIBUTOR_ADMIN,
+    ROLE_KEY.ENTERPRISE_ADMIN,
+  ].some((role) => role === getUserRoleKey(actor))
   const verification = useSecureVerification()
   const user = row.original
   const { setOpen, setCurrentRow, triggerRefresh } = useUsers()
@@ -149,7 +154,18 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     return null
   }
 
-  if (businessAdmin) return <Button variant='outline' size='sm' onClick={handleEdit}>{t('Edit')}</Button>
+  if (
+    businessAdmin &&
+    (!canResource(actor, 'members', 'update') ||
+      user.role >= (actor?.role || 0))
+  )
+    return null
+  if (businessAdmin)
+    return (
+      <Button variant='outline' size='sm' onClick={handleEdit}>
+        {t('Edit')}
+      </Button>
+    )
 
   return (
     <>

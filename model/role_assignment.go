@@ -50,8 +50,15 @@ func AssignBusinessRole(actorID, targetID int, role string) error {
 			return errors.New("active tenant required")
 		}
 		previous := target.NormalizedRoleKey()
-		if previous == role {
+		var bindingCount int64
+		if err := tx.Model(&RBACBinding{}).Where("user_id = ?", targetID).Count(&bindingCount).Error; err != nil {
+			return err
+		}
+		if previous == role && bindingCount == 0 {
 			return nil
+		}
+		if err := tx.Where("user_id = ?", targetID).Delete(&RBACBinding{}).Error; err != nil {
+			return err
 		}
 		updates := map[string]interface{}{"role": common.RoleKeyToLegacyRole(role), "role_key": role, "auth_epoch": gorm.Expr("auth_epoch + ?", 1), "access_token": nil}
 		if err := tx.Table("users").Where("id = ?", targetID).Updates(updates).Error; err != nil {

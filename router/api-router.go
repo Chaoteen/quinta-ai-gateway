@@ -471,6 +471,11 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/", operationalOpsReadAuth, controller.GetAllTask)
 		}
 
+		apiRouter.GET("/rbac/workspace", middleware.UserAuth(), middleware.DisableCache(), controller.RBACWorkspace)
+		apiRouter.PUT("/rbac/policy", middleware.RootAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.SaveRBACPolicy)
+		apiRouter.POST("/rbac/custom-roles", middleware.UserAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.SaveScopedRole)
+		apiRouter.POST("/rbac/assignments", middleware.UserAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.AssignScopedRole)
+		apiRouter.DELETE("/rbac/assignments/:id", middleware.UserAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.RevokeScopedRole)
 		apiRouter.GET("/rbac/self", middleware.UserAuth(), controller.GetResourcePermissions)
 		apiRouter.GET("/rbac/roles", middleware.RootAuth(), controller.GetRolePermissionMatrix)
 		apiRouter.POST("/rbac/assign", middleware.RootAuth(), middleware.CriticalRateLimit(), middleware.SecureVerificationRequired(), controller.AssignResourceRole)

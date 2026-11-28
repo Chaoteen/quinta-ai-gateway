@@ -200,6 +200,18 @@ func authHelper(c *gin.Context, minRole int, continueChain ...bool) {
 	}
 
 	roleKey := c.GetString(string(constant.ContextKeyUserRoleKey))
+	if businessRole(roleKey) {
+		state, err := model.EffectiveRBAC(c.GetInt("id"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "Authorization unavailable"})
+			return
+		}
+		if state.Family != roleKey || state.TenantId != common.GetContextKeyInt(c, constant.ContextKeyTenantId) {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		c.Set("rbac_state", state)
+	}
 	if businessRole(roleKey) && (common.GetContextKeyInt(c, constant.ContextKeyTenantId) <= 1 || !businessRouteGrant(c, roleKey)) {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "Permission denied"})
 		return
@@ -482,6 +494,15 @@ func TokenAuth() func(c *gin.Context) {
 			return
 		}
 
+		allowed, authErr := model.RBACInferenceAllowed(token.UserId)
+		if authErr != nil {
+			abortWithOpenAiMessage(c, http.StatusServiceUnavailable, "Authorization unavailable")
+			return
+		}
+		if !allowed {
+			abortWithOpenAiMessage(c, http.StatusForbidden, "Model usage is not allowed by your role")
+			return
+		}
 		userGroup := userCache.Group
 		tokenGroup := token.Group
 		if tokenGroup != "" {

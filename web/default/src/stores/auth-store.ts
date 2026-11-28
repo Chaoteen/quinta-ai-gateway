@@ -29,7 +29,20 @@ export interface AuthUser {
   display_name?: string
   email?: string
   role: number
-  resource_permissions?: Record<string, { view: boolean; use: boolean; create: boolean; operate: boolean; update: boolean; delete: boolean; scope: string }>
+  can_delegate_roles?: boolean
+  scoped_role_id?: number
+  resource_permissions?: Record<
+    string,
+    {
+      view: boolean
+      use: boolean
+      create: boolean
+      operate: boolean
+      update: boolean
+      delete: boolean
+      scope: string
+    }
+  >
   role_key?: string
   status?: number
   tenant_id?: number

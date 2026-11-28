@@ -1,7 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import {
   Ban,
   Gift,
@@ -11,7 +9,15 @@ import {
   RefreshCw,
   Ticket,
 } from 'lucide-react'
-import { SectionPageLayout } from '@/components/layout'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  displayEnumLabel,
+  formatDisplayDateTime,
+} from '@/lib/commercial-display'
+import { canResource, isBusinessRole } from '@/lib/rbac'
+import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,12 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  displayEnumLabel,
-  formatDisplayDateTime,
-} from '@/lib/commercial-display'
-import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
-import { useAuthStore } from '@/stores/auth-store'
+import { SectionPageLayout } from '@/components/layout'
 import {
   createVoucherBatch,
   disableVoucher,
@@ -67,9 +68,7 @@ function statusVariant(
 function StatusBadge({ status }: { status?: string }) {
   const { t } = useTranslation()
   return (
-    <Badge variant={statusVariant(status)}>
-      {displayEnumLabel(status, t)}
-    </Badge>
+    <Badge variant={statusVariant(status)}>{displayEnumLabel(status, t)}</Badge>
   )
 }
 
@@ -86,7 +85,7 @@ function Pager({
   const total = pageData?.total ?? 0
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
   return (
-    <div className='flex items-center justify-end gap-2 pt-3 text-sm text-muted-foreground'>
+    <div className='text-muted-foreground flex items-center justify-end gap-2 pt-3 text-sm'>
       <span>
         {t('Page')} {page} / {maxPage}
       </span>
@@ -116,7 +115,10 @@ function EmptyRows({ colSpan }: { colSpan: number }) {
   const { t } = useTranslation()
   return (
     <TableRow>
-      <TableCell colSpan={colSpan} className='h-24 text-center text-muted-foreground'>
+      <TableCell
+        colSpan={colSpan}
+        className='text-muted-foreground h-24 text-center'
+      >
         {t('No data')}
       </TableCell>
     </TableRow>
@@ -124,6 +126,9 @@ function EmptyRows({ colSpan }: { colSpan: number }) {
 }
 
 export function VoucherPortal() {
+  const actor = useAuthStore((state) => state.auth.user)
+  const canRedeem =
+    !isBusinessRole(actor) || canResource(actor, 'vouchers', 'use')
   const { t } = useTranslation()
   const [code, setCode] = useState('')
   const [page, setPage] = useState(1)
@@ -165,66 +170,74 @@ export function VoucherPortal() {
         </Button>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
-        <div className='grid gap-4 xl:grid-cols-[360px_1fr]'>
-          <Card className='rounded-lg'>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2 text-base'>
-                <Gift className='size-4' />
-                {t('Voucher Redemption')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                className='space-y-3'
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!code.trim()) {
-                    toast.error(t('Voucher code is required'))
-                    return
-                  }
-                  redeemMutation.mutate()
-                }}
-              >
-                <Input
-                  value={code}
-                  onChange={(event) => setCode(event.target.value)}
-                  placeholder={t('Voucher code')}
-                  className='font-mono uppercase'
-                />
-                <Button
-                  type='submit'
-                  className='w-full'
-                  disabled={redeemMutation.isPending}
+        <div
+          className={
+            canRedeem ? 'grid gap-4 xl:grid-cols-[360px_1fr]' : 'grid gap-4'
+          }
+        >
+          {canRedeem && (
+            <Card className='rounded-lg'>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2 text-base'>
+                  <Gift className='size-4' />
+                  {t('Voucher Redemption')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  className='space-y-3'
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (!code.trim()) {
+                      toast.error(t('Voucher code is required'))
+                      return
+                    }
+                    redeemMutation.mutate()
+                  }}
                 >
-                  <Ticket className='size-4' />
-                  {t('Redeem')}
-                </Button>
-              </form>
-              {lastRedemption && (
-                <div className='mt-4 rounded-md border bg-muted/30 p-3 text-sm'>
-                  <div className='mb-2 font-medium'>{t('Latest result')}</div>
-                  <div className='grid gap-2 text-muted-foreground'>
-                    <div className='flex justify-between gap-3'>
-                      <span>{t('Code')}</span>
-                      <span className='font-mono text-foreground'>
-                        {lastRedemption.voucher_code}
-                      </span>
-                    </div>
-                    <div className='flex justify-between gap-3'>
-                      <span>{t('Type')}</span>
-                      <span className='text-foreground'>
-                        {displayEnumLabel(lastRedemption.redemption_type, t)}
-                      </span>
-                    </div>
-                    <div className='flex justify-between gap-3'>
-                      <span>{t('Result')}</span>
-                      <StatusBadge status={lastRedemption.redemption_result} />
+                  <Input
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder={t('Voucher code')}
+                    className='font-mono uppercase'
+                  />
+                  <Button
+                    type='submit'
+                    className='w-full'
+                    disabled={redeemMutation.isPending}
+                  >
+                    <Ticket className='size-4' />
+                    {t('Redeem')}
+                  </Button>
+                </form>
+                {lastRedemption && (
+                  <div className='bg-muted/30 mt-4 rounded-md border p-3 text-sm'>
+                    <div className='mb-2 font-medium'>{t('Latest result')}</div>
+                    <div className='text-muted-foreground grid gap-2'>
+                      <div className='flex justify-between gap-3'>
+                        <span>{t('Code')}</span>
+                        <span className='text-foreground font-mono'>
+                          {lastRedemption.voucher_code}
+                        </span>
+                      </div>
+                      <div className='flex justify-between gap-3'>
+                        <span>{t('Type')}</span>
+                        <span className='text-foreground'>
+                          {displayEnumLabel(lastRedemption.redemption_type, t)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between gap-3'>
+                        <span>{t('Result')}</span>
+                        <StatusBadge
+                          status={lastRedemption.redemption_result}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className='rounded-lg'>
             <CardHeader>
@@ -439,10 +452,12 @@ export function VoucherAdminPortal() {
   if (!canView) {
     return (
       <SectionPageLayout>
-        <SectionPageLayout.Title>{t('Voucher Management')}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>
+          {t('Voucher Management')}
+        </SectionPageLayout.Title>
         <SectionPageLayout.Content>
           <Card className='rounded-lg'>
-            <CardContent className='py-8 text-center text-muted-foreground'>
+            <CardContent className='text-muted-foreground py-8 text-center'>
               {t('Access denied')}
             </CardContent>
           </Card>
@@ -453,7 +468,9 @@ export function VoucherAdminPortal() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Voucher Management')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        {t('Voucher Management')}
+      </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <Button type='button' variant='outline' size='sm' onClick={refreshAll}>
           <RefreshCw className='size-4' />
@@ -507,7 +524,7 @@ export function VoucherAdminPortal() {
                       <select
                         value={voucherType}
                         onChange={(event) => setVoucherType(event.target.value)}
-                        className='h-9 w-full rounded-md border bg-background px-3 text-sm'
+                        className='bg-background h-9 w-full rounded-md border px-3 text-sm'
                       >
                         <option value='TOKEN'>{t('Token voucher')}</option>
                         <option value='SUBSCRIPTION'>
@@ -666,7 +683,7 @@ export function VoucherAdminPortal() {
                         setVoucherStatus(event.target.value)
                         setPages((prev) => ({ ...prev, vouchers: 1 }))
                       }}
-                      className='h-9 w-40 rounded-md border bg-background px-3 text-sm'
+                      className='bg-background h-9 w-40 rounded-md border px-3 text-sm'
                     >
                       <option value=''>{t('All statuses')}</option>
                       <option value='UNUSED'>{t('Unused')}</option>
@@ -921,7 +938,7 @@ function StatusSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className='h-9 w-40 rounded-md border bg-background px-3 text-sm'
+      className='bg-background h-9 w-40 rounded-md border px-3 text-sm'
     >
       <option value=''>{t('All statuses')}</option>
       {options.map((option) => (
@@ -945,7 +962,7 @@ function TypeSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className='h-9 w-48 rounded-md border bg-background px-3 text-sm'
+      className='bg-background h-9 w-48 rounded-md border px-3 text-sm'
     >
       <option value=''>{t('All types')}</option>
       <option value='TOKEN'>{t('Token voucher')}</option>

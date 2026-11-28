@@ -7,9 +7,8 @@ import (
 )
 
 func GetResourcePermissions(c *gin.Context) {
-	scope := model.AccessScopeFromContext(c)
-	c.Header("Cache-Control", "no-store")
-	common.ApiSuccess(c, gin.H{"role_key": scope.RoleKey, "tenant_id": scope.TenantId, "grants": common.ResourcePermissions(scope.RoleKey)})
+	state, err := model.EffectiveRBAC(c.GetInt("id"))
+	rbacReply(c, state, err)
 }
 
 func GetRolePermissionMatrix(c *gin.Context) {

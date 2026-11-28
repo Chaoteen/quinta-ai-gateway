@@ -32,7 +32,9 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -87,6 +89,7 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
   const apiKey = apiKeySchema.parse(row.original)
   const {
     setOpen,
@@ -169,6 +172,35 @@ export function DataTableRowActions<TData>({
     }
   }
 
+  if (isBusinessRole(actor))
+    return (
+      <div className='flex gap-2'>
+        {canResource(actor, 'keys', 'update') && (
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => {
+              setCurrentRow(apiKey)
+              setOpen('update')
+            }}
+          >
+            {t('Edit')}
+          </Button>
+        )}
+        {canResource(actor, 'keys', 'delete') && (
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => {
+              setCurrentRow(apiKey)
+              setOpen('delete')
+            }}
+          >
+            {t('Delete')}
+          </Button>
+        )}
+      </div>
+    )
   return (
     <div className='flex items-center justify-end gap-1'>
       <Tooltip>

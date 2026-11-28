@@ -19,7 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useCallback } from 'react'
 import { Check, Copy, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/auth-store'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
+import { canResource, isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -37,6 +39,7 @@ import { useApiKeys } from './api-keys-provider'
 
 export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
   const {
     resolveRealKey,
     resolvedKeys,
@@ -69,6 +72,8 @@ export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
     }
   }, [resolvedFullKey, resolveRealKey, apiKey.id, markKeyCopied])
 
+  if (isBusinessRole(actor) && !canResource(actor, 'keys', 'use'))
+    return <span className='font-mono text-xs'>{maskedKey}</span>
   return (
     <div className='flex items-center'>
       <Popover open={popoverOpen} onOpenChange={handlePopoverOpen}>

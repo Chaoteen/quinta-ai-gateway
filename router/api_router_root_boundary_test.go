@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Chaoteen/quinta-ai-gateway/common"
 	"github.com/Chaoteen/quinta-ai-gateway/model"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +33,12 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 	common.RedisEnabled = false
 
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	t.Setenv("SQL_DSN", "local")
+	oldPath, oldMaster := common.SQLitePath, common.IsMasterNode
+	common.SQLitePath, common.IsMasterNode = dsn, false
+	err := model.InitDB()
+	common.SQLitePath, common.IsMasterNode = oldPath, oldMaster
+	db := model.DB
 	if err != nil {
 		t.Fatalf("failed to open sqlite db: %v", err)
 	}
@@ -89,6 +94,12 @@ func setupRootBoundaryRouter(t *testing.T) *gin.Engine {
 		}
 		session := sessions.Default(c)
 		session.Set("id", userID)
+		if c.GetHeader("X-Test-Verified") == "1" {
+			session.Set("secure_verified_at", time.Now().Unix())
+			session.Set("secure_verified_user_id", userID)
+			session.Set("secure_verified_method", "2fa")
+		}
+
 		if raw := c.GetHeader("X-Test-Auth-Epoch"); raw != "" {
 			epoch, _ := strconv.ParseInt(raw, 10, 64)
 			session.Set("auth_epoch", epoch)

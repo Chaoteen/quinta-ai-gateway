@@ -21,7 +21,9 @@ import { type Table } from '@tanstack/react-table'
 import { Copy, Trash2, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
+import { isBusinessRole } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -41,6 +43,7 @@ export function DataTableBulkActions<TData>({
   table,
 }: DataTableBulkActionsProps<TData>) {
   const { t } = useTranslation()
+  const actor = useAuthStore((state) => state.auth.user)
   const { resolveRealKeysBatch } = useApiKeys()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
@@ -78,6 +81,7 @@ export function DataTableBulkActions<TData>({
     }
   }, [selectedRows, resolveRealKeysBatch, t])
 
+  if (isBusinessRole(actor)) return null
   return (
     <>
       <BulkActionsToolbar table={table} entityName='API key'>

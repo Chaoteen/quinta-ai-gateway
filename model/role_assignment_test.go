@@ -15,7 +15,7 @@ func TestRoleAssignmentAtomicAndScoped(t *testing.T) {
 	old := DB
 	DB = db
 	t.Cleanup(func() { DB = old; s, _ := db.DB(); s.Close() })
-	require.NoError(t, db.AutoMigrate(&User{}, &Tenant{}, &RoleAssignmentAudit{}))
+	require.NoError(t, db.AutoMigrate(&User{}, &Tenant{}, &RoleAssignmentAudit{}, &RBACBinding{}))
 	for _, u := range []User{{Id: 1, Username: "root", AffCode: "a", Role: 100, RoleKey: "root", Status: 1, TenantId: 1}, {Id: 2, Username: "member", AffCode: "b", Role: 1, RoleKey: "user", Status: 1, TenantId: 2}, {Id: 3, Username: "personal", AffCode: "c", Role: 1, RoleKey: "user", Status: 1, TenantId: 1}} {
 		require.NoError(t, db.Create(&u).Error)
 	}

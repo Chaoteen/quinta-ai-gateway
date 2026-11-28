@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
+import { canResource } from '@/lib/rbac'
 import { getUserRoleKey, ROLE_KEY } from '@/lib/roles'
 import { WORKSPACE_IDS } from '@/components/layout/lib/workspace-registry'
 import { type SidebarData } from '@/components/layout/types'
@@ -61,7 +62,13 @@ export function useSidebarData(): SidebarData {
     },
   ]
 
-  if ([ROLE_KEY.SUPPLIER_ADMIN, ROLE_KEY.DISTRIBUTOR_ADMIN, ROLE_KEY.ENTERPRISE_ADMIN].some((role) => role === roleKey)) {
+  if (
+    [
+      ROLE_KEY.SUPPLIER_ADMIN,
+      ROLE_KEY.DISTRIBUTOR_ADMIN,
+      ROLE_KEY.ENTERPRISE_ADMIN,
+    ].some((role) => role === roleKey)
+  ) {
     const items = [
       { title: t('Overview'), url: '/dashboard/overview', icon: Activity },
       { title: t('User Management'), url: '/users', icon: Users },
@@ -69,15 +76,55 @@ export function useSidebarData(): SidebarData {
       { title: t('Personal Settings'), url: '/profile', icon: User },
     ]
     if (roleKey === ROLE_KEY.SUPPLIER_ADMIN) {
-      items.splice(1, 0, { title: t('Channel Management'), url: '/channels', icon: Radio })
+      items.splice(1, 0, {
+        title: t('Channel Management'),
+        url: '/channels',
+        icon: Radio,
+      })
     } else {
-      items.splice(2, 0,
+      items.splice(
+        2,
+        0,
         { title: t('Billing Center'), url: '/billing', icon: ReceiptText },
         { title: t('Wallet'), url: '/wallet', icon: Wallet },
         { title: t('Invoices'), url: '/invoices', icon: ReceiptText },
-        { title: t('Vouchers'), url: '/vouchers', icon: Gift })
+        { title: t('Vouchers'), url: '/vouchers', icon: Gift }
+      )
     }
-    return { workspaces, navGroups: [{ id: 'business', title: t('Business Workspace'), items }] }
+    if (canResource(user, 'model_calls', 'use'))
+      items.push({
+        title: t('Online chat'),
+        url: '/playground',
+        icon: MessageSquare,
+      })
+    if (user?.can_delegate_roles)
+      items.push({
+        title: t('Roles and permissions'),
+        url: '/role-permissions',
+        icon: Key,
+      })
+    const resources: Record<string, string> = {
+      '/users': 'members',
+      '/keys': 'keys',
+      '/channels': 'supply_models',
+      '/billing': 'payments',
+      '/wallet': 'payments',
+      '/invoices': 'invoice_requests',
+      '/vouchers': 'vouchers',
+    }
+    return {
+      workspaces,
+      navGroups: [
+        {
+          id: 'business',
+          title: t('Business Workspace'),
+          items: items.filter(
+            (item) =>
+              !resources[item.url] || canResource(user, resources[item.url])
+          ),
+        },
+      ],
+    }
   }
 
   if (roleKey === ROLE_KEY.TENANT_ADMIN) {
@@ -251,11 +298,11 @@ export function useSidebarData(): SidebarData {
         items: [
           {
             title: t('Roles and permissions'),
- url: '/role-permissions',
- icon: Key,
- },
- {
- title: t('Administrator security'),
+            url: '/role-permissions',
+            icon: Key,
+          },
+          {
+            title: t('Administrator security'),
             url: '/security-center',
             icon: Key,
           },

@@ -20,11 +20,13 @@ import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
+import { isBusinessRole } from '@/lib/rbac'
 import { isAdminConsoleUser } from '@/lib/rbac'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SectionPageLayout } from '@/components/layout'
 import { FadeIn } from '@/components/page-transition'
+import { BusinessOverview } from '@/features/role-permissions/business-overview'
 import { ModelsChartPreferences } from './components/models/models-chart-preferences'
 import { ModelsFilter } from './components/models/models-filter-dialog'
 import { OverviewDashboard } from './components/overview/overview-dashboard'
@@ -149,6 +151,13 @@ const SECTION_META: Record<
 }
 
 export function Dashboard() {
+  const actor = useAuthStore((state) => state.auth.user)
+  const { section } = route.useParams()
+  if (isBusinessRole(actor) && section === 'overview')
+    return <BusinessOverview />
+  return <ExistingDashboard />
+}
+function ExistingDashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const params = route.useParams()
